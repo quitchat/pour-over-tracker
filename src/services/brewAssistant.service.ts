@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { prisma } from "../lib/prisma";
 
 export type BrewAssistantInput = {
     roasterName: string;
@@ -36,6 +37,28 @@ export type BrewRecipeSuggestion = {
     reasoningNotes: string[];
 };
 
+export const BREW_SUGGESTION_AI_PROMPT_NAME = "default";
+
+export const DEFAULT_BREW_SUGGESTION_AI_PROMPT = [
+    "You are an expert pour-over coffee brewing assistant.",
+    "Create a practical brewing recipe for the selected coffee bean, grinder, brewer, dose, and target flavor.",
+    "Use web search when helpful to find brewing guidance for the brewer, coffee, roaster, or brew method.",
+    "Do not invent exact roaster-specific instructions unless supported by search results or common brewing practice.",
+    "Prefer practical home-brewing guidance over competition recipes.",
+    "The recipe must be usable by a beginner.",
+    "Do not include pricing.",
+    "If grinder setting cannot be known exactly, give a reasonable grind-size description or range using the grinder information provided.",
+    "For waterTemperatureC, use Celsius.",
+    "For totalYieldGrams, calculate a reasonable yield from the coffee dose and target flavor.",
+    "For brewRatio, return text like 1:15, 1:16, or 1:17.",
+    "For totalBrewTimeSeconds, return the target total drawdown time in seconds.",
+    "For pourStructure, include a short pour plan.",
+    "For recipeSteps, include clear step-by-step brew instructions.",
+    "For adjustmentTips, include what to change if the brew tastes sour, bitter, thin, muted, or too heavy.",
+    "For reasoningNotes, include short practical reasons for the choices.",
+    "Return structured JSON only."
+].join("\n");
+
 function getOpenAIClient() {
     if (!process.env.OPENAI_API_KEY) {
         throw new Error("OPENAI_API_KEY is missing. Add it to your .env file.");
@@ -44,6 +67,27 @@ function getOpenAIClient() {
     return new OpenAI({
         apiKey: process.env.OPENAI_API_KEY
     });
+}
+
+async function getBrewSuggestionAiPromptText(): Promise<string> {
+    const existingPrompt = await prisma.brewSuggestionAiPrompt.findUnique({
+        where: {
+            name: BREW_SUGGESTION_AI_PROMPT_NAME
+        }
+    });
+
+    if (existingPrompt) {
+        return existingPrompt.promptText;
+    }
+
+    const createdPrompt = await prisma.brewSuggestionAiPrompt.create({
+        data: {
+            name: BREW_SUGGESTION_AI_PROMPT_NAME,
+            promptText: DEFAULT_BREW_SUGGESTION_AI_PROMPT
+        }
+    });
+
+    return createdPrompt.promptText;
 }
 
 function parseBrewRecipeSuggestionJson(outputText: string): BrewRecipeSuggestion {
@@ -70,6 +114,7 @@ function parseBrewRecipeSuggestionJson(outputText: string): BrewRecipeSuggestion
 export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<BrewRecipeSuggestion> {
     const client = getOpenAIClient();
     const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
+    const promptText = await getBrewSuggestionAiPromptText();
 
     const response = await client.responses.create({
         model: model,
@@ -86,24 +131,13 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<B
                     {
                         type: "input_text",
                         text: [
-                            "You are an expert pour-over coffee brewing assistant.",
-                            "Create a practical brewing recipe for the selected coffee bean, grinder, brewer, dose, and target flavor.",
-                            "Use web search when helpful to find brewing guidance for the brewer, coffee, roaster, or brew method.",
-                            "Do not invent exact roaster-specific instructions unless supported by search results or common brewing practice.",
-                            "Prefer practical home-brewing guidance over competition recipes.",
-                            "The recipe must be usable by a beginner.",
+                            promptText,
+                            "",
+                            "Technical output contract:",
                             "Return structured JSON only.",
-                            "Do not include pricing.",
-                            "If grinder setting cannot be known exactly, give a reasonable grind-size description or range using the grinder information provided.",
-                            "For waterTemperatureC, use Celsius.",
-                            "For totalYieldGrams, calculate a reasonable yield from the coffee dose and target flavor.",
-                            "For brewRatio, return text like 1:15, 1:16, or 1:17.",
-                            "For totalBrewTimeSeconds, return the target total drawdown time in seconds.",
-                            "For pourStructure, include a short pour plan.",
-                            "For recipeSteps, include clear step-by-step brew instructions.",
-                            "For adjustmentTips, include what to change if the brew tastes sour, bitter, thin, muted, or too heavy.",
-                            "For reasoningNotes, include short practical reasons for the choices."
-                        ].join(" ")
+                            "Match the JSON schema exactly.",
+                            "Do not include markdown, comments, citations, or prose outside the JSON object."
+                        ].join("\n")
                     }
                 ]
             },

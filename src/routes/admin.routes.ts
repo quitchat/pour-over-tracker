@@ -1,54 +1,44 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
-import { getRequiredUserId } from "../middleware/auth";
+import { requireAdmin } from "../middleware/auth";
 import {
     BEAN_DETAIL_AI_PROMPT_NAME,
     DEFAULT_BEAN_DETAIL_AI_PROMPT
 } from "../services/coffeeInfo.service";
+import {
+    BREW_SUGGESTION_AI_PROMPT_NAME,
+    DEFAULT_BREW_SUGGESTION_AI_PROMPT
+} from "../services/brewAssistant.service";
 
 const router = Router();
 
-function formatDateTime(date: Date | null): string {
-    if (!date) {
+router.use(requireAdmin);
+
+function getCurrentAdminFromLocals(res: Response) {
+    return res.locals.currentUser as { id: number; email: string; displayName?: string | null } | undefined;
+}
+
+function formatDateTime(value: Date | null): string {
+    if (!value) {
         return "";
     }
 
-    return date.toLocaleString();
+    return value.toLocaleString();
 }
 
-function mapUserForAdmin(user: any) {
-    return {
-        id: user.id,
-        email: user.email,
-        displayName: user.displayName || "",
-        role: user.role,
-        isActive: user.isActive,
-        createdAt: formatDateTime(user.createdAt),
-        deactivatedAt: formatDateTime(user.deactivatedAt),
-        coffeeBeanCount: user._count.coffeeBeans,
-        grinderCount: user._count.grinders,
-        brewerCount: user._count.brewers,
-        brewSessionCount: user._count.brewSessions
-    };
-}
+function getPromptStatusMessage(req: Request): string {
+    const saved = String(req.query.saved || "");
+    const reset = String(req.query.reset || "");
 
-async function getBeanDetailAiPrompt() {
-    const existingPrompt = await prisma.beanDetailAiPrompt.findUnique({
-        where: {
-            name: BEAN_DETAIL_AI_PROMPT_NAME
-        }
-    });
-
-    if (existingPrompt) {
-        return existingPrompt;
+    if (saved === "1") {
+        return "Prompt saved.";
     }
 
-    return await prisma.beanDetailAiPrompt.create({
-        data: {
-            name: BEAN_DETAIL_AI_PROMPT_NAME,
-            promptText: DEFAULT_BEAN_DETAIL_AI_PROMPT
-        }
-    });
+    if (reset === "1") {
+        return "Prompt reset to default.";
+    }
+
+    return "";
 }
 
 router.get("/", function (req: Request, res: Response) {
@@ -57,9 +47,14 @@ router.get("/", function (req: Request, res: Response) {
 
 router.get("/users", async function (req: Request, res: Response) {
     const usersFromDatabase = await prisma.user.findMany({
-        orderBy: {
-            createdAt: "desc"
-        },
+        orderBy: [
+            {
+                isActive: "desc"
+            },
+            {
+                createdAt: "desc"
+            }
+        ],
         include: {
             _count: {
                 select: {
@@ -73,27 +68,40 @@ router.get("/users", async function (req: Request, res: Response) {
     });
 
     const users = usersFromDatabase.map(function (user) {
-        return mapUserForAdmin(user);
+        return {
+            id: user.id,
+            email: user.email,
+            displayName: user.displayName || "",
+            role: user.role,
+            isActive: user.isActive,
+            deactivatedAt: formatDateTime(user.deactivatedAt),
+            createdAt: formatDateTime(user.createdAt),
+            coffeeBeanCount: user._count.coffeeBeans,
+            grinderCount: user._count.grinders,
+            brewerCount: user._count.brewers,
+            brewSessionCount: user._count.brewSessions
+        };
     });
 
     res.render("admin/users", {
-        title: "Admin Users",
+        title: "Admin - Users",
         users: users,
-        currentUserId: getRequiredUserId(req)
+        message: String(req.query.message || ""),
+        error: String(req.query.error || "")
     });
 });
 
 router.post("/users/:id/deactivate", async function (req: Request, res: Response) {
-    const currentUserId = getRequiredUserId(req);
     const id = Number(req.params.id);
+    const currentAdmin = getCurrentAdminFromLocals(res);
 
-    if (!Number.isInteger(id)) {
-        res.status(400).send("Invalid user ID.");
+    if (!Number.isInteger(id) || id <= 0) {
+        res.redirect("/admin/users?error=Invalid%20user.");
         return;
     }
 
-    if (id === currentUserId) {
-        res.status(400).send("You cannot deactivate your own account.");
+    if (currentAdmin && currentAdmin.id === id) {
+        res.redirect("/admin/users?error=You%20cannot%20deactivate%20yourself.");
         return;
     }
 
@@ -107,14 +115,14 @@ router.post("/users/:id/deactivate", async function (req: Request, res: Response
         }
     });
 
-    res.redirect("/admin/users");
+    res.redirect("/admin/users?message=User%20deactivated.");
 });
 
-router.post("/users/:id/activate", async function (req: Request, res: Response) {
+router.post("/users/:id/reactivate", async function (req: Request, res: Response) {
     const id = Number(req.params.id);
 
-    if (!Number.isInteger(id)) {
-        res.status(400).send("Invalid user ID.");
+    if (!Number.isInteger(id) || id <= 0) {
+        res.redirect("/admin/users?error=Invalid%20user.");
         return;
     }
 
@@ -128,14 +136,14 @@ router.post("/users/:id/activate", async function (req: Request, res: Response) 
         }
     });
 
-    res.redirect("/admin/users");
+    res.redirect("/admin/users?message=User%20reactivated.");
 });
 
 router.post("/users/:id/make-admin", async function (req: Request, res: Response) {
     const id = Number(req.params.id);
 
-    if (!Number.isInteger(id)) {
-        res.status(400).send("Invalid user ID.");
+    if (!Number.isInteger(id) || id <= 0) {
+        res.redirect("/admin/users?error=Invalid%20user.");
         return;
     }
 
@@ -148,20 +156,20 @@ router.post("/users/:id/make-admin", async function (req: Request, res: Response
         }
     });
 
-    res.redirect("/admin/users");
+    res.redirect("/admin/users?message=User%20made%20Admin.");
 });
 
 router.post("/users/:id/make-user", async function (req: Request, res: Response) {
-    const currentUserId = getRequiredUserId(req);
     const id = Number(req.params.id);
+    const currentAdmin = getCurrentAdminFromLocals(res);
 
-    if (!Number.isInteger(id)) {
-        res.status(400).send("Invalid user ID.");
+    if (!Number.isInteger(id) || id <= 0) {
+        res.redirect("/admin/users?error=Invalid%20user.");
         return;
     }
 
-    if (id === currentUserId) {
-        res.status(400).send("You cannot remove your own Admin role.");
+    if (currentAdmin && currentAdmin.id === id) {
+        res.redirect("/admin/users?error=You%20cannot%20remove%20your%20own%20Admin%20role.");
         return;
     }
 
@@ -174,57 +182,43 @@ router.post("/users/:id/make-user", async function (req: Request, res: Response)
         }
     });
 
-    res.redirect("/admin/users");
+    res.redirect("/admin/users?message=User%20changed%20to%20regular%20User.");
 });
 
 router.get("/bean-detail-ai-prompt", async function (req: Request, res: Response) {
-    const prompt = await getBeanDetailAiPrompt();
+    let promptRecord = await prisma.beanDetailAiPrompt.findUnique({
+        where: {
+            name: BEAN_DETAIL_AI_PROMPT_NAME
+        }
+    });
+
+    if (!promptRecord) {
+        promptRecord = await prisma.beanDetailAiPrompt.create({
+            data: {
+                name: BEAN_DETAIL_AI_PROMPT_NAME,
+                promptText: DEFAULT_BEAN_DETAIL_AI_PROMPT
+            }
+        });
+    }
 
     res.render("admin/bean-detail-ai-prompt", {
-        title: "Bean Detail AI Prompt",
-        errors: [],
-        message: String(req.query.message || ""),
-        prompt: {
-            id: prompt.id,
-            promptText: prompt.promptText,
-            updatedByEmail: prompt.updatedByEmail || "",
-            updatedAt: formatDateTime(prompt.updatedAt)
-        }
+        title: "Admin - Bean Detail AI Prompt",
+        promptRecord: promptRecord,
+        defaultPromptText: DEFAULT_BEAN_DETAIL_AI_PROMPT,
+        message: getPromptStatusMessage(req),
+        error: String(req.query.error || "")
     });
 });
 
 router.post("/bean-detail-ai-prompt", async function (req: Request, res: Response) {
-    const currentUserId = getRequiredUserId(req);
-    const currentUser = await prisma.user.findUnique({
-        where: {
-            id: currentUserId
-        }
-    });
-
-    const promptText = String(req.body.promptText || "").trim();
-    const errors: string[] = [];
+    const action = String(req.body.action || "save");
+    const currentAdmin = getCurrentAdminFromLocals(res);
+    const promptText = action === "reset"
+        ? DEFAULT_BEAN_DETAIL_AI_PROMPT
+        : String(req.body.promptText || "").trim();
 
     if (!promptText) {
-        errors.push("Prompt text is required.");
-    }
-
-    if (promptText.length < 100) {
-        errors.push("Prompt text is too short. Please keep the detailed instructions.");
-    }
-
-    if (errors.length > 0) {
-        res.status(400).render("admin/bean-detail-ai-prompt", {
-            title: "Bean Detail AI Prompt",
-            errors: errors,
-            message: "",
-            prompt: {
-                id: 0,
-                promptText: promptText,
-                updatedByEmail: currentUser ? currentUser.email : "",
-                updatedAt: ""
-            }
-        });
-
+        res.redirect("/admin/bean-detail-ai-prompt?error=Prompt%20text%20is%20required.");
         return;
     }
 
@@ -232,48 +226,87 @@ router.post("/bean-detail-ai-prompt", async function (req: Request, res: Respons
         where: {
             name: BEAN_DETAIL_AI_PROMPT_NAME
         },
-        update: {
-            promptText: promptText,
-            updatedByUserId: currentUserId,
-            updatedByEmail: currentUser ? currentUser.email : null
-        },
         create: {
             name: BEAN_DETAIL_AI_PROMPT_NAME,
             promptText: promptText,
-            updatedByUserId: currentUserId,
-            updatedByEmail: currentUser ? currentUser.email : null
+            updatedByUserId: currentAdmin ? currentAdmin.id : null,
+            updatedByEmail: currentAdmin ? currentAdmin.email : null
+        },
+        update: {
+            promptText: promptText,
+            updatedByUserId: currentAdmin ? currentAdmin.id : null,
+            updatedByEmail: currentAdmin ? currentAdmin.email : null
         }
     });
 
-    res.redirect("/admin/bean-detail-ai-prompt?message=Prompt%20saved.");
+    if (action === "reset") {
+        res.redirect("/admin/bean-detail-ai-prompt?reset=1");
+        return;
+    }
+
+    res.redirect("/admin/bean-detail-ai-prompt?saved=1");
 });
 
-router.post("/bean-detail-ai-prompt/reset", async function (req: Request, res: Response) {
-    const currentUserId = getRequiredUserId(req);
-    const currentUser = await prisma.user.findUnique({
+router.get("/brew-suggestion-ai-prompt", async function (req: Request, res: Response) {
+    let promptRecord = await prisma.brewSuggestionAiPrompt.findUnique({
         where: {
-            id: currentUserId
+            name: BREW_SUGGESTION_AI_PROMPT_NAME
         }
     });
 
-    await prisma.beanDetailAiPrompt.upsert({
+    if (!promptRecord) {
+        promptRecord = await prisma.brewSuggestionAiPrompt.create({
+            data: {
+                name: BREW_SUGGESTION_AI_PROMPT_NAME,
+                promptText: DEFAULT_BREW_SUGGESTION_AI_PROMPT
+            }
+        });
+    }
+
+    res.render("admin/brew-suggestion-ai-prompt", {
+        title: "Admin - Brew Suggestion AI Prompt",
+        promptRecord: promptRecord,
+        defaultPromptText: DEFAULT_BREW_SUGGESTION_AI_PROMPT,
+        message: getPromptStatusMessage(req),
+        error: String(req.query.error || "")
+    });
+});
+
+router.post("/brew-suggestion-ai-prompt", async function (req: Request, res: Response) {
+    const action = String(req.body.action || "save");
+    const currentAdmin = getCurrentAdminFromLocals(res);
+    const promptText = action === "reset"
+        ? DEFAULT_BREW_SUGGESTION_AI_PROMPT
+        : String(req.body.promptText || "").trim();
+
+    if (!promptText) {
+        res.redirect("/admin/brew-suggestion-ai-prompt?error=Prompt%20text%20is%20required.");
+        return;
+    }
+
+    await prisma.brewSuggestionAiPrompt.upsert({
         where: {
-            name: BEAN_DETAIL_AI_PROMPT_NAME
-        },
-        update: {
-            promptText: DEFAULT_BEAN_DETAIL_AI_PROMPT,
-            updatedByUserId: currentUserId,
-            updatedByEmail: currentUser ? currentUser.email : null
+            name: BREW_SUGGESTION_AI_PROMPT_NAME
         },
         create: {
-            name: BEAN_DETAIL_AI_PROMPT_NAME,
-            promptText: DEFAULT_BEAN_DETAIL_AI_PROMPT,
-            updatedByUserId: currentUserId,
-            updatedByEmail: currentUser ? currentUser.email : null
+            name: BREW_SUGGESTION_AI_PROMPT_NAME,
+            promptText: promptText,
+            updatedByUserId: currentAdmin ? currentAdmin.id : null,
+            updatedByEmail: currentAdmin ? currentAdmin.email : null
+        },
+        update: {
+            promptText: promptText,
+            updatedByUserId: currentAdmin ? currentAdmin.id : null,
+            updatedByEmail: currentAdmin ? currentAdmin.email : null
         }
     });
 
-    res.redirect("/admin/bean-detail-ai-prompt?message=Prompt%20reset%20to%20default.");
+    if (action === "reset") {
+        res.redirect("/admin/brew-suggestion-ai-prompt?reset=1");
+        return;
+    }
+
+    res.redirect("/admin/brew-suggestion-ai-prompt?saved=1");
 });
 
 export default router;

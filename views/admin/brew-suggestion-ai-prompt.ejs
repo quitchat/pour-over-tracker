@@ -1,0 +1,106 @@
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Brew Suggestion AI Prompt</h1>
+        <div class="text-muted">
+            Manage the prompt used by the AI Brew Assistant on the Add/Edit Brew Session form.
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="/admin/users" class="btn btn-outline-secondary">
+            <i class="bi bi-people"></i>
+            Users
+        </a>
+        <a href="/admin/bean-detail-ai-prompt" class="btn btn-outline-secondary">
+            <i class="bi bi-cup-hot"></i>
+            Bean Detail Prompt
+        </a>
+    </div>
+</div>
+
+<% if (message) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= message %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<% } %>
+
+<% if (error) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <%= error %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<% } %>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <div class="fw-semibold">Editable Prompt</div>
+                <div class="small text-muted">
+                    This text is sent as the main system instruction for brewing recipe suggestions.
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/admin/brew-suggestion-ai-prompt">
+                    <div class="mb-3">
+                        <label for="promptText" class="form-label">Prompt Text</label>
+                        <textarea id="promptText"
+                                  name="promptText"
+                                  class="form-control font-monospace"
+                                  rows="24"
+                                  required><%= promptRecord.promptText %></textarea>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" name="action" value="save" class="btn btn-primary">
+                            <i class="bi bi-save"></i>
+                            Save Prompt
+                        </button>
+                        <button type="submit"
+                                name="action"
+                                value="reset"
+                                class="btn btn-outline-danger"
+                                onclick="return confirm('Reset the brew suggestion prompt to the default text?');">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            Reset to Default
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">Prompt Info</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-sm-5">Prompt Name</dt>
+                    <dd class="col-sm-7"><%= promptRecord.name %></dd>
+
+                    <dt class="col-sm-5">Updated</dt>
+                    <dd class="col-sm-7"><%= promptRecord.updatedAt ? promptRecord.updatedAt.toLocaleString() : '' %></dd>
+
+                    <dt class="col-sm-5">Updated By</dt>
+                    <dd class="col-sm-7"><%= promptRecord.updatedByEmail || 'System/default' %></dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Tips</div>
+            <div class="card-body small text-muted">
+                <p>
+                    Keep the prompt focused on brewing behavior: ratio, grind size, temperature, timing,
+                    pour structure, and taste adjustment rules.
+                </p>
+                <p>
+                    The app still enforces the JSON output schema in code, so you do not need to describe every JSON field unless you want to influence how the AI fills them.
+                </p>
+                <p class="mb-0">
+                    Example instruction: <span class="text-body">Prefer V60 recipes around 1:15 to 1:16 for light roast and 1:14.5 to 1:15.5 for medium-dark roast.</span>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
