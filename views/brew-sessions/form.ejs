@@ -1,0 +1,810 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1"><%= pageHeading %></h1>
+        <p class="text-muted mb-0">Track brew variables and bean characteristics.</p>
+    </div>
+
+    <a href="/brew-sessions" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Back to List
+    </a>
+</div>
+
+<% if (errors && errors.length > 0) { %>
+    <div class="alert alert-danger">
+        <strong>Please fix the following:</strong>
+        <ul class="mb-0">
+            <% errors.forEach(function (error) { %>
+                <li><%= error %></li>
+            <% }); %>
+        </ul>
+    </div>
+<% } %>
+
+<div id="brewAssistantMessage"></div>
+
+<form method="post" action="<%= formAction %>" id="brewSessionForm">
+    <div class="card mb-3">
+        <div class="card-header">
+            <i class="bi bi-stars me-1"></i>
+            AI Recipe Setup
+        </div>
+
+        <div class="card-body">
+            <p class="text-muted">
+                Fill these fields first if you want the AI Brew Assistant to suggest a recipe.
+            </p>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="coffeeBeanId" class="form-label">Coffee Bean</label>
+                    <select class="form-select" id="coffeeBeanId" name="coffeeBeanId">
+                        <option value="">Select coffee bean</option>
+                        <% coffeeBeans.forEach(function (bean) { %>
+                            <option value="<%= bean.id %>" <%= String(formData.coffeeBeanId || "") === String(bean.id) ? "selected" : "" %>>
+                                <%= bean.label %>
+                            </option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="brewDate" class="form-label">Brew Date</label>
+                    <input
+                        type="date"
+                        class="form-control"
+                        id="brewDate"
+                        name="brewDate"
+                        value="<%= formData.brewDate || "" %>">
+                </div>
+
+                <div class="col-md-4">
+                    <label for="grinderId" class="form-label">Grinder</label>
+                    <select class="form-select" id="grinderId" name="grinderId">
+                        <option value="">No grinder selected</option>
+                        <% grinders.forEach(function (grinder) { %>
+                            <option value="<%= grinder.id %>" <%= String(formData.grinderId || "") === String(grinder.id) ? "selected" : "" %>>
+                                <%= grinder.name %>
+                            </option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="brewerId" class="form-label">Brewer / Brew Method</label>
+                    <select class="form-select" id="brewerId" name="brewerId">
+                        <option value="">No brewer selected</option>
+                        <% brewers.forEach(function (brewer) { %>
+                            <option value="<%= brewer.id %>" <%= String(formData.brewerId || "") === String(brewer.id) ? "selected" : "" %>>
+                                <%= brewer.name %>
+                            </option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="coffeeDoseGrams" class="form-label">Bean Weight / Coffee Dose</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        class="form-control"
+                        id="coffeeDoseGrams"
+                        name="coffeeDoseGrams"
+                        value="<%= formData.coffeeDoseGrams || "" %>">
+                </div>
+
+                <div class="col-md-8">
+                    <label for="targetFlavor" class="form-label">Target Flavor for AI Recipe</label>
+                    <select class="form-select" id="targetFlavor">
+                        <option value="Balanced">Balanced</option>
+                        <option value="Fruity">Fruity</option>
+                        <option value="Sweet">Sweet</option>
+                        <option value="Body">Body</option>
+                        <option value="Bright and acidic">Bright and acidic</option>
+                        <option value="Clean and tea-like">Clean and tea-like</option>
+                        <option value="Floral">Floral</option>
+                        <option value="Chocolatey">Chocolatey</option>
+                        <option value="Low bitterness">Low bitterness</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="button" class="btn btn-success w-100" id="suggestRecipeButton">
+                        <i class="bi bi-magic me-1"></i>
+                        Suggest Brewing Recipe
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <i class="bi bi-cup-hot me-1"></i>
+            Brew Recipe Values
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="grindSize" class="form-label">Grind Size</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="grindSize"
+                        name="grindSize"
+                        value="<%= formData.grindSize || "" %>">
+                </div>
+
+                <div class="col-md-4">
+                    <label for="totalYieldGrams" class="form-label">Total Yield</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        class="form-control"
+                        id="totalYieldGrams"
+                        name="totalYieldGrams"
+                        value="<%= formData.totalYieldGrams || "" %>">
+                    <div class="form-text">Ratio is calculated from dose and yield.</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="waterTemperatureC" class="form-label">Water Temp °C</label>
+                    <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        class="form-control"
+                        id="waterTemperatureC"
+                        name="waterTemperatureC"
+                        value="<%= formData.waterTemperatureC || "" %>">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Total Brew Time</label>
+                    <div class="input-group">
+                        <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            class="form-control"
+                            id="totalBrewTimeMinutes"
+                            name="totalBrewTimeMinutes"
+                            placeholder="min"
+                            value="<%= formData.totalBrewTimeMinutes || "" %>">
+                        <span class="input-group-text">min</span>
+                        <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            step="1"
+                            class="form-control"
+                            id="totalBrewTimeSeconds"
+                            name="totalBrewTimeSeconds"
+                            placeholder="sec"
+                            value="<%= formData.totalBrewTimeSeconds || "" %>">
+                        <span class="input-group-text">sec</span>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="overallRating" class="form-label">Overall Rating</label>
+                    <select class="form-select" id="overallRating" name="overallRating">
+                        <option value="">No rating</option>
+                        <% ["0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5"].forEach(function (rating) { %>
+                            <option value="<%= rating %>" <%= String(formData.overallRating || "") === rating ? "selected" : "" %>>
+                                <%= rating %> / 5
+                            </option>
+                        <% }); %>
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <div class="form-check">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="wouldRepeat"
+                            name="wouldRepeat"
+                            <%= formData.wouldRepeat ? "checked" : "" %>>
+                        <label class="form-check-label" for="wouldRepeat">
+                            Would repeat this brew
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label for="notes" class="form-label">Notes</label>
+                    <textarea
+                        class="form-control"
+                        id="notes"
+                        name="notes"
+                        rows="4"><%= formData.notes || "" %></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <i class="bi bi-radar me-1"></i>
+            Bean Characteristics
+        </div>
+
+        <div class="card-body">
+            <p class="text-muted">
+                Score each characteristic from 1 to 5.
+            </p>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label for="richness" class="form-label d-flex justify-content-between">
+                        <span>Richness</span>
+                        <span><span id="richnessValue"><%= formData.richness || "3" %></span> / 5</span>
+                    </label>
+                    <input
+                        type="range"
+                        class="form-range tasting-score-range"
+                        id="richness"
+                        name="richness"
+                        min="1"
+                        max="5"
+                        step="1"
+                        data-output-id="richnessValue"
+                        value="<%= formData.richness || "3" %>">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="sweetness" class="form-label d-flex justify-content-between">
+                        <span>Sweetness</span>
+                        <span><span id="sweetnessValue"><%= formData.sweetness || "3" %></span> / 5</span>
+                    </label>
+                    <input
+                        type="range"
+                        class="form-range tasting-score-range"
+                        id="sweetness"
+                        name="sweetness"
+                        min="1"
+                        max="5"
+                        step="1"
+                        data-output-id="sweetnessValue"
+                        value="<%= formData.sweetness || "3" %>">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="aftertaste" class="form-label d-flex justify-content-between">
+                        <span>Aftertaste</span>
+                        <span><span id="aftertasteValue"><%= formData.aftertaste || "3" %></span> / 5</span>
+                    </label>
+                    <input
+                        type="range"
+                        class="form-range tasting-score-range"
+                        id="aftertaste"
+                        name="aftertaste"
+                        min="1"
+                        max="5"
+                        step="1"
+                        data-output-id="aftertasteValue"
+                        value="<%= formData.aftertaste || "3" %>">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="aroma" class="form-label d-flex justify-content-between">
+                        <span>Aroma</span>
+                        <span><span id="aromaValue"><%= formData.aroma || "3" %></span> / 5</span>
+                    </label>
+                    <input
+                        type="range"
+                        class="form-range tasting-score-range"
+                        id="aroma"
+                        name="aroma"
+                        min="1"
+                        max="5"
+                        step="1"
+                        data-output-id="aromaValue"
+                        value="<%= formData.aroma || "3" %>">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="acidity" class="form-label d-flex justify-content-between">
+                        <span>Acidity</span>
+                        <span><span id="acidityValue"><%= formData.acidity || "3" %></span> / 5</span>
+                    </label>
+                    <input
+                        type="range"
+                        class="form-range tasting-score-range"
+                        id="acidity"
+                        name="acidity"
+                        min="1"
+                        max="5"
+                        step="1"
+                        data-output-id="acidityValue"
+                        value="<%= formData.acidity || "3" %>">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>
+            <%= submitButtonText %>
+        </button>
+
+        <a href="/brew-sessions" class="btn btn-outline-secondary">
+            Cancel
+        </a>
+    </div>
+</form>
+
+<div class="modal fade" id="recipeResultModal" tabindex="-1" aria-labelledby="recipeResultModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="recipeResultModalLabel">
+                    <i class="bi bi-stars me-1"></i>
+                    Suggested Brewing Recipe
+                </h5>
+
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div id="recipeResultMessage"></div>
+
+                <div id="recipeResultSection">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <i class="bi bi-cup-hot me-1"></i>
+                            Recipe
+                        </div>
+
+                        <div class="card-body">
+                            <h5 id="recipeName">Suggested Brewing Recipe</h5>
+
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="text-muted small">Grind Size</div>
+                                    <div class="fw-semibold" id="recipeGrindSize">-</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="text-muted small">Water Temp</div>
+                                    <div class="fw-semibold" id="recipeWaterTemp">-</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="text-muted small">Dose</div>
+                                    <div class="fw-semibold" id="recipeDose">-</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="text-muted small">Total Yield</div>
+                                    <div class="fw-semibold" id="recipeYield">-</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="text-muted small">Ratio</div>
+                                    <div class="fw-semibold" id="recipeRatio">-</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="text-muted small">Total Brew Time</div>
+                                    <div class="fw-semibold" id="recipeTime">-</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="text-muted small">Bloom Water</div>
+                                    <div class="fw-semibold" id="recipeBloomWater">-</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="text-muted small">Bloom Time</div>
+                                    <div class="fw-semibold" id="recipeBloomTime">-</div>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="text-muted small">Target Flavor</div>
+                                    <div class="fw-semibold" id="recipeTargetFlavor">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <div class="card h-100">
+                                <div class="card-header">Pour Structure</div>
+                                <div class="card-body">
+                                    <ol class="mb-0" id="recipePourStructure"></ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="card h-100">
+                                <div class="card-header">Recipe Steps</div>
+                                <div class="card-body">
+                                    <ol class="mb-0" id="recipeSteps"></ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="card h-100">
+                                <div class="card-header">Adjustment Tips</div>
+                                <div class="card-body">
+                                    <ul class="mb-0" id="recipeAdjustmentTips"></ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="card h-100">
+                                <div class="card-header">Reasoning</div>
+                                <div class="card-body">
+                                    <ul class="mb-0" id="recipeReasoningNotes"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="suggestedGrindSize">
+                    <input type="hidden" id="suggestedWaterTemperatureC">
+                    <input type="hidden" id="suggestedCoffeeDoseGrams">
+                    <input type="hidden" id="suggestedTotalYieldGrams">
+                    <input type="hidden" id="suggestedTotalBrewTimeSeconds">
+                    <input type="hidden" id="suggestedNotes">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="applyRecipeButton">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Apply to Form
+                </button>
+
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const scoreRanges = document.querySelectorAll(".tasting-score-range");
+
+        scoreRanges.forEach(function (range) {
+            const outputId = range.getAttribute("data-output-id");
+            const output = document.getElementById(outputId);
+
+            function updateOutput() {
+                if (output) {
+                    output.textContent = range.value;
+                }
+            }
+
+            range.addEventListener("input", updateOutput);
+            updateOutput();
+        });
+
+        const suggestRecipeButton = document.getElementById("suggestRecipeButton");
+        const applyRecipeButton = document.getElementById("applyRecipeButton");
+        const brewAssistantMessage = document.getElementById("brewAssistantMessage");
+        const recipeResultMessage = document.getElementById("recipeResultMessage");
+        const recipeResultModalElement = document.getElementById("recipeResultModal");
+
+        let recipeResultModal = null;
+
+        if (window.bootstrap && recipeResultModalElement) {
+            recipeResultModal = new window.bootstrap.Modal(recipeResultModalElement);
+        }
+
+        function getElementValue(id) {
+            const element = document.getElementById(id);
+
+            if (!element) {
+                return "";
+            }
+
+            return element.value || "";
+        }
+
+        function setElementValue(id, value) {
+            const element = document.getElementById(id);
+
+            if (element) {
+                element.value = value || "";
+            }
+        }
+
+        function setText(id, value) {
+            const element = document.getElementById(id);
+
+            if (element) {
+                element.textContent = value || "-";
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showMessage(container, type, message) {
+            if (!container) {
+                return;
+            }
+
+            container.innerHTML =
+                '<div class="alert alert-' + type + '">' +
+                escapeHtml(message) +
+                '</div>';
+        }
+
+        function clearMessage(container) {
+            if (container) {
+                container.innerHTML = "";
+            }
+        }
+
+        function setSuggestButtonLoading(isLoading) {
+            if (!suggestRecipeButton) {
+                return;
+            }
+
+            if (isLoading) {
+                suggestRecipeButton.disabled = true;
+                suggestRecipeButton.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' +
+                    'Suggesting...';
+            } else {
+                suggestRecipeButton.disabled = false;
+                suggestRecipeButton.innerHTML =
+                    '<i class="bi bi-magic me-1"></i>' +
+                    'Suggest Brewing Recipe';
+            }
+        }
+
+        function appendListItems(listId, items) {
+            const list = document.getElementById(listId);
+
+            if (!list) {
+                return;
+            }
+
+            list.innerHTML = "";
+
+            if (!items || items.length === 0) {
+                const item = document.createElement("li");
+                item.textContent = "No details returned.";
+                list.appendChild(item);
+                return;
+            }
+
+            items.forEach(function (text) {
+                const item = document.createElement("li");
+                item.textContent = text;
+                list.appendChild(item);
+            });
+        }
+
+        function formatSecondsForDisplay(totalSeconds) {
+            if (totalSeconds === null || typeof totalSeconds === "undefined") {
+                return "-";
+            }
+
+            const parsed = Number(totalSeconds);
+
+            if (Number.isNaN(parsed)) {
+                return "-";
+            }
+
+            const minutes = Math.floor(parsed / 60);
+            const seconds = parsed % 60;
+
+            return minutes + ":" + String(seconds).padStart(2, "0");
+        }
+
+        function buildSuggestedNotes(recipe) {
+            const sections = [];
+
+            if (recipe.recipeName) {
+                sections.push(recipe.recipeName);
+            }
+
+            if (recipe.pourStructure && recipe.pourStructure.length > 0) {
+                sections.push("Pour structure:\n" + recipe.pourStructure.join("\n"));
+            }
+
+            if (recipe.recipeSteps && recipe.recipeSteps.length > 0) {
+                sections.push("Recipe steps:\n" + recipe.recipeSteps.join("\n"));
+            }
+
+            if (recipe.adjustmentTips && recipe.adjustmentTips.length > 0) {
+                sections.push("Adjustment tips:\n" + recipe.adjustmentTips.join("\n"));
+            }
+
+            return sections.join("\n\n");
+        }
+
+        function populateRecipe(recipe) {
+            setText("recipeName", recipe.recipeName || "Suggested Brewing Recipe");
+            setText("recipeGrindSize", recipe.grindSize);
+            setText("recipeWaterTemp", recipe.waterTemperatureC ? recipe.waterTemperatureC + " °C" : "-");
+            setText("recipeDose", recipe.coffeeDoseGrams ? recipe.coffeeDoseGrams + " g" : "-");
+            setText("recipeYield", recipe.totalYieldGrams ? recipe.totalYieldGrams + " g" : "-");
+            setText("recipeRatio", recipe.brewRatio);
+            setText("recipeTime", formatSecondsForDisplay(recipe.totalBrewTimeSeconds));
+            setText("recipeBloomWater", recipe.bloomWaterGrams ? recipe.bloomWaterGrams + " g" : "-");
+            setText("recipeBloomTime", recipe.bloomSeconds ? recipe.bloomSeconds + " sec" : "-");
+            setText("recipeTargetFlavor", recipe.targetFlavor);
+
+            appendListItems("recipePourStructure", recipe.pourStructure || []);
+            appendListItems("recipeSteps", recipe.recipeSteps || []);
+            appendListItems("recipeAdjustmentTips", recipe.adjustmentTips || []);
+            appendListItems("recipeReasoningNotes", recipe.reasoningNotes || []);
+
+            setElementValue("suggestedGrindSize", recipe.grindSize || "");
+            setElementValue("suggestedWaterTemperatureC", recipe.waterTemperatureC || "");
+            setElementValue("suggestedCoffeeDoseGrams", recipe.coffeeDoseGrams || "");
+            setElementValue("suggestedTotalYieldGrams", recipe.totalYieldGrams || "");
+            setElementValue("suggestedTotalBrewTimeSeconds", recipe.totalBrewTimeSeconds || "");
+            setElementValue("suggestedNotes", buildSuggestedNotes(recipe));
+        }
+
+        function validateAssistantInputs() {
+            if (!getElementValue("coffeeBeanId")) {
+                return "Please select a coffee bean.";
+            }
+
+            if (!getElementValue("grinderId")) {
+                return "Please select a grinder.";
+            }
+
+            if (!getElementValue("brewerId")) {
+                return "Please select a brewer.";
+            }
+
+            const dose = getElementValue("coffeeDoseGrams");
+
+            if (!dose || Number.isNaN(Number(dose)) || Number(dose) <= 0) {
+                return "Please enter bean weight / coffee dose.";
+            }
+
+            return "";
+        }
+
+        async function suggestRecipe() {
+            clearMessage(brewAssistantMessage);
+            clearMessage(recipeResultMessage);
+
+            const validationMessage = validateAssistantInputs();
+
+            if (validationMessage) {
+                showMessage(brewAssistantMessage, "warning", validationMessage);
+                return;
+            }
+
+            setSuggestButtonLoading(true);
+
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(function () {
+                controller.abort();
+            }, 90000);
+
+            const body = new URLSearchParams();
+            body.set("coffeeBeanId", getElementValue("coffeeBeanId"));
+            body.set("grinderId", getElementValue("grinderId"));
+            body.set("brewerId", getElementValue("brewerId"));
+            body.set("coffeeDoseGrams", getElementValue("coffeeDoseGrams"));
+            body.set("targetFlavor", getElementValue("targetFlavor"));
+
+            try {
+                const response = await fetch("/brew-sessions/suggest-recipe", {
+                    method: "POST",
+                    headers: {
+                        "Accept": "application/json",
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-Requested-With": "fetch"
+                    },
+                    body: body.toString(),
+                    credentials: "same-origin",
+                    signal: controller.signal
+                });
+
+                let data = null;
+
+                try {
+                    data = await response.json();
+                } catch {
+                    data = null;
+                }
+
+                if (!response.ok || !data || !data.ok) {
+                    const errorMessage = data && data.errorMessage
+                        ? data.errorMessage
+                        : "Could not generate brewing recipe.";
+
+                    showMessage(brewAssistantMessage, "danger", errorMessage);
+                    return;
+                }
+
+                populateRecipe(data.recipe);
+
+                if (recipeResultModal) {
+                    recipeResultModal.show();
+                } else {
+                    showMessage(brewAssistantMessage, "danger", "Bootstrap modal is not available. Please refresh the page and try again.");
+                }
+            } catch (error) {
+                if (error && error.name === "AbortError") {
+                    showMessage(brewAssistantMessage, "danger", "Generating the recipe took too long. Please try again.");
+                } else {
+                    showMessage(brewAssistantMessage, "danger", "Could not generate brewing recipe.");
+                }
+            } finally {
+                window.clearTimeout(timeoutId);
+                setSuggestButtonLoading(false);
+            }
+        }
+
+        function applyRecipeToForm() {
+            const grindSize = getElementValue("suggestedGrindSize");
+            const waterTemperatureC = getElementValue("suggestedWaterTemperatureC");
+            const coffeeDoseGrams = getElementValue("suggestedCoffeeDoseGrams");
+            const totalYieldGrams = getElementValue("suggestedTotalYieldGrams");
+            const totalBrewTimeSeconds = getElementValue("suggestedTotalBrewTimeSeconds");
+            const suggestedNotes = getElementValue("suggestedNotes");
+
+            if (grindSize) {
+                setElementValue("grindSize", grindSize);
+            }
+
+            if (waterTemperatureC) {
+                setElementValue("waterTemperatureC", waterTemperatureC);
+            }
+
+            if (coffeeDoseGrams) {
+                setElementValue("coffeeDoseGrams", coffeeDoseGrams);
+            }
+
+            if (totalYieldGrams) {
+                setElementValue("totalYieldGrams", totalYieldGrams);
+            }
+
+            if (totalBrewTimeSeconds) {
+                const parsedSeconds = Number(totalBrewTimeSeconds);
+
+                if (!Number.isNaN(parsedSeconds)) {
+                    setElementValue("totalBrewTimeMinutes", String(Math.floor(parsedSeconds / 60)));
+                    setElementValue("totalBrewTimeSeconds", String(parsedSeconds % 60));
+                }
+            }
+
+            if (suggestedNotes) {
+                setElementValue("notes", suggestedNotes);
+            }
+
+            if (recipeResultModal) {
+                recipeResultModal.hide();
+            }
+        }
+
+        if (suggestRecipeButton) {
+            suggestRecipeButton.addEventListener("click", suggestRecipe);
+        }
+
+        if (applyRecipeButton) {
+            applyRecipeButton.addEventListener("click", applyRecipeToForm);
+        }
+    });
+</script>

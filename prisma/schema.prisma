@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int           @id @default(autoincrement())
+  email         String        @unique
+  passwordHash  String
+  displayName   String?
+  role          String        @default("User")
+  isActive      Boolean       @default(true)
+  deactivatedAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  coffeeBeans   CoffeeBean[]
+  grinders      Grinder[]
+  brewers       Brewer[]
+  brewSessions  BrewSession[]
+
+  @@index([role])
+  @@index([isActive])
+}
+
+model BeanDetailAiPrompt {
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  promptText      String
+  updatedByUserId Int?
+  updatedByEmail  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CoffeeBean {
+  id            Int           @id @default(autoincrement())
+  userId        Int?
+  beanName      String
+  roasterName   String?
+  origin        String?
+  process       String?
+  roastLevel    String?
+  roastDate     DateTime?
+  price         Decimal?      @db.Decimal(10, 2)
+  flavorNotes   String?
+  bagImageUrl   String?
+  sourceUrl     String?
+  notes         String?
+  isActive      Boolean       @default(true)
+  deactivatedAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brewSessions  BrewSession[]
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+model Grinder {
+  id                    Int           @id @default(autoincrement())
+  userId                Int?
+  name                  String
+  brand                 String?
+  grinderType           String?
+  burrType              String?
+  calibrationNotes      String?
+  defaultGrindSizeRange String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  user                  User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brewSessions          BrewSession[]
+
+  @@index([userId])
+}
+
+model Brewer {
+  id           Int           @id @default(autoincrement())
+  userId       Int?
+  name         String
+  brand        String?
+  brewerType   String?
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brewSessions BrewSession[]
+
+  @@index([userId])
+}
+
+model BrewSession {
+  id                    Int           @id @default(autoincrement())
+
+  userId                Int?
+  coffeeBeanId          Int
+  grinderId             Int?
+  brewerId              Int?
+
+  brewDate              DateTime
+  grindSize             String?
+
+  coffeeDoseGrams       Decimal       @db.Decimal(8, 2)
+  brewRatio             Decimal       @db.Decimal(8, 3)
+
+  waterTemperatureC     Decimal?      @db.Decimal(5, 2)
+  totalBrewTimeSeconds  Int?
+
+  totalYieldGrams       Decimal?      @map("finalBeverageGrams") @db.Decimal(8, 2)
+
+  overallRating         Decimal?      @db.Decimal(4, 2)
+  notes                 String?
+  wouldRepeat           Boolean       @default(false)
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  user                  User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coffeeBean            CoffeeBean    @relation(fields: [coffeeBeanId], references: [id])
+  grinder               Grinder?      @relation(fields: [grinderId], references: [id], onDelete: SetNull)
+  brewer                Brewer?       @relation(fields: [brewerId], references: [id], onDelete: SetNull)
+
+  tastingScore          TastingScore?
+
+  @@index([userId])
+  @@index([coffeeBeanId])
+  @@index([grinderId])
+  @@index([brewerId])
+}
+
+model TastingScore {
+  id            Int         @id @default(autoincrement())
+  brewSessionId Int         @unique
+
+  richness      Int         @default(3)
+  sweetness     Int         @default(3)
+  aftertaste    Int         @default(3)
+  aroma         Int         @default(3)
+  bitterness    Int?
+  acidity       Int         @default(3)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  brewSession   BrewSession @relation(fields: [brewSessionId], references: [id], onDelete: Cascade)
+}

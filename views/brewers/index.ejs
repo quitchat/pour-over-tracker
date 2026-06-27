@@ -1,0 +1,64 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">Brewers</h1>
+        <p class="text-muted mb-0">
+            Track drippers and brewers such as V60, Kalita, Origami, April, Chemex, and Clever.
+        </p>
+    </div>
+
+    <a href="/brewers/new" class="btn btn-primary">Add Brewer</a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        Brewer List
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Brand</th>
+                    <th>Type</th>
+                    <th>Notes</th>
+                    <th style="width: 180px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (brewers.length === 0) { %>
+                    <tr>
+                        <td colspan="5" class="text-muted text-center py-4">
+                            No brewers yet. Click Add Brewer to create one.
+                        </td>
+                    </tr>
+                <% } %>
+
+                <% brewers.forEach(function (brewer) { %>
+                    <tr>
+                        <td><%= brewer.name %></td>
+                        <td><%= brewer.brand %></td>
+                        <td><%= brewer.brewerType %></td>
+                        <td><%= brewer.notes %></td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="/brewers/<%= brewer.id %>/edit" class="btn btn-sm btn-outline-primary">
+                                    Edit
+                                </a>
+
+                                <form
+                                    method="post"
+                                    action="/brewers/<%= brewer.id %>/delete"
+                                    onsubmit="return confirm('Delete this brewer?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>

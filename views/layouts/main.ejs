@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title><%= title || "Pour-Over Coffee Tracker" %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet">
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+        rel="stylesheet">
+
+    <link href="/css/site.css" rel="stylesheet">
+</head>
+<body>
+    <%
+        const activePath = typeof currentPath !== "undefined" ? currentPath : "";
+        const signedInUser = typeof currentUser !== "undefined" ? currentUser : null;
+
+        function getNavClass(navPath) {
+            if (navPath === "/") {
+                return activePath === "/" ? "nav-link active" : "nav-link";
+            }
+
+            return activePath.startsWith(navPath) ? "nav-link active" : "nav-link";
+        }
+    %>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-cup-hot me-1"></i>
+                Pour-Over Tracker
+            </a>
+
+            <button
+                class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#mainNavbar"
+                aria-controls="mainNavbar"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <% if (signedInUser) { %>
+                    <div class="navbar-nav me-auto">
+                        <a class="<%= getNavClass("/") %>" href="/">
+                            <i class="bi bi-house-door me-1"></i>
+                            Home
+                        </a>
+
+                        <a class="<%= getNavClass("/coffee-beans") %>" href="/coffee-beans">
+                            <i class="bi bi-cup-hot me-1"></i>
+                            Coffee Beans
+                        </a>
+
+                        <a class="<%= getNavClass("/grinders") %>" href="/grinders">
+                            <i class="bi bi-gear me-1"></i>
+                            Grinders
+                        </a>
+
+                        <a class="<%= getNavClass("/brewers") %>" href="/brewers">
+                            <i class="bi bi-funnel me-1"></i>
+                            Brewers
+                        </a>
+
+                        <a class="<%= getNavClass("/brew-sessions") %>" href="/brew-sessions">
+                            <i class="bi bi-journal-text me-1"></i>
+                            Brew Sessions
+                        </a>
+
+                        <a class="<%= getNavClass("/reports") %>" href="/reports">
+                            <i class="bi bi-bar-chart-line me-1"></i>
+                            Analytics
+                        </a>
+
+                        <% if (signedInUser.role === "Admin") { %>
+                            <a class="<%= getNavClass("/admin") %>" href="/admin/users">
+                                <i class="bi bi-shield-lock me-1"></i>
+                                Admin
+                            </a>
+                        <% } %>
+                    </div>
+
+                    <div class="navbar-nav ms-auto align-items-lg-center">
+                        <a class="<%= getNavClass("/profile") %>" href="/profile">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <%= signedInUser.displayName || signedInUser.email %>
+                        </a>
+
+                        <form method="post" action="/auth/sign-out" class="m-0 ms-lg-2">
+                            <button type="submit" class="btn btn-sm btn-outline-light">
+                                <i class="bi bi-box-arrow-right me-1"></i>
+                                Sign Out
+                            </button>
+                        </form>
+                    </div>
+                <% } else { %>
+                    <div class="navbar-nav ms-auto">
+                        <a class="<%= getNavClass("/auth/sign-in") %>" href="/auth/sign-in">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>
+                            Sign In
+                        </a>
+
+                        <a class="<%= getNavClass("/auth/register") %>" href="/auth/register">
+                            <i class="bi bi-person-plus me-1"></i>
+                            Register
+                        </a>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mb-5">
+        <%- body %>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

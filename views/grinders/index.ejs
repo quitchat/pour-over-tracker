@@ -1,0 +1,66 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">Grinders</h1>
+        <p class="text-muted mb-0">Track grinders, burr type, calibration notes, and grind size range.</p>
+    </div>
+
+    <a href="/grinders/new" class="btn btn-primary">Add Grinder</a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        Grinder List
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Brand</th>
+                    <th>Type</th>
+                    <th>Burr Type</th>
+                    <th>Default Grind Range</th>
+                    <th>Calibration Notes</th>
+                    <th style="width: 180px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (grinders.length === 0) { %>
+                    <tr>
+                        <td colspan="7" class="text-muted text-center py-4">
+                            No grinders yet. Click Add Grinder to create one.
+                        </td>
+                    </tr>
+                <% } %>
+
+                <% grinders.forEach(function (grinder) { %>
+                    <tr>
+                        <td><%= grinder.name %></td>
+                        <td><%= grinder.brand %></td>
+                        <td><%= grinder.grinderType %></td>
+                        <td><%= grinder.burrType %></td>
+                        <td><%= grinder.defaultGrindSizeRange %></td>
+                        <td><%= grinder.calibrationNotes %></td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="/grinders/<%= grinder.id %>/edit" class="btn btn-sm btn-outline-primary">
+                                    Edit
+                                </a>
+
+                                <form
+                                    method="post"
+                                    action="/grinders/<%= grinder.id %>/delete"
+                                    onsubmit="return confirm('Delete this grinder?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>

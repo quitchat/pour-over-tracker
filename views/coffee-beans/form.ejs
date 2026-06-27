@@ -1,0 +1,358 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1"><%= pageHeading %></h1>
+        <p class="text-muted mb-0">
+            Enter bean details manually or use AI to fill supported bean information.
+        </p>
+    </div>
+
+    <a href="/coffee-beans" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Back to Beans
+    </a>
+</div>
+
+<% if (errors && errors.length > 0) { %>
+    <div class="alert alert-danger">
+        <strong>Please fix the following:</strong>
+        <ul class="mb-0">
+            <% errors.forEach(function (error) { %>
+                <li><%= error %></li>
+            <% }); %>
+        </ul>
+    </div>
+<% } %>
+
+<div id="coffeeInfoAjaxMessage"></div>
+
+<form method="post" action="<%= formAction %>" id="coffeeBeanForm">
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>
+                <i class="bi bi-cup-hot me-1"></i>
+                Bean Info
+            </span>
+
+            <button type="button" class="btn btn-sm btn-outline-success" id="getCoffeeInfoButton">
+                <i class="bi bi-stars me-1"></i>
+                Get Coffee Information
+            </button>
+        </div>
+
+        <div class="card-body">
+            <p class="text-muted">
+                Enter Roaster and Coffee Name first, then use AI to fill the remaining bean information.
+                Price is always manual and will not be changed by AI.
+            </p>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="roasterName" class="form-label">Roaster</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="roasterName"
+                        name="roasterName"
+                        list="roasterSuggestions"
+                        value="<%= formData.roasterName || "" %>">
+
+                    <datalist id="roasterSuggestions">
+                        <% roasterSuggestions.forEach(function (roasterName) { %>
+                            <option value="<%= roasterName %>"></option>
+                        <% }); %>
+                    </datalist>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="beanName" class="form-label">Coffee Name</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="beanName"
+                        name="beanName"
+                        value="<%= formData.beanName || "" %>">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="origin" class="form-label">Origin</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="origin"
+                        name="origin"
+                        value="<%= formData.origin || "" %>">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="process" class="form-label">Process</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="process"
+                        name="process"
+                        value="<%= formData.process || "" %>">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="roastLevel" class="form-label">Roast Level</label>
+                    <select class="form-select" id="roastLevel" name="roastLevel">
+                        <option value="">Select roast level</option>
+                        <option value="Light" <%= formData.roastLevel === "Light" ? "selected" : "" %>>Light</option>
+                        <option value="Medium" <%= formData.roastLevel === "Medium" ? "selected" : "" %>>Medium</option>
+                        <option value="Dark" <%= formData.roastLevel === "Dark" ? "selected" : "" %>>Dark</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="roastDate" class="form-label">Roast Date</label>
+                    <input
+                        type="date"
+                        class="form-control"
+                        id="roastDate"
+                        name="roastDate"
+                        value="<%= formData.roastDate || "" %>">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="price" class="form-label">Price US$</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        class="form-control"
+                        id="price"
+                        name="price"
+                        value="<%= formData.price || "" %>">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="sourceUrl" class="form-label">Source URL</label>
+                    <input
+                        type="url"
+                        class="form-control"
+                        id="sourceUrl"
+                        name="sourceUrl"
+                        value="<%= formData.sourceUrl || "" %>">
+                </div>
+
+                <div class="col-12">
+                    <label for="flavorNotes" class="form-label">Flavor Notes</label>
+                    <textarea
+                        class="form-control"
+                        id="flavorNotes"
+                        name="flavorNotes"
+                        rows="3"><%= formData.flavorNotes || "" %></textarea>
+                </div>
+
+                <div class="col-12">
+                    <label for="notes" class="form-label">Notes</label>
+                    <textarea
+                        class="form-control"
+                        id="notes"
+                        name="notes"
+                        rows="4"><%= formData.notes || "" %></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3 d-none" id="confirmedAiNotesCard">
+        <div class="card-header">
+            <i class="bi bi-info-circle me-1"></i>
+            Confirmed AI Notes
+        </div>
+
+        <div class="card-body">
+            <ul class="mb-0" id="confirmedAiNotesList"></ul>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>
+            <%= submitButtonText %>
+        </button>
+
+        <a href="/coffee-beans" class="btn btn-outline-secondary">
+            Cancel
+        </a>
+    </div>
+</form>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const getCoffeeInfoButton = document.getElementById("getCoffeeInfoButton");
+        const messageContainer = document.getElementById("coffeeInfoAjaxMessage");
+        const confirmedAiNotesCard = document.getElementById("confirmedAiNotesCard");
+        const confirmedAiNotesList = document.getElementById("confirmedAiNotesList");
+
+        function getElementValue(id) {
+            const element = document.getElementById(id);
+
+            if (!element) {
+                return "";
+            }
+
+            return element.value || "";
+        }
+
+        function setElementValue(id, value) {
+            const element = document.getElementById(id);
+
+            if (element) {
+                element.value = value || "";
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showMessage(type, message) {
+            if (!messageContainer) {
+                return;
+            }
+
+            messageContainer.innerHTML =
+                '<div class="alert alert-' + type + '">' +
+                escapeHtml(message) +
+                '</div>';
+        }
+
+        function clearMessage() {
+            if (messageContainer) {
+                messageContainer.innerHTML = "";
+            }
+        }
+
+        function setButtonLoading(isLoading) {
+            if (!getCoffeeInfoButton) {
+                return;
+            }
+
+            if (isLoading) {
+                getCoffeeInfoButton.disabled = true;
+                getCoffeeInfoButton.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' +
+                    'Getting Coffee Info...';
+            } else {
+                getCoffeeInfoButton.disabled = false;
+                getCoffeeInfoButton.innerHTML =
+                    '<i class="bi bi-stars me-1"></i>' +
+                    'Get Coffee Information';
+            }
+        }
+
+        function populateConfirmedNotes(confirmedNotes) {
+            if (!confirmedAiNotesCard || !confirmedAiNotesList) {
+                return;
+            }
+
+            confirmedAiNotesList.innerHTML = "";
+
+            if (!confirmedNotes || confirmedNotes.length === 0) {
+                confirmedAiNotesCard.classList.add("d-none");
+                return;
+            }
+
+            confirmedNotes.forEach(function (note) {
+                const item = document.createElement("li");
+                item.textContent = note;
+                confirmedAiNotesList.appendChild(item);
+            });
+
+            confirmedAiNotesCard.classList.remove("d-none");
+        }
+
+        function populateForm(formData) {
+            setElementValue("origin", formData.origin);
+            setElementValue("process", formData.process);
+            setElementValue("roastLevel", formData.roastLevel);
+            setElementValue("flavorNotes", formData.flavorNotes);
+            setElementValue("sourceUrl", formData.sourceUrl);
+            setElementValue("notes", formData.notes);
+        }
+
+        async function getCoffeeInformation() {
+            clearMessage();
+
+            const roasterName = getElementValue("roasterName");
+            const beanName = getElementValue("beanName");
+
+            if (!roasterName || !beanName) {
+                showMessage("warning", "Enter Roaster and Coffee Name before getting coffee information.");
+                return;
+            }
+
+            setButtonLoading(true);
+
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(function () {
+                controller.abort();
+            }, 90000);
+
+            const body = new URLSearchParams();
+            body.set("roasterName", roasterName);
+            body.set("beanName", beanName);
+            body.set("origin", getElementValue("origin"));
+            body.set("process", getElementValue("process"));
+            body.set("roastLevel", getElementValue("roastLevel"));
+            body.set("flavorNotes", getElementValue("flavorNotes"));
+            body.set("sourceUrl", getElementValue("sourceUrl"));
+            body.set("notes", getElementValue("notes"));
+
+            try {
+                const response = await fetch("/coffee-beans/get-info", {
+                    method: "POST",
+                    headers: {
+                        "Accept": "application/json",
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-Requested-With": "fetch"
+                    },
+                    body: body.toString(),
+                    credentials: "same-origin",
+                    signal: controller.signal
+                });
+
+                let data = null;
+
+                try {
+                    data = await response.json();
+                } catch {
+                    data = null;
+                }
+
+                if (!response.ok || !data || !data.ok) {
+                    const errorMessage = data && data.errorMessage
+                        ? data.errorMessage
+                        : "Could not get coffee information.";
+
+                    showMessage("danger", errorMessage);
+                    return;
+                }
+
+                populateForm(data.formData || {});
+                populateConfirmedNotes(data.confirmedNotes || []);
+                showMessage("success", "Coffee information filled. Review it before saving.");
+            } catch (error) {
+                if (error && error.name === "AbortError") {
+                    showMessage("danger", "Getting coffee information took too long. Please try again.");
+                } else {
+                    showMessage("danger", "Could not get coffee information.");
+                }
+            } finally {
+                window.clearTimeout(timeoutId);
+                setButtonLoading(false);
+            }
+        }
+
+        if (getCoffeeInfoButton) {
+            getCoffeeInfoButton.addEventListener("click", getCoffeeInformation);
+        }
+    });
+</script>

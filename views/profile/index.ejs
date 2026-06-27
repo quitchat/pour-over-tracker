@@ -1,0 +1,164 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="bi bi-person-circle me-2"></i>
+            Profile
+        </h1>
+        <p class="text-muted mb-0">
+            Manage your account information and password.
+        </p>
+    </div>
+
+    <a href="/" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Back to Dashboard
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-person-lines-fill me-1"></i>
+                Account Information
+            </div>
+
+            <div class="card-body">
+                <% if (profileSuccessMessage) { %>
+                    <div class="alert alert-success">
+                        <%= profileSuccessMessage %>
+                    </div>
+                <% } %>
+
+                <% if (profileErrors && profileErrors.length > 0) { %>
+                    <div class="alert alert-danger">
+                        <strong>Please fix the following:</strong>
+                        <ul class="mb-0">
+                            <% profileErrors.forEach(function (error) { %>
+                                <li><%= error %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                <% } %>
+
+                <form method="post" action="/profile">
+                    <div class="mb-3">
+                        <label for="displayName" class="form-label">Name</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="displayName"
+                            name="displayName"
+                            value="<%= formData.displayName || "" %>">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="email"
+                            name="email"
+                            value="<%= formData.email || "" %>">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>
+                        Save Profile
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-key me-1"></i>
+                Change Password
+            </div>
+
+            <div class="card-body">
+                <% if (passwordSuccessMessage) { %>
+                    <div class="alert alert-success">
+                        <%= passwordSuccessMessage %>
+                    </div>
+                <% } %>
+
+                <% if (passwordErrors && passwordErrors.length > 0) { %>
+                    <div class="alert alert-danger">
+                        <strong>Please fix the following:</strong>
+                        <ul class="mb-0">
+                            <% passwordErrors.forEach(function (error) { %>
+                                <li><%= error %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                <% } %>
+
+                <form method="post" action="/profile/password">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="currentPassword"
+                            name="currentPassword"
+                            autocomplete="current-password">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="newPassword"
+                            name="newPassword"
+                            autocomplete="new-password">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="confirmNewPassword"
+                            name="confirmNewPassword"
+                            autocomplete="new-password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-key me-1"></i>
+                        Update Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-1"></i>
+                Account Summary
+            </div>
+
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8"><%= user.displayName || "" %></dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8"><%= user.email %></dd>
+
+                    <dt class="col-sm-4">Created</dt>
+                    <dd class="col-sm-8"><%= user.createdAt.toLocaleDateString() %></dd>
+                </dl>
+
+                <hr>
+
+                <p class="text-muted mb-0">
+                    Your coffee beans, grinders, brewers, brew sessions, and analytics are associated with this account.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

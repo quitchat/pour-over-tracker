@@ -1,0 +1,131 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="bi bi-people me-2"></i>
+            User Management
+        </h1>
+        <p class="text-muted mb-0">
+            Deactivate users without deleting their historical coffee logs.
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="/admin/bean-detail-ai-prompt" class="btn btn-outline-primary">
+            <i class="bi bi-stars me-1"></i>
+            Bean Detail AI Prompt
+        </a>
+
+        <a href="/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>
+            Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-people me-1"></i>
+        Users
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Coffee Beans</th>
+                    <th>Grinders</th>
+                    <th>Brewers</th>
+                    <th>Brew Sessions</th>
+                    <th>Created</th>
+                    <th>Deactivated</th>
+                    <th style="width: 260px;">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <% if (users.length === 0) { %>
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            No users found.
+                        </td>
+                    </tr>
+                <% } %>
+
+                <% users.forEach(function (user) { %>
+                    <tr>
+                        <td>
+                            <div class="fw-semibold"><%= user.displayName || "(No display name)" %></div>
+                            <div class="text-muted small"><%= user.email %></div>
+
+                            <% if (user.id === currentUserId) { %>
+                                <span class="badge text-bg-info mt-1">You</span>
+                            <% } %>
+                        </td>
+
+                        <td>
+                            <% if (user.role === "Admin") { %>
+                                <span class="badge text-bg-primary">Admin</span>
+                            <% } else { %>
+                                <span class="badge text-bg-secondary">User</span>
+                            <% } %>
+                        </td>
+
+                        <td>
+                            <% if (user.isActive) { %>
+                                <span class="badge text-bg-success">Active</span>
+                            <% } else { %>
+                                <span class="badge text-bg-danger">Inactive</span>
+                            <% } %>
+                        </td>
+
+                        <td><%= user.coffeeBeanCount %></td>
+                        <td><%= user.grinderCount %></td>
+                        <td><%= user.brewerCount %></td>
+                        <td><%= user.brewSessionCount %></td>
+                        <td><%= user.createdAt %></td>
+                        <td><%= user.deactivatedAt || "-" %></td>
+
+                        <td>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <% if (user.role !== "Admin") { %>
+                                    <form method="post" action="/admin/users/<%= user.id %>/make-admin">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            Make Admin
+                                        </button>
+                                    </form>
+                                <% } %>
+
+                                <% if (user.role === "Admin" && user.id !== currentUserId) { %>
+                                    <form method="post" action="/admin/users/<%= user.id %>/make-user">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                            Make User
+                                        </button>
+                                    </form>
+                                <% } %>
+
+                                <% if (user.isActive && user.id !== currentUserId) { %>
+                                    <form method="post" action="/admin/users/<%= user.id %>/deactivate">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Deactivate
+                                        </button>
+                                    </form>
+                                <% } %>
+
+                                <% if (!user.isActive) { %>
+                                    <form method="post" action="/admin/users/<%= user.id %>/activate">
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            Reactivate
+                                        </button>
+                                    </form>
+                                <% } %>
+                            </div>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+</div>

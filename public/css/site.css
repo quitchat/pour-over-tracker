@@ -1,0 +1,255 @@
+body {
+    background-color: #f8f9fa;
+}
+
+main.container {
+    padding-bottom: 2rem;
+}
+
+.card {
+    border-radius: 0.75rem;
+}
+
+.card-header {
+    font-weight: 600;
+}
+
+.table-responsive {
+    border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.table th {
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.btn {
+    white-space: nowrap;
+}
+
+.navbar-brand {
+    font-weight: 600;
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+.score-slider {
+    cursor: pointer;
+}
+
+.brew-time-input-group .form-control {
+    max-width: 95px;
+}
+
+.star-rating-control {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.star-rating-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+}
+
+.star-rating-star {
+    position: relative;
+    display: inline-block;
+    width: 1.8rem;
+    height: 1.8rem;
+    font-size: 1.8rem;
+    line-height: 1;
+    color: #ffc107;
+}
+
+.star-rating-star i {
+    pointer-events: none;
+}
+
+.star-rating-half {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+}
+
+.star-rating-left {
+    left: 0;
+    width: 50%;
+}
+
+.star-rating-right {
+    right: 0;
+    width: 50%;
+}
+
+.rating-value-label {
+    min-width: 3rem;
+    font-weight: 600;
+}
+
+@media (max-width: 991.98px) {
+    .navbar-nav {
+        padding-top: 0.75rem;
+    }
+
+    .navbar-nav .nav-link {
+        padding: 0.65rem 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+    }
+}
+
+@media (max-width: 767.98px) {
+    body {
+        font-size: 0.95rem;
+    }
+
+    main.container {
+        max-width: 100%;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .navbar {
+        margin-bottom: 1rem !important;
+    }
+
+    .navbar-brand {
+        font-size: 1rem;
+    }
+
+    h1.h3 {
+        font-size: 1.35rem;
+    }
+
+    .display-6 {
+        font-size: 2rem;
+    }
+
+    .card {
+        border-radius: 0.65rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .card-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .d-flex.justify-content-between.align-items-center.mb-3 {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.75rem;
+    }
+
+    .d-flex.justify-content-between.align-items-center.mb-3 > div {
+        width: 100%;
+    }
+
+    .d-flex.justify-content-between.align-items-center.mb-3 > a,
+    .d-flex.justify-content-between.align-items-center.mb-3 .btn {
+        width: 100%;
+    }
+
+    .card-header.d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
+
+    .card-header.d-flex .btn {
+        width: 100%;
+    }
+
+    .table-responsive {
+        border: 1px solid #dee2e6;
+        border-radius: 0.65rem;
+    }
+
+    .table {
+        min-width: 850px;
+        font-size: 0.875rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.55rem;
+    }
+
+    .table td .d-flex.gap-2 {
+        flex-wrap: wrap;
+    }
+
+    .table td .btn-sm,
+    .table td form,
+    .table td form .btn-sm {
+        width: 100%;
+    }
+
+    .row.g-3 {
+        --bs-gutter-y: 0.75rem;
+    }
+
+    dl.row dt {
+        margin-bottom: 0.15rem;
+    }
+
+    dl.row dd {
+        margin-bottom: 0.75rem;
+    }
+
+    canvas {
+        max-width: 100%;
+    }
+
+    .star-rating-star {
+        width: 1.65rem;
+        height: 1.65rem;
+        font-size: 1.65rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .btn {
+        width: 100%;
+    }
+
+    .d-flex.gap-2 {
+        flex-wrap: wrap;
+    }
+
+    .d-flex.gap-2 > .btn,
+    .d-flex.gap-2 > form,
+    .d-flex.gap-2 > form > button {
+        width: 100%;
+    }
+
+    .form-control,
+    .form-select {
+        font-size: 1rem;
+    }
+
+    .table {
+        min-width: 760px;
+    }
+
+    .brew-time-input-group {
+        flex-wrap: nowrap;
+    }
+
+    .brew-time-input-group .form-control {
+        max-width: none;
+    }
+}

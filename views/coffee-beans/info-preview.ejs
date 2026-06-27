@@ -1,0 +1,169 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="bi bi-stars me-2"></i>
+            Review Coffee Information
+        </h1>
+        <p class="text-muted mb-0">
+            Review and edit the AI-found information before applying it to this coffee bean.
+        </p>
+    </div>
+
+    <a href="/coffee-beans/<%= coffeeBean.id %>" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        Back to Bean
+    </a>
+</div>
+
+<% if (errors && errors.length > 0) { %>
+    <div class="alert alert-danger">
+        <strong>Please fix the following:</strong>
+        <ul class="mb-0">
+            <% errors.forEach(function (error) { %>
+                <li><%= error %></li>
+            <% }); %>
+        </ul>
+    </div>
+<% } %>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <form method="post" action="/coffee-beans/<%= coffeeBean.id %>/apply-info">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-card-checklist me-1"></i>
+                    Suggested Bean Information
+                </div>
+
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="origin" class="form-label">Origin</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="origin"
+                                name="origin"
+                                value="<%= formData.origin || "" %>">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="process" class="form-label">Process</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="process"
+                                name="process"
+                                value="<%= formData.process || "" %>">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="roastLevel" class="form-label">Roast Level</label>
+                            <select class="form-select" id="roastLevel" name="roastLevel">
+                                <option value="">Unknown</option>
+                                <option value="Light" <%= formData.roastLevel === "Light" ? "selected" : "" %>>Light</option>
+                                <option value="Medium" <%= formData.roastLevel === "Medium" ? "selected" : "" %>>Medium</option>
+                                <option value="Dark" <%= formData.roastLevel === "Dark" ? "selected" : "" %>>Dark</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="sourceUrl" class="form-label">Source URL</label>
+                            <input
+                                type="url"
+                                class="form-control"
+                                id="sourceUrl"
+                                name="sourceUrl"
+                                value="<%= formData.sourceUrl || "" %>">
+                        </div>
+
+                        <div class="col-12">
+                            <label for="flavorNotes" class="form-label">Flavor Notes</label>
+                            <textarea
+                                class="form-control"
+                                id="flavorNotes"
+                                name="flavorNotes"
+                                rows="3"><%= formData.flavorNotes || "" %></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea
+                                class="form-control"
+                                id="notes"
+                                name="notes"
+                                rows="4"><%= formData.notes || "" %></textarea>
+
+                            <div class="form-text">
+                                AI notes only include confirmed information from the source.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Apply Coffee Information
+                </button>
+
+                <a href="/coffee-beans/<%= coffeeBean.id %>" class="btn btn-outline-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-bean me-1"></i>
+                Current Bean
+            </div>
+
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Roaster</dt>
+                    <dd class="col-sm-7"><%= coffeeBean.roasterName %></dd>
+
+                    <dt class="col-sm-5">Coffee</dt>
+                    <dd class="col-sm-7"><%= coffeeBean.beanName %></dd>
+
+                    <dt class="col-sm-5">Current Origin</dt>
+                    <dd class="col-sm-7"><%= coffeeBean.origin || "-" %></dd>
+
+                    <dt class="col-sm-5">Current Process</dt>
+                    <dd class="col-sm-7"><%= coffeeBean.process || "-" %></dd>
+
+                    <dt class="col-sm-5">Current Roast</dt>
+                    <dd class="col-sm-7"><%= coffeeBean.roastLevel || "-" %></dd>
+
+                    <dt class="col-sm-5">Current Price</dt>
+                    <dd class="col-sm-7"><%= coffeeBean.price || "-" %></dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-1"></i>
+                Confirmed AI Notes
+            </div>
+
+            <div class="card-body">
+                <% if (confirmedNotes && confirmedNotes.length > 0) { %>
+                    <ul class="mb-0">
+                        <% confirmedNotes.forEach(function (note) { %>
+                            <li><%= note %></li>
+                        <% }); %>
+                    </ul>
+                <% } else { %>
+                    <p class="text-muted mb-0">
+                        No extra confirmed notes returned.
+                    </p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>

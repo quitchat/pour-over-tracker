@@ -1,0 +1,83 @@
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person-plus me-1"></i>
+                Register
+            </div>
+
+            <div class="card-body">
+                <p class="text-muted">
+                    Create your account to start tracking your coffee brews.
+                </p>
+
+                <% if (errors && errors.length > 0) { %>
+                    <div class="alert alert-danger">
+                        <strong>Please fix the following:</strong>
+                        <ul class="mb-0">
+                            <% errors.forEach(function (error) { %>
+                                <li><%= error %></li>
+                            <% }); %>
+                        </ul>
+                    </div>
+                <% } %>
+
+                <form method="post" action="/auth/register">
+                    <input type="hidden" name="returnTo" value="<%= formData.returnTo || "" %>">
+
+                    <div class="mb-3">
+                        <label for="displayName" class="form-label">Name</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="displayName"
+                            name="displayName"
+                            value="<%= formData.displayName || "" %>">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input
+                            type="email"
+                            class="form-control"
+                            id="email"
+                            name="email"
+                            value="<%= formData.email || "" %>">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="password"
+                            name="password"
+                            autocomplete="new-password">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            autocomplete="new-password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-person-plus me-1"></i>
+                        Register
+                    </button>
+                </form>
+
+                <hr>
+
+                <p class="mb-0 text-center">
+                    Already have an account?
+                    <a href="/auth/sign-in">Sign in</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

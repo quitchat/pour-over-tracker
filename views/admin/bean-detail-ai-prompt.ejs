@@ -1,0 +1,116 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="bi bi-stars me-2"></i>
+            Bean Detail AI Prompt
+        </h1>
+        <p class="text-muted mb-0">
+            Manage the prompt used by the Get Coffee Information feature.
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="/admin/users" class="btn btn-outline-primary">
+            <i class="bi bi-people me-1"></i>
+            User Management
+        </a>
+
+        <a href="/" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>
+            Dashboard
+        </a>
+    </div>
+</div>
+
+<% if (message) { %>
+    <div class="alert alert-success">
+        <%= message %>
+    </div>
+<% } %>
+
+<% if (errors && errors.length > 0) { %>
+    <div class="alert alert-danger">
+        <strong>Please fix the following:</strong>
+        <ul class="mb-0">
+            <% errors.forEach(function (error) { %>
+                <li><%= error %></li>
+            <% }); %>
+        </ul>
+    </div>
+<% } %>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <form method="post" action="/admin/bean-detail-ai-prompt">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-pencil-square me-1"></i>
+                    Prompt Text
+                </div>
+
+                <div class="card-body">
+                    <label for="promptText" class="form-label">System Prompt</label>
+                    <textarea
+                        class="form-control font-monospace"
+                        id="promptText"
+                        name="promptText"
+                        rows="22"><%= prompt.promptText %></textarea>
+
+                    <div class="form-text">
+                        This prompt controls how OpenAI searches and fills coffee bean details.
+                        The app still enforces structured JSON output.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i>
+                    Save Prompt
+                </button>
+
+                <a href="/admin/users" class="btn btn-outline-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-1"></i>
+                Prompt Details
+            </div>
+
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Last Updated</dt>
+                    <dd class="col-sm-7"><%= prompt.updatedAt || "-" %></dd>
+
+                    <dt class="col-sm-5">Updated By</dt>
+                    <dd class="col-sm-7"><%= prompt.updatedByEmail || "-" %></dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                Reset
+            </div>
+
+            <div class="card-body">
+                <p class="text-muted">
+                    Reset the Bean Detail AI prompt back to the default app prompt.
+                </p>
+
+                <form method="post" action="/admin/bean-detail-ai-prompt/reset">
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        Reset to Default Prompt
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

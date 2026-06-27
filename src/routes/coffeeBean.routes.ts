@@ -1,0 +1,584 @@
+import { Router, Request, Response } from "express";
+import { Prisma } from "@prisma/client";
+import { prisma } from "../lib/prisma";
+import { getRequiredUserId } from "../middleware/auth";
+import { CoffeeInformationResult, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
+
+const router = Router();
+
+function formatDateForInput(date: Date | null): string {
+    if (!date) {
+        return "";
+    }
+
+    return date.toISOString().substring(0, 10);
+}
+
+function formatDateOnly(date: Date | null): string {
+    if (!date) {
+        return "";
+    }
+
+    return date.toLocaleDateString();
+}
+
+function formatDateTime(date: Date | null): string {
+    if (!date) {
+        return "";
+    }
+
+    return date.toLocaleString();
+}
+
+function formatSeconds(seconds: number | null): string {
+    if (seconds === null) {
+        return "";
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+}
+
+function getCoffeeBeanFormValues(req: Request) {
+    return {
+        beanName: String(req.body.beanName || "").trim(),
+        roasterName: String(req.body.roasterName || "").trim(),
+        origin: String(req.body.origin || "").trim(),
+        process: String(req.body.process || "").trim(),
+        roastLevel: String(req.body.roastLevel || "").trim(),
+        roastDate: String(req.body.roastDate || "").trim(),
+        price: String(req.body.price || "").trim(),
+        flavorNotes: String(req.body.flavorNotes || "").trim(),
+        sourceUrl: String(req.body.sourceUrl || "").trim(),
+        notes: String(req.body.notes || "").trim()
+    };
+}
+
+function validateCoffeeBeanForm(formValues: ReturnType<typeof getCoffeeBeanFormValues>): string[] {
+    const errors: string[] = [];
+    const validRoastLevels = ["", "Light", "Medium", "Dark"];
+    const price = Number(formValues.price);
+
+    if (!formValues.beanName) {
+        errors.push("Coffee name is required.");
+    }
+
+    if (!validRoastLevels.includes(formValues.roastLevel)) {
+        errors.push("Roast level must be Light, Medium, or Dark.");
+    }
+
+    if (formValues.price && (Number.isNaN(price) || price < 0)) {
+        errors.push("Price must be 0 or greater.");
+    }
+
+    if (formValues.sourceUrl && !formValues.sourceUrl.startsWith("http")) {
+        errors.push("Source URL must start with http or https.");
+    }
+
+    return errors;
+}
+
+function buildConfirmedNotesText(confirmedNotes: string[]): string {
+    if (!confirmedNotes || confirmedNotes.length === 0) {
+        return "";
+    }
+
+    return confirmedNotes.join("\n");
+}
+
+function buildCoffeeInfoFormData(currentValues: any, coffeeInfo: CoffeeInformationResult) {
+    const confirmedNotesText = buildConfirmedNotesText(coffeeInfo.confirmedNotes);
+
+    return {
+        origin: coffeeInfo.origin || currentValues.origin || "",
+        process: coffeeInfo.process || currentValues.process || "",
+        roastLevel: coffeeInfo.roastLevel || currentValues.roastLevel || "",
+        flavorNotes: coffeeInfo.flavorNotes.length > 0
+            ? coffeeInfo.flavorNotes.join(", ")
+            : currentValues.flavorNotes || "",
+        sourceUrl: coffeeInfo.sourceUrl || currentValues.sourceUrl || "",
+        notes: confirmedNotesText || currentValues.notes || ""
+    };
+}
+
+function mapBrewSessionForBeanDetail(session: any) {
+    return {
+        id: session.id,
+        brewDate: formatDateOnly(session.brewDate),
+        grinderName: session.grinder ? session.grinder.name : "",
+        brewerName: session.brewer ? session.brewer.name : "",
+        grindSize: session.grindSize || "",
+        coffeeDoseGrams: session.coffeeDoseGrams.toString(),
+        totalYieldGrams: session.totalYieldGrams ? session.totalYieldGrams.toString() : "",
+        brewRatio: session.brewRatio.toString(),
+        waterTemperatureC: session.waterTemperatureC ? session.waterTemperatureC.toString() : "",
+        totalBrewTime: formatSeconds(session.totalBrewTimeSeconds),
+        overallRating: session.overallRating ? session.overallRating.toString() : "",
+        wouldRepeat: session.wouldRepeat
+    };
+}
+
+function buildBeanStats(brewSessions: any[]) {
+    const ratedSessions = brewSessions.filter(function (session) {
+        return !!session.overallRating;
+    });
+
+    const ratioSessions = brewSessions.filter(function (session) {
+        return !!session.brewRatio;
+    });
+
+    const totalRating = ratedSessions.reduce(function (sum, session) {
+        return sum + Number(session.overallRating.toString());
+    }, 0);
+
+    const totalRatio = ratioSessions.reduce(function (sum, session) {
+        return sum + Number(session.brewRatio.toString());
+    }, 0);
+
+    const bestSession = ratedSessions
+        .slice()
+        .sort(function (a, b) {
+            return Number(b.overallRating.toString()) - Number(a.overallRating.toString());
+        })[0];
+
+    return {
+        brewSessionCount: brewSessions.length,
+        ratedSessionCount: ratedSessions.length,
+        averageRating: ratedSessions.length > 0 ? (totalRating / ratedSessions.length).toFixed(1) : "",
+        bestRating: bestSession ? bestSession.overallRating.toString() : "",
+        averageRatio: ratioSessions.length > 0 ? (totalRatio / ratioSessions.length).toFixed(2) : "",
+        repeatCount: brewSessions.filter(function (session) {
+            return session.wouldRepeat;
+        }).length,
+        bestBrewSessionId: bestSession ? bestSession.id : null
+    };
+}
+
+async function getCoffeeBeanForUser(userId: number, id: number) {
+    return await prisma.coffeeBean.findFirst({
+        where: {
+            id: id,
+            userId: userId
+        }
+    });
+}
+
+async function getRoasterSuggestions(userId: number): Promise<string[]> {
+    const roasters = await prisma.coffeeBean.findMany({
+        where: {
+            userId: userId,
+            roasterName: {
+                not: null
+            }
+        },
+        select: {
+            roasterName: true
+        },
+        distinct: ["roasterName"],
+        orderBy: {
+            roasterName: "asc"
+        }
+    });
+
+    return roasters
+        .map(function (roaster) {
+            return roaster.roasterName || "";
+        })
+        .filter(function (roasterName) {
+            return roasterName.length > 0;
+        });
+}
+
+router.get("/", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+
+    const coffeeBeansFromDatabase = await prisma.coffeeBean.findMany({
+        where: {
+            userId: userId
+        },
+        orderBy: [
+            {
+                isActive: "desc"
+            },
+            {
+                createdAt: "desc"
+            }
+        ],
+        include: {
+            brewSessions: {
+                where: {
+                    userId: userId
+                }
+            }
+        }
+    });
+
+    const coffeeBeans = coffeeBeansFromDatabase.map(function (bean) {
+        return {
+            id: bean.id,
+            beanName: bean.beanName,
+            roasterName: bean.roasterName || "",
+            origin: bean.origin || "",
+            process: bean.process || "",
+            roastLevel: bean.roastLevel || "",
+            roastDate: formatDateOnly(bean.roastDate),
+            price: bean.price ? bean.price.toString() : "",
+            notes: bean.notes || "",
+            isActive: bean.isActive,
+            deactivatedAt: formatDateTime(bean.deactivatedAt),
+            brewSessionCount: bean.brewSessions.length
+        };
+    });
+
+    res.render("coffee-beans/index", {
+        title: "Coffee Beans",
+        coffeeBeans: coffeeBeans
+    });
+});
+
+router.get("/new", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const roasterSuggestions = await getRoasterSuggestions(userId);
+
+    res.render("coffee-beans/form", {
+        title: "Add Coffee Bean",
+        pageHeading: "Add Coffee Bean",
+        formAction: "/coffee-beans",
+        submitButtonText: "Save Coffee Bean",
+        errors: [],
+        formData: {},
+        roasterSuggestions: roasterSuggestions
+    });
+});
+
+router.post("/get-info", async function (req: Request, res: Response) {
+    const formValues = getCoffeeBeanFormValues(req);
+
+    if (!formValues.roasterName || !formValues.beanName) {
+        res.status(400).json({
+            ok: false,
+            errorMessage: "Roaster and Coffee Name are required before getting coffee information."
+        });
+
+        return;
+    }
+
+    try {
+        const coffeeInfo = await getCoffeeInformationFromOpenAI(formValues.roasterName, formValues.beanName);
+        const formData = buildCoffeeInfoFormData(formValues, coffeeInfo);
+
+        res.json({
+            ok: true,
+            formData: formData,
+            confirmedNotes: coffeeInfo.confirmedNotes
+        });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Could not get coffee information.";
+
+        res.status(500).json({
+            ok: false,
+            errorMessage: errorMessage
+        });
+    }
+});
+
+router.post("/", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const formValues = getCoffeeBeanFormValues(req);
+    const errors = validateCoffeeBeanForm(formValues);
+
+    if (errors.length > 0) {
+        const roasterSuggestions = await getRoasterSuggestions(userId);
+
+        res.status(400).render("coffee-beans/form", {
+            title: "Add Coffee Bean",
+            pageHeading: "Add Coffee Bean",
+            formAction: "/coffee-beans",
+            submitButtonText: "Save Coffee Bean",
+            errors: errors,
+            formData: formValues,
+            roasterSuggestions: roasterSuggestions
+        });
+
+        return;
+    }
+
+    const createdBean = await prisma.coffeeBean.create({
+        data: {
+            userId: userId,
+            beanName: formValues.beanName,
+            roasterName: formValues.roasterName || null,
+            origin: formValues.origin || null,
+            process: formValues.process || null,
+            roastLevel: formValues.roastLevel || null,
+            roastDate: formValues.roastDate ? new Date(`${formValues.roastDate}T00:00:00`) : null,
+            price: formValues.price ? new Prisma.Decimal(formValues.price) : null,
+            flavorNotes: formValues.flavorNotes || null,
+            sourceUrl: formValues.sourceUrl || null,
+            notes: formValues.notes || null,
+            isActive: true
+        }
+    });
+
+    res.redirect(`/coffee-beans/${createdBean.id}`);
+});
+
+router.get("/:id/edit", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForUser(userId, id);
+
+    if (!coffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    const roasterSuggestions = await getRoasterSuggestions(userId);
+
+    res.render("coffee-beans/form", {
+        title: "Edit Coffee Bean",
+        pageHeading: "Edit Coffee Bean",
+        formAction: `/coffee-beans/${coffeeBean.id}/edit`,
+        submitButtonText: "Update Coffee Bean",
+        errors: [],
+        formData: {
+            beanName: coffeeBean.beanName,
+            roasterName: coffeeBean.roasterName || "",
+            origin: coffeeBean.origin || "",
+            process: coffeeBean.process || "",
+            roastLevel: coffeeBean.roastLevel || "",
+            roastDate: formatDateForInput(coffeeBean.roastDate),
+            price: coffeeBean.price ? coffeeBean.price.toString() : "",
+            flavorNotes: coffeeBean.flavorNotes || "",
+            sourceUrl: coffeeBean.sourceUrl || "",
+            notes: coffeeBean.notes || ""
+        },
+        roasterSuggestions: roasterSuggestions
+    });
+});
+
+router.post("/:id/edit", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const existingCoffeeBean = await getCoffeeBeanForUser(userId, id);
+
+    if (!existingCoffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    const formValues = getCoffeeBeanFormValues(req);
+    const errors = validateCoffeeBeanForm(formValues);
+
+    if (errors.length > 0) {
+        const roasterSuggestions = await getRoasterSuggestions(userId);
+
+        res.status(400).render("coffee-beans/form", {
+            title: "Edit Coffee Bean",
+            pageHeading: "Edit Coffee Bean",
+            formAction: `/coffee-beans/${id}/edit`,
+            submitButtonText: "Update Coffee Bean",
+            errors: errors,
+            formData: formValues,
+            roasterSuggestions: roasterSuggestions
+        });
+
+        return;
+    }
+
+    await prisma.coffeeBean.update({
+        where: {
+            id: id
+        },
+        data: {
+            beanName: formValues.beanName,
+            roasterName: formValues.roasterName || null,
+            origin: formValues.origin || null,
+            process: formValues.process || null,
+            roastLevel: formValues.roastLevel || null,
+            roastDate: formValues.roastDate ? new Date(`${formValues.roastDate}T00:00:00`) : null,
+            price: formValues.price ? new Prisma.Decimal(formValues.price) : null,
+            flavorNotes: formValues.flavorNotes || null,
+            sourceUrl: formValues.sourceUrl || null,
+            notes: formValues.notes || null
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}`);
+});
+
+router.post("/:id/deactivate", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForUser(userId, id);
+
+    if (!coffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    await prisma.coffeeBean.update({
+        where: {
+            id: id
+        },
+        data: {
+            isActive: false,
+            deactivatedAt: new Date()
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Coffee bean deactivated. Historical brew sessions were preserved.")}`);
+});
+
+router.post("/:id/reactivate", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForUser(userId, id);
+
+    if (!coffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    await prisma.coffeeBean.update({
+        where: {
+            id: id
+        },
+        data: {
+            isActive: true,
+            deactivatedAt: null
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Coffee bean reactivated.")}`);
+});
+
+router.post("/:id/delete", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForUser(userId, id);
+
+    if (!coffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    const brewSessionCount = await prisma.brewSession.count({
+        where: {
+            userId: userId,
+            coffeeBeanId: id
+        }
+    });
+
+    if (brewSessionCount > 0) {
+        res.status(400).send("This coffee bean cannot be deleted because it has brew sessions. Deactivate it instead.");
+        return;
+    }
+
+    await prisma.coffeeBean.delete({
+        where: {
+            id: id
+        }
+    });
+
+    res.redirect("/coffee-beans");
+});
+
+router.get("/:id", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const coffeeBean = await prisma.coffeeBean.findFirst({
+        where: {
+            id: id,
+            userId: userId
+        },
+        include: {
+            brewSessions: {
+                where: {
+                    userId: userId
+                },
+                include: {
+                    grinder: true,
+                    brewer: true
+                },
+                orderBy: {
+                    brewDate: "desc"
+                }
+            }
+        }
+    });
+
+    if (!coffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    const brewSessions = coffeeBean.brewSessions.map(function (session) {
+        return mapBrewSessionForBeanDetail(session);
+    });
+
+    const stats = buildBeanStats(coffeeBean.brewSessions);
+
+    res.render("coffee-beans/detail", {
+        title: "Coffee Bean Detail",
+        message: String(req.query.message || ""),
+        errorMessage: String(req.query.errorMessage || ""),
+        coffeeBean: {
+            id: coffeeBean.id,
+            beanName: coffeeBean.beanName,
+            roasterName: coffeeBean.roasterName || "",
+            origin: coffeeBean.origin || "",
+            process: coffeeBean.process || "",
+            roastLevel: coffeeBean.roastLevel || "",
+            roastDate: formatDateOnly(coffeeBean.roastDate),
+            price: coffeeBean.price ? coffeeBean.price.toString() : "",
+            flavorNotes: coffeeBean.flavorNotes || "",
+            sourceUrl: coffeeBean.sourceUrl || "",
+            notes: coffeeBean.notes || "",
+            isActive: coffeeBean.isActive,
+            deactivatedAt: formatDateTime(coffeeBean.deactivatedAt)
+        },
+        stats: stats,
+        brewSessions: brewSessions
+    });
+});
+
+export default router;
