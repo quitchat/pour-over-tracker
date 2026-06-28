@@ -10,15 +10,25 @@
         return session.coffeeBeanName || session.beanName || "";
     }
 
-    function getRatioText(session) {
-        const dose = session.coffeeDoseGrams || "";
-        const totalYield = session.totalYieldGrams || "";
+    function getBrewSummaryText(session) {
+        const dose = session.coffeeDoseGrams ? `${session.coffeeDoseGrams}g` : "-";
+        const totalYield = session.totalYieldGrams ? `${session.totalYieldGrams}g` : "-";
+        const waterTemperature = session.waterTemperatureC ? ` @ ${session.waterTemperatureC}°C` : "";
+        const totalBrewTime = session.totalBrewTime ? ` over ${session.totalBrewTime}` : "";
 
-        if (!dose && !totalYield) {
+        if (dose === "-" && totalYield === "-" && !waterTemperature && !totalBrewTime) {
             return "-";
         }
 
-        return `${dose || "-"} → ${totalYield || "-"}`;
+        return `${dose} → ${totalYield}${waterTemperature}${totalBrewTime}`;
+    }
+
+    function getBrewSummarySubtext(session) {
+        if (!session.brewRatio) {
+            return "";
+        }
+
+        return `Ratio 1:${session.brewRatio}`;
     }
 %>
 
@@ -53,7 +63,7 @@
         font-size: 0.875rem;
     }
 
-    .brew-ratio {
+    .brew-summary {
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
     }
@@ -212,9 +222,7 @@
                     <th>Grinder</th>
                     <th>Brewer</th>
                     <th>Grind</th>
-                    <th>Ratio</th>
-                    <th>Temp</th>
-                    <th>Time</th>
+                    <th>Brew</th>
                     <th>Rating</th>
                     <th class="brew-actions-cell">Actions</th>
                 </tr>
@@ -223,7 +231,7 @@
             <tbody>
                 <% if (sessions.length === 0) { %>
                     <tr>
-                        <td colspan="10" class="text-muted text-center py-4">
+                        <td colspan="8" class="text-muted text-center py-4">
                             No brew sessions found.
                         </td>
                     </tr>
@@ -264,18 +272,11 @@
                         </td>
 
                         <td>
-                            <div class="brew-mobile-label">Ratio</div>
-                            <span class="brew-ratio"><%= getRatioText(session) %></span>
-                        </td>
-
-                        <td>
-                            <div class="brew-mobile-label">Temp</div>
-                            <%= session.waterTemperatureC || "-" %>
-                        </td>
-
-                        <td>
-                            <div class="brew-mobile-label">Time</div>
-                            <%= session.totalBrewTime || "-" %>
+                            <div class="brew-mobile-label">Brew</div>
+                            <div class="brew-summary"><%= getBrewSummaryText(session) %></div>
+                            <% if (getBrewSummarySubtext(session)) { %>
+                                <div class="brew-session-muted"><%= getBrewSummarySubtext(session) %></div>
+                            <% } %>
                         </td>
 
                         <td>
