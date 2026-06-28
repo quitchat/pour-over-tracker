@@ -91,57 +91,14 @@
         user-select: none;
     }
 
-    .radar-score-editor svg {
-        width: 100%;
-        height: auto;
-        display: block;
+    .radar-score-editor canvas {
         cursor: crosshair;
     }
 
-    .radar-score-editor:focus-within svg,
-    .radar-score-editor svg:focus-visible {
+    .radar-score-editor canvas:focus-visible {
         outline: 2px solid var(--bs-primary);
         outline-offset: 0.35rem;
         border-radius: 0.75rem;
-    }
-
-    .radar-score-grid-line {
-        fill: none;
-        stroke: #dee2e6;
-        stroke-width: 1;
-    }
-
-    .radar-score-axis-line {
-        stroke: #adb5bd;
-        stroke-width: 1;
-    }
-
-    .radar-score-area {
-        fill: rgba(13, 110, 253, 0.22);
-        stroke: var(--bs-primary);
-        stroke-width: 3;
-    }
-
-    .radar-score-handle {
-        fill: var(--bs-primary);
-        stroke: #fff;
-        stroke-width: 3;
-        cursor: grab;
-    }
-
-    .radar-score-handle:active {
-        cursor: grabbing;
-    }
-
-    .radar-score-label {
-        font-size: 13px;
-        font-weight: 600;
-        fill: #212529;
-    }
-
-    .radar-score-number {
-        font-size: 12px;
-        fill: #6c757d;
     }
 
     .radar-score-value-grid {
@@ -463,20 +420,12 @@
 
                 <div class="row g-4 align-items-center">
                     <div class="col-lg-7">
-                        <div class="border rounded p-2 p-sm-3 bg-light">
-                            <div class="radar-score-editor" id="brewCharacteristicsRadarEditor">
-                                <svg
-                                    id="brewCharacteristicsRadarSvg"
-                                    viewBox="0 0 360 360"
-                                    role="img"
-                                    tabindex="0"
-                                    aria-label="Interactive brew characteristics pentagon radar score editor">
-                                    <g id="radarScoreGrid"></g>
-                                    <polygon id="radarScoreArea" class="radar-score-area" points=""></polygon>
-                                    <g id="radarScoreHandles"></g>
-                                    <g id="radarScoreLabels"></g>
-                                </svg>
-                            </div>
+                        <div class="radar-score-editor" id="brewCharacteristicsRadarEditor">
+                            <canvas
+                                id="brewCharacteristicsRadarChart"
+                                height="260"
+                                tabindex="0"
+                                aria-label="Interactive brew characteristics pentagon radar score editor"></canvas>
                         </div>
                     </div>
 
@@ -662,43 +611,21 @@
 </div>
 
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const radarScoreFields = [
             { id: "richness", label: "Richness", outputId: "richnessValue" },
-            { id: "sweetness", label: "Sweetness", outputId: "sweetnessValue", labelOffsetX: -30, labelOffsetY: -8 },
+            { id: "sweetness", label: "Sweetness", outputId: "sweetnessValue" },
             { id: "aftertaste", label: "Aftertaste", outputId: "aftertasteValue" },
             { id: "aroma", label: "Aroma", outputId: "aromaValue" },
-            { id: "acidity", label: "Acidity", outputId: "acidityValue", labelOffsetX: 30, labelOffsetY: -8 }
+            { id: "acidity", label: "Acidity", outputId: "acidityValue" }
         ];
 
-        const radarSvg = document.getElementById("brewCharacteristicsRadarSvg");
-        const radarGrid = document.getElementById("radarScoreGrid");
-        const radarScoreArea = document.getElementById("radarScoreArea");
-        const radarHandles = document.getElementById("radarScoreHandles");
-        const radarLabels = document.getElementById("radarScoreLabels");
-        const radarCenter = { x: 180, y: 180 };
-        const radarRadius = 126;
-        const radarLabelRadius = 152;
+        const radarChartElement = document.getElementById("brewCharacteristicsRadarChart");
+        let brewCharacteristicsRadarChart = null;
         let isDraggingRadarScore = false;
-
-        function createSvgElement(tagName) {
-            return document.createElementNS("http://www.w3.org/2000/svg", tagName);
-        }
-
-        function getRadarAxisAngle(index) {
-            return (-90 + index * 72) * Math.PI / 180;
-        }
-
-        function getRadarPoint(index, value, radiusOverride) {
-            const angle = getRadarAxisAngle(index);
-            const radius = typeof radiusOverride === "number" ? radiusOverride : radarRadius * value / 5;
-
-            return {
-                x: radarCenter.x + Math.cos(angle) * radius,
-                y: radarCenter.y + Math.sin(angle) * radius
-            };
-        }
 
         function clampRadarScore(value) {
             const parsed = Number(value);
@@ -720,6 +647,31 @@
             return clampRadarScore(input.value);
         }
 
+        function getRadarScoreValues() {
+            return radarScoreFields.map(function (field) {
+                return getRadarScoreValue(field.id);
+            });
+        }
+
+        function updateRadarScoreOutputs() {
+            radarScoreFields.forEach(function (field) {
+                const output = document.getElementById(field.outputId);
+
+                if (output) {
+                    output.textContent = String(getRadarScoreValue(field.id));
+                }
+            });
+        }
+
+        function updateRadarScoreEditor() {
+            updateRadarScoreOutputs();
+
+            if (brewCharacteristicsRadarChart) {
+                brewCharacteristicsRadarChart.data.datasets[0].data = getRadarScoreValues();
+                brewCharacteristicsRadarChart.update("none");
+            }
+        }
+
         function setRadarScoreValue(fieldId, value) {
             const input = document.getElementById(fieldId);
             const score = clampRadarScore(value);
@@ -731,106 +683,13 @@
             updateRadarScoreEditor();
         }
 
-        function buildRadarScoreGrid() {
-            if (!radarGrid || !radarLabels) {
-                return;
-            }
-
-            radarGrid.innerHTML = "";
-            radarLabels.innerHTML = "";
-
-            for (let level = 1; level <= 5; level += 1) {
-                const gridPolygon = createSvgElement("polygon");
-                const points = radarScoreFields.map(function (field, index) {
-                    const point = getRadarPoint(index, level, radarRadius * level / 5);
-
-                    return point.x + "," + point.y;
-                }).join(" ");
-
-                gridPolygon.setAttribute("points", points);
-                gridPolygon.setAttribute("class", "radar-score-grid-line");
-                radarGrid.appendChild(gridPolygon);
-            }
-
-            radarScoreFields.forEach(function (field, index) {
-                const edgePoint = getRadarPoint(index, 5);
-                const labelPoint = getRadarPoint(index, 5, radarLabelRadius);
-                labelPoint.x += field.labelOffsetX || 0;
-                labelPoint.y += field.labelOffsetY || 0;
-                const axisLine = createSvgElement("line");
-
-                axisLine.setAttribute("x1", String(radarCenter.x));
-                axisLine.setAttribute("y1", String(radarCenter.y));
-                axisLine.setAttribute("x2", String(edgePoint.x));
-                axisLine.setAttribute("y2", String(edgePoint.y));
-                axisLine.setAttribute("class", "radar-score-axis-line");
-                radarGrid.appendChild(axisLine);
-
-                const label = createSvgElement("text");
-                label.setAttribute("x", String(labelPoint.x));
-                label.setAttribute("y", String(labelPoint.y));
-                label.setAttribute("text-anchor", labelPoint.x < radarCenter.x - 10 ? "end" : labelPoint.x > radarCenter.x + 10 ? "start" : "middle");
-                label.setAttribute("dominant-baseline", "middle");
-                label.setAttribute("class", "radar-score-label");
-                label.textContent = field.label;
-                radarLabels.appendChild(label);
-            });
+        function getRadarAxisAngle(index) {
+            return (-90 + index * 72) * Math.PI / 180;
         }
 
-        function updateRadarScoreEditor() {
-            if (!radarScoreArea || !radarHandles) {
-                return;
-            }
-
-            const points = radarScoreFields.map(function (field, index) {
-                const value = getRadarScoreValue(field.id);
-                const point = getRadarPoint(index, value);
-                const output = document.getElementById(field.outputId);
-
-                if (output) {
-                    output.textContent = String(value);
-                }
-
-                return point.x + "," + point.y;
-            }).join(" ");
-
-            radarScoreArea.setAttribute("points", points);
-            radarHandles.innerHTML = "";
-
-            radarScoreFields.forEach(function (field, index) {
-                const value = getRadarScoreValue(field.id);
-                const point = getRadarPoint(index, value);
-                const handle = createSvgElement("circle");
-
-                handle.setAttribute("cx", String(point.x));
-                handle.setAttribute("cy", String(point.y));
-                handle.setAttribute("r", "8");
-                handle.setAttribute("class", "radar-score-handle");
-                handle.setAttribute("data-field-id", field.id);
-                handle.setAttribute("aria-label", field.label + " score " + value + " out of 5");
-                radarHandles.appendChild(handle);
-
-                const number = createSvgElement("text");
-                number.setAttribute("x", String(point.x));
-                number.setAttribute("y", String(point.y - 14));
-                number.setAttribute("text-anchor", "middle");
-                number.setAttribute("class", "radar-score-number");
-                number.textContent = String(value);
-                radarHandles.appendChild(number);
-            });
-        }
-
-        function getSvgPointerPoint(event) {
-            const point = radarSvg.createSVGPoint();
-            point.x = event.clientX;
-            point.y = event.clientY;
-
-            return point.matrixTransform(radarSvg.getScreenCTM().inverse());
-        }
-
-        function getNearestRadarFieldIndex(point) {
-            const dx = point.x - radarCenter.x;
-            const dy = point.y - radarCenter.y;
+        function getNearestRadarFieldIndex(point, radialScale) {
+            const dx = point.x - radialScale.xCenter;
+            const dy = point.y - radialScale.yCenter;
             let bestIndex = 0;
             let bestDot = -Infinity;
 
@@ -847,47 +706,90 @@
             return bestIndex;
         }
 
+        function getRadarPointerPoint(event) {
+            if (!window.Chart || !window.Chart.helpers || !brewCharacteristicsRadarChart) {
+                return null;
+            }
+
+            return window.Chart.helpers.getRelativePosition(event, brewCharacteristicsRadarChart);
+        }
+
         function updateRadarScoreFromPointer(event) {
-            if (!radarSvg) {
+            if (!brewCharacteristicsRadarChart) {
                 return;
             }
 
-            const point = getSvgPointerPoint(event);
-            const fieldIndex = getNearestRadarFieldIndex(point);
+            const radialScale = brewCharacteristicsRadarChart.scales.r;
+            const point = getRadarPointerPoint(event);
+
+            if (!radialScale || !point) {
+                return;
+            }
+
+            const fieldIndex = getNearestRadarFieldIndex(point, radialScale);
             const angle = getRadarAxisAngle(fieldIndex);
-            const dx = point.x - radarCenter.x;
-            const dy = point.y - radarCenter.y;
+            const dx = point.x - radialScale.xCenter;
+            const dy = point.y - radialScale.yCenter;
             const projectedDistance = dx * Math.cos(angle) + dy * Math.sin(angle);
-            const score = projectedDistance / radarRadius * 5;
+            const score = projectedDistance / radialScale.drawingArea * 5;
 
             setRadarScoreValue(radarScoreFields[fieldIndex].id, score);
         }
 
-        if (radarSvg) {
-            buildRadarScoreGrid();
-            updateRadarScoreEditor();
-
-            radarSvg.addEventListener("pointerdown", function (event) {
-                isDraggingRadarScore = true;
-                radarSvg.setPointerCapture(event.pointerId);
-                updateRadarScoreFromPointer(event);
-            });
-
-            radarSvg.addEventListener("pointermove", function (event) {
-                if (isDraggingRadarScore) {
-                    updateRadarScoreFromPointer(event);
+        if (window.Chart && radarChartElement) {
+            brewCharacteristicsRadarChart = new Chart(radarChartElement, {
+                type: "radar",
+                data: {
+                    labels: radarScoreFields.map(function (field) {
+                        return field.label;
+                    }),
+                    datasets: [
+                        {
+                            label: "This Brew",
+                            data: getRadarScoreValues()
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: 5,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
                 }
             });
 
-            radarSvg.addEventListener("pointerup", function (event) {
-                isDraggingRadarScore = false;
-                radarSvg.releasePointerCapture(event.pointerId);
+            radarChartElement.addEventListener("pointerdown", function (event) {
+                isDraggingRadarScore = true;
+                radarChartElement.setPointerCapture(event.pointerId);
+                updateRadarScoreFromPointer(event);
+                event.preventDefault();
             });
 
-            radarSvg.addEventListener("pointercancel", function () {
+            radarChartElement.addEventListener("pointermove", function (event) {
+                if (isDraggingRadarScore) {
+                    updateRadarScoreFromPointer(event);
+                    event.preventDefault();
+                }
+            });
+
+            radarChartElement.addEventListener("pointerup", function (event) {
+                isDraggingRadarScore = false;
+                radarChartElement.releasePointerCapture(event.pointerId);
+            });
+
+            radarChartElement.addEventListener("pointercancel", function () {
                 isDraggingRadarScore = false;
             });
         }
+
+        updateRadarScoreEditor();
 
         const overallRatingInput = document.getElementById("overallRating");
         const overallRatingDisplay = document.getElementById("overallRatingDisplay");
