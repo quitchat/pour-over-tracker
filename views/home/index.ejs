@@ -82,6 +82,17 @@
     </div>
 </div>
 
+<style>
+    .recent-brew-clickable-row {
+        cursor: pointer;
+    }
+
+    .recent-brew-clickable-row:focus {
+        outline: 2px solid var(--bs-primary);
+        outline-offset: -2px;
+    }
+</style>
+
 <div class="row g-3">
     <div class="col-lg-8">
         <div class="card h-100">
@@ -118,7 +129,12 @@
                         <% } %>
 
                         <% recentBrewList.forEach(function (brew) { %>
-                            <tr>
+                            <tr
+                                class="recent-brew-clickable-row"
+                                data-href="/brew-sessions/<%= brew.id %>"
+                                tabindex="0"
+                                role="link"
+                                aria-label="View brew session details for <%= brew.beanName %> on <%= brew.brewDate %>">
                                 <td><%= brew.brewDate %></td>
 
                                 <td>
@@ -200,3 +216,30 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".recent-brew-clickable-row[data-href]").forEach(function (row) {
+            row.addEventListener("click", function (event) {
+                if (event.target.closest("a, button, input, select, textarea, label, form, .dropdown, .dropdown-menu")) {
+                    return;
+                }
+
+                window.location.href = row.getAttribute("data-href");
+            });
+
+            row.addEventListener("keydown", function (event) {
+                if (event.key !== "Enter" && event.key !== " ") {
+                    return;
+                }
+
+                if (event.target.closest("a, button, input, select, textarea, label, form, .dropdown, .dropdown-menu")) {
+                    return;
+                }
+
+                event.preventDefault();
+                window.location.href = row.getAttribute("data-href");
+            });
+        });
+    });
+</script>
