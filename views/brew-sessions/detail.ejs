@@ -197,15 +197,36 @@
             <div class="card h-100">
                 <div class="card-header">
                     <i class="bi bi-journal-text me-1"></i>
-                    Notes
+                    Brew Notes
                 </div>
 
                 <div class="card-body">
-                    <% if (session.notes) { %>
-                        <div style="white-space: pre-wrap;"><%= session.notes %></div>
-                    <% } else { %>
-                        <span class="text-muted">No notes entered.</span>
-                    <% } %>
+                    <div class="mb-3">
+                        <h3 class="h6">Pour Structure</h3>
+                        <% if (session.pourStructure) { %>
+                            <div style="white-space: pre-wrap;"><%= session.pourStructure %></div>
+                        <% } else { %>
+                            <span class="text-muted">No pour structure entered.</span>
+                        <% } %>
+                    </div>
+
+                    <div class="mb-3">
+                        <h3 class="h6">Recipe Steps</h3>
+                        <% if (session.recipeSteps) { %>
+                            <div style="white-space: pre-wrap;"><%= session.recipeSteps %></div>
+                        <% } else { %>
+                            <span class="text-muted">No recipe steps entered.</span>
+                        <% } %>
+                    </div>
+
+                    <div>
+                        <h3 class="h6">Adjustment Notes</h3>
+                        <% if (session.adjustmentNotes) { %>
+                            <div style="white-space: pre-wrap;"><%= session.adjustmentNotes %></div>
+                        <% } else { %>
+                            <span class="text-muted">No adjustment notes entered.</span>
+                        <% } %>
+                    </div>
                 </div>
             </div>
         </div>

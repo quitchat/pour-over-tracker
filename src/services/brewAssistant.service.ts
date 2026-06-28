@@ -7,6 +7,26 @@ export type AiServiceResult<T> = {
     usage: AiTokenUsage;
 };
 
+export type RecentMatchingBrewForSuggestion = {
+    brewDate: string;
+    grindSize: string;
+    coffeeDoseGrams: string;
+    totalYieldGrams: string;
+    brewRatio: string;
+    waterTemperatureC: string;
+    totalBrewTimeSeconds: number | null;
+    overallRating: string;
+    wouldRepeat: boolean;
+    pourStructure: string;
+    recipeSteps: string;
+    adjustmentNotes: string;
+    richness: number | null;
+    sweetness: number | null;
+    aftertaste: number | null;
+    aroma: number | null;
+    acidity: number | null;
+};
+
 export type BrewAssistantInput = {
     roasterName: string;
     beanName: string;
@@ -23,6 +43,7 @@ export type BrewAssistantInput = {
     brewerBrand: string;
     brewerType: string;
     coffeeDoseGrams: string;
+    recentMatchingBrews: RecentMatchingBrewForSuggestion[];
 };
 
 export type BrewRecipeSuggestion = {
@@ -46,6 +67,9 @@ export const BREW_SUGGESTION_AI_PROMPT_NAME = "default";
 export const DEFAULT_BREW_SUGGESTION_AI_PROMPT = [
     "You are an expert pour-over coffee brewing assistant.",
     "Create a practical brewing recipe for the selected coffee bean, grinder, brewer, and dose.",
+    "If recent matching brew history is provided, use it as the most important context for the recommendation.",
+    "When previous brews have ratings, tasting scores, and adjustment notes, suggest a next recipe that learns from what worked and avoids repeating what did not work.",
+    "The pentagon tasting scores are the user's tasting feedback. Do not expect separate written tasting notes.",
     "Use web search when helpful to find brewing guidance for the brewer, coffee, roaster, or brew method.",
     "Do not invent exact roaster-specific instructions unless supported by search results or common brewing practice.",
     "Prefer practical home-brewing guidance over competition recipes.",
@@ -92,6 +116,43 @@ async function getBrewSuggestionAiPromptText(): Promise<string> {
     });
 
     return createdPrompt.promptText;
+}
+
+
+
+function formatRecentMatchingBrewHistory(recentMatchingBrews: RecentMatchingBrewForSuggestion[]): string {
+    if (!recentMatchingBrews || recentMatchingBrews.length === 0) {
+        return "No recent matching brew history found.";
+    }
+
+    return recentMatchingBrews.map(function (brew, index) {
+        const scoreParts = [
+            brew.richness === null ? "" : `Richness ${brew.richness}/5`,
+            brew.sweetness === null ? "" : `Sweetness ${brew.sweetness}/5`,
+            brew.aftertaste === null ? "" : `Aftertaste ${brew.aftertaste}/5`,
+            brew.aroma === null ? "" : `Aroma ${brew.aroma}/5`,
+            brew.acidity === null ? "" : `Acidity ${brew.acidity}/5`
+        ].filter(function (value) {
+            return value;
+        }).join(", ");
+
+        return [
+            `Recent matching brew #${index + 1}:`,
+            `Date: ${brew.brewDate || "Unknown"}`,
+            `Grind size: ${brew.grindSize || "Unknown"}`,
+            `Dose: ${brew.coffeeDoseGrams || "Unknown"} g`,
+            `Yield: ${brew.totalYieldGrams || "Unknown"} g`,
+            `Ratio: ${brew.brewRatio || "Unknown"}`,
+            `Water temp: ${brew.waterTemperatureC || "Unknown"} °C`,
+            `Total brew time seconds: ${brew.totalBrewTimeSeconds === null ? "Unknown" : brew.totalBrewTimeSeconds}`,
+            `Overall rating: ${brew.overallRating || "Unknown"}`,
+            `Would repeat: ${brew.wouldRepeat ? "Yes" : "No"}`,
+            `Scores: ${scoreParts || "Unknown"}`,
+            `Previous pour structure: ${brew.pourStructure || "None"}`,
+            `Previous recipe steps: ${brew.recipeSteps || "None"}`,
+            `Previous adjustment notes: ${brew.adjustmentNotes || "None"}`
+        ].join("\n");
+    }).join("\n\n");
 }
 
 function parseBrewRecipeSuggestionJson(outputText: string): BrewRecipeSuggestion {
@@ -169,6 +230,14 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
                             "",
                             `Coffee dose / bean weight: ${input.coffeeDoseGrams || "Unknown"} grams`,
                             "",
+                            "Recent matching brew history with the same bean, grinder, brewer, and dose:",
+                            formatRecentMatchingBrewHistory(input.recentMatchingBrews),
+                            "",
+                            "Use the recent matching brew history to improve the suggestion when it is available.",
+                            "If the recent brews were highly rated or marked would-repeat, preserve the working parts of those recipes.",
+                            "If the recent brews had lower ratings or low pentagon tasting scores, suggest practical adjustments to avoid those issues.",
+                            "Use previous adjustment notes as helpful next-brew guidance, but do not treat them as actual tasting results.",
+                            "The user's tasting feedback is captured by the pentagon scores only: richness, sweetness, aftertaste, aroma, and acidity.",
                             "Suggest a balanced recipe that highlights the coffee bean characteristics."
                         ].join("\n")
                     }

@@ -75,7 +75,9 @@ function getBrewSessionFormValues(req: Request) {
         totalBrewTimeSeconds: String(req.body.totalBrewTimeSeconds || "").trim(),
         overallRating: String(req.body.overallRating || "").trim(),
         wouldRepeat: req.body.wouldRepeat === "on" || req.body.wouldRepeat === "true",
-        notes: String(req.body.notes || "").trim(),
+        pourStructure: String(req.body.pourStructure || "").trim(),
+        recipeSteps: String(req.body.recipeSteps || "").trim(),
+        adjustmentNotes: String(req.body.adjustmentNotes || "").trim(),
         richness: String(req.body.richness || "3").trim(),
         sweetness: String(req.body.sweetness || "3").trim(),
         aftertaste: String(req.body.aftertaste || "3").trim(),
@@ -98,7 +100,9 @@ function getDefaultFormData(preselectedCoffeeBeanId: string, preselectedGrinderI
         totalBrewTimeSeconds: "",
         overallRating: "",
         wouldRepeat: false,
-        notes: "",
+        pourStructure: "",
+        recipeSteps: "",
+        adjustmentNotes: "",
         richness: "3",
         sweetness: "3",
         aftertaste: "3",
@@ -373,7 +377,10 @@ function buildBrewSessionCreateData(userId: number, formValues: ReturnType<typeo
         totalBrewTimeSeconds: totalBrewTimeSeconds,
         overallRating: formValues.overallRating ? new Prisma.Decimal(formValues.overallRating) : null,
         wouldRepeat: formValues.wouldRepeat,
-        notes: formValues.notes || null,
+        notes: null as string | null,
+        pourStructure: formValues.pourStructure || null,
+        recipeSteps: formValues.recipeSteps || null,
+        adjustmentNotes: formValues.adjustmentNotes || null,
         tastingScore: {
             create: buildTastingScoreCreateData(formValues)
         }
@@ -396,7 +403,10 @@ function buildBrewSessionUpdateData(formValues: ReturnType<typeof getBrewSession
         totalBrewTimeSeconds: totalBrewTimeSeconds,
         overallRating: formValues.overallRating ? new Prisma.Decimal(formValues.overallRating) : null,
         wouldRepeat: formValues.wouldRepeat,
-        notes: formValues.notes || null
+        notes: null as string | null,
+        pourStructure: formValues.pourStructure || null,
+        recipeSteps: formValues.recipeSteps || null,
+        adjustmentNotes: formValues.adjustmentNotes || null
     };
 }
 
@@ -419,7 +429,9 @@ function buildFormDataFromBrewSession(session: any) {
         totalBrewTimeSeconds: seconds,
         overallRating: getDecimalText(session.overallRating),
         wouldRepeat: session.wouldRepeat,
-        notes: session.notes || "",
+        pourStructure: session.pourStructure || "",
+        recipeSteps: session.recipeSteps || session.notes || "",
+        adjustmentNotes: session.adjustmentNotes || "",
         richness: tastingScore ? String(tastingScore.richness) : "3",
         sweetness: tastingScore ? String(tastingScore.sweetness) : "3",
         aftertaste: tastingScore ? String(tastingScore.aftertaste) : "3",
@@ -446,7 +458,9 @@ function buildDuplicateFormDataFromBrewSession(session: any) {
         totalBrewTimeSeconds: seconds,
         overallRating: "",
         wouldRepeat: false,
-        notes: "",
+        pourStructure: session.pourStructure || "",
+        recipeSteps: session.recipeSteps || session.notes || "",
+        adjustmentNotes: session.adjustmentNotes || "",
         richness: "3",
         sweetness: "3",
         aftertaste: "3",
@@ -506,7 +520,9 @@ function mapBrewSessionForDetail(session: any) {
         totalBrewTime: formatSeconds(session.totalBrewTimeSeconds),
         overallRating: getDecimalText(session.overallRating),
         wouldRepeat: session.wouldRepeat,
-        notes: session.notes || "",
+        pourStructure: session.pourStructure || "",
+        recipeSteps: session.recipeSteps || session.notes || "",
+        adjustmentNotes: session.adjustmentNotes || "",
         tastingScore: {
             richness: tastingScore ? tastingScore.richness : 3,
             sweetness: tastingScore ? tastingScore.sweetness : 3,
@@ -601,6 +617,56 @@ async function getUserBrewDefaults(userId: number) {
             defaultCoffeeDoseGrams: true,
             defaultWaterTemperatureC: true
         }
+    });
+}
+
+
+async function getRecentMatchingBrewsForSuggestion(userId: number, coffeeBeanId: number, grinderId: number, brewerId: number, coffeeDoseGrams: string) {
+    const recentBrews = await prisma.brewSession.findMany({
+        where: {
+            userId: userId,
+            coffeeBeanId: coffeeBeanId,
+            grinderId: grinderId,
+            brewerId: brewerId,
+            coffeeDoseGrams: new Prisma.Decimal(coffeeDoseGrams)
+        },
+        include: {
+            tastingScore: true
+        },
+        orderBy: [
+            {
+                brewDate: "desc"
+            },
+            {
+                createdAt: "desc"
+            },
+            {
+                id: "desc"
+            }
+        ],
+        take: 5
+    });
+
+    return recentBrews.map(function (brew) {
+        return {
+            brewDate: formatDateOnly(brew.brewDate),
+            grindSize: brew.grindSize || "",
+            coffeeDoseGrams: getDecimalText(brew.coffeeDoseGrams),
+            totalYieldGrams: getDecimalText(brew.totalYieldGrams),
+            brewRatio: getDecimalText(brew.brewRatio),
+            waterTemperatureC: getDecimalText(brew.waterTemperatureC),
+            totalBrewTimeSeconds: brew.totalBrewTimeSeconds,
+            overallRating: getDecimalText(brew.overallRating),
+            wouldRepeat: brew.wouldRepeat,
+            pourStructure: brew.pourStructure || "",
+            recipeSteps: brew.recipeSteps || brew.notes || "",
+            adjustmentNotes: brew.adjustmentNotes || "",
+            richness: brew.tastingScore ? brew.tastingScore.richness : null,
+            sweetness: brew.tastingScore ? brew.tastingScore.sweetness : null,
+            aftertaste: brew.tastingScore ? brew.tastingScore.aftertaste : null,
+            aroma: brew.tastingScore ? brew.tastingScore.aroma : null,
+            acidity: brew.tastingScore ? brew.tastingScore.acidity : null
+        };
     });
 }
 
@@ -859,6 +925,14 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
     });
 
     try {
+        const recentMatchingBrews = await getRecentMatchingBrewsForSuggestion(
+            userId,
+            coffeeBeanId,
+            grinderId,
+            brewerId,
+            coffeeDoseGrams
+        );
+
         const recipeResult = await suggestBrewingRecipe({
             roasterName: coffeeBean.roasterName || "",
             beanName: coffeeBean.beanName,
@@ -874,7 +948,8 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
             brewerName: brewer.name,
             brewerBrand: brewer.brand || "",
             brewerType: brewer.brewerType || "",
-            coffeeDoseGrams: coffeeDoseGrams
+            coffeeDoseGrams: coffeeDoseGrams,
+            recentMatchingBrews: recentMatchingBrews
         });
         const recipe = recipeResult.data;
 
@@ -887,7 +962,8 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
 
         res.json({
             ok: true,
-            recipe: recipe
+            recipe: recipe,
+            recentMatchingBrewCount: recentMatchingBrews.length
         });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Could not suggest a brewing recipe.";

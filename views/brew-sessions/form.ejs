@@ -384,12 +384,36 @@
                 </div>
 
                 <div class="col-12">
-                    <label for="notes" class="form-label">Notes</label>
+                    <label for="pourStructure" class="form-label">Pour Structure</label>
                     <textarea
                         class="form-control"
-                        id="notes"
-                        name="notes"
-                        rows="4"><%= formData.notes || "" %></textarea>
+                        id="pourStructure"
+                        name="pourStructure"
+                        rows="4"
+                        placeholder="Example: Bloom 50 g, pour to 160 g, pour to 240 g, finish at 320 g."><%= formData.pourStructure || "" %></textarea>
+                    <div class="form-text">Short summary of the pours. AI recipe suggestions will fill this field.</div>
+                </div>
+
+                <div class="col-12">
+                    <label for="recipeSteps" class="form-label">Recipe Steps</label>
+                    <textarea
+                        class="form-control"
+                        id="recipeSteps"
+                        name="recipeSteps"
+                        rows="6"
+                        placeholder="Detailed brew instructions and timing."><%= formData.recipeSteps || "" %></textarea>
+                    <div class="form-text">Detailed step-by-step brew plan. AI recipe suggestions will fill this field.</div>
+                </div>
+
+                <div class="col-12">
+                    <label for="adjustmentNotes" class="form-label">Adjustment Notes</label>
+                    <textarea
+                        class="form-control"
+                        id="adjustmentNotes"
+                        name="adjustmentNotes"
+                        rows="4"
+                        placeholder="AI adjustment tips or your next-brew changes."><%= formData.adjustmentNotes || "" %></textarea>
+                    <div class="form-text">Optional AI tips or your own next-brew changes. Tasting feedback is still captured by the pentagon scores.</div>
                 </div>
             </div>
         </div>
@@ -570,7 +594,7 @@
                             <div class="card h-100">
                                 <div class="card-header">Recipe Steps</div>
                                 <div class="card-body">
-                                    <ol class="mb-0" id="recipeSteps"></ol>
+                                    <ol class="mb-0" id="recipeStepList"></ol>
                                 </div>
                             </div>
                         </div>
@@ -599,7 +623,9 @@
                     <input type="hidden" id="suggestedCoffeeDoseGrams">
                     <input type="hidden" id="suggestedTotalYieldGrams">
                     <input type="hidden" id="suggestedTotalBrewTimeSeconds">
-                    <input type="hidden" id="suggestedNotes">
+                    <input type="hidden" id="suggestedPourStructure">
+                    <input type="hidden" id="suggestedRecipeSteps">
+                    <input type="hidden" id="suggestedAdjustmentNotes">
                 </div>
             </div>
 
@@ -1155,26 +1181,34 @@
             return minutes + ":" + String(seconds).padStart(2, "0");
         }
 
-        function buildSuggestedNotes(recipe) {
+        function buildPourStructureText(recipe) {
+            if (!recipe.pourStructure || recipe.pourStructure.length === 0) {
+                return "";
+            }
+
+            return recipe.pourStructure.join("\n");
+        }
+
+        function buildRecipeStepsText(recipe) {
             const sections = [];
 
             if (recipe.recipeName) {
                 sections.push(recipe.recipeName);
             }
 
-            if (recipe.pourStructure && recipe.pourStructure.length > 0) {
-                sections.push("Pour structure:\n" + recipe.pourStructure.join("\n"));
-            }
-
             if (recipe.recipeSteps && recipe.recipeSteps.length > 0) {
-                sections.push("Recipe steps:\n" + recipe.recipeSteps.join("\n"));
-            }
-
-            if (recipe.adjustmentTips && recipe.adjustmentTips.length > 0) {
-                sections.push("Adjustment tips:\n" + recipe.adjustmentTips.join("\n"));
+                sections.push(recipe.recipeSteps.join("\n"));
             }
 
             return sections.join("\n\n");
+        }
+
+        function buildAdjustmentNotesText(recipe) {
+            if (!recipe.adjustmentTips || recipe.adjustmentTips.length === 0) {
+                return "";
+            }
+
+            return recipe.adjustmentTips.join("\n");
         }
 
         function populateRecipe(recipe) {
@@ -1189,7 +1223,7 @@
             setText("recipeBloomTime", recipe.bloomSeconds ? recipe.bloomSeconds + " sec" : "-");
 
             appendListItems("recipePourStructure", recipe.pourStructure || []);
-            appendListItems("recipeSteps", recipe.recipeSteps || []);
+            appendListItems("recipeStepList", recipe.recipeSteps || []);
             appendListItems("recipeAdjustmentTips", recipe.adjustmentTips || []);
             appendListItems("recipeReasoningNotes", recipe.reasoningNotes || []);
 
@@ -1198,7 +1232,9 @@
             setElementValue("suggestedCoffeeDoseGrams", recipe.coffeeDoseGrams || "");
             setElementValue("suggestedTotalYieldGrams", recipe.totalYieldGrams || "");
             setElementValue("suggestedTotalBrewTimeSeconds", recipe.totalBrewTimeSeconds || "");
-            setElementValue("suggestedNotes", buildSuggestedNotes(recipe));
+            setElementValue("suggestedPourStructure", buildPourStructureText(recipe));
+            setElementValue("suggestedRecipeSteps", buildRecipeStepsText(recipe));
+            setElementValue("suggestedAdjustmentNotes", buildAdjustmentNotesText(recipe));
         }
 
         function validateAssistantInputs() {
@@ -1279,6 +1315,20 @@
 
                 populateRecipe(data.recipe);
 
+                if (typeof data.recentMatchingBrewCount === "number" && data.recentMatchingBrewCount > 0) {
+                    showMessage(
+                        recipeResultMessage,
+                        "info",
+                        "AI used " + data.recentMatchingBrewCount + " recent matching brew" + (data.recentMatchingBrewCount === 1 ? "" : "s") + " with the same bean, grinder, brewer, and dose."
+                    );
+                } else {
+                    showMessage(
+                        recipeResultMessage,
+                        "secondary",
+                        "No recent matching brews found for the same bean, grinder, brewer, and dose. AI used the selected setup and bean information only."
+                    );
+                }
+
                 if (recipeResultModal) {
                     recipeResultModal.show();
                 } else {
@@ -1302,7 +1352,9 @@
             const coffeeDoseGrams = getElementValue("suggestedCoffeeDoseGrams");
             const totalYieldGrams = getElementValue("suggestedTotalYieldGrams");
             const totalBrewTimeSeconds = getElementValue("suggestedTotalBrewTimeSeconds");
-            const suggestedNotes = getElementValue("suggestedNotes");
+            const suggestedPourStructure = getElementValue("suggestedPourStructure");
+            const suggestedRecipeSteps = getElementValue("suggestedRecipeSteps");
+            const suggestedAdjustmentNotes = getElementValue("suggestedAdjustmentNotes");
 
             if (grindSize) {
                 setElementValue("grindSize", grindSize);
@@ -1329,8 +1381,16 @@
                 }
             }
 
-            if (suggestedNotes) {
-                setElementValue("notes", suggestedNotes);
+            if (suggestedPourStructure) {
+                setElementValue("pourStructure", suggestedPourStructure);
+            }
+
+            if (suggestedRecipeSteps) {
+                setElementValue("recipeSteps", suggestedRecipeSteps);
+            }
+
+            if (suggestedAdjustmentNotes) {
+                setElementValue("adjustmentNotes", suggestedAdjustmentNotes);
             }
 
             if (recipeResultModal) {
