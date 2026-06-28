@@ -15,6 +15,10 @@ model User {
   role          String        @default("User")
   isActive      Boolean       @default(true)
   deactivatedAt DateTime?
+  defaultGrinderId Int?
+  defaultBrewerId Int?
+  defaultCoffeeDoseGrams Decimal? @db.Decimal(8, 2)
+  defaultWaterTemperatureC Decimal? @db.Decimal(5, 2)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 

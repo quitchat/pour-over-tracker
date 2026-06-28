@@ -84,16 +84,16 @@ function getBrewSessionFormValues(req: Request) {
     };
 }
 
-function getDefaultFormData(preselectedCoffeeBeanId: string, preselectedGrinderId: string, preselectedBrewerId: string) {
+function getDefaultFormData(preselectedCoffeeBeanId: string, preselectedGrinderId: string, preselectedBrewerId: string, defaultCoffeeDoseGrams: string, defaultWaterTemperatureC: string) {
     return {
         coffeeBeanId: preselectedCoffeeBeanId,
         grinderId: preselectedGrinderId,
         brewerId: preselectedBrewerId,
         brewDate: getTodayDateForInput(),
         grindSize: "",
-        coffeeDoseGrams: "",
+        coffeeDoseGrams: defaultCoffeeDoseGrams,
         totalYieldGrams: "",
-        waterTemperatureC: "",
+        waterTemperatureC: defaultWaterTemperatureC,
         totalBrewTimeMinutes: "",
         totalBrewTimeSeconds: "",
         overallRating: "",
@@ -590,6 +590,20 @@ async function getFormOptions(userId: number, includedCoffeeBeanId: number | nul
     };
 }
 
+async function getUserBrewDefaults(userId: number) {
+    return await prisma.user.findUnique({
+        where: {
+            id: userId
+        },
+        select: {
+            defaultGrinderId: true,
+            defaultBrewerId: true,
+            defaultCoffeeDoseGrams: true,
+            defaultWaterTemperatureC: true
+        }
+    });
+}
+
 async function getBrewSessionForUser(userId: number, id: number) {
     return await prisma.brewSession.findFirst({
         where: {
@@ -707,18 +721,45 @@ router.get("/new", async function (req: Request, res: Response) {
         }
     }
 
-    const formOptions = await getFormOptions(userId, includedCoffeeBeanId);
+    const [formOptions, userBrewDefaults] = await Promise.all([
+        getFormOptions(userId, includedCoffeeBeanId),
+        getUserBrewDefaults(userId)
+    ]);
 
     if (!preselectedCoffeeBeanId && formOptions.coffeeBeans.length === 1) {
         preselectedCoffeeBeanId = String(formOptions.coffeeBeans[0].id);
     }
 
-    const preselectedGrinderId = formOptions.grinders.length === 1
-        ? String(formOptions.grinders[0].id)
+    const defaultGrinderIsAvailable = userBrewDefaults && userBrewDefaults.defaultGrinderId
+        ? formOptions.grinders.some(function (grinder) {
+            return grinder.id === userBrewDefaults.defaultGrinderId;
+        })
+        : false;
+
+    const defaultBrewerIsAvailable = userBrewDefaults && userBrewDefaults.defaultBrewerId
+        ? formOptions.brewers.some(function (brewer) {
+            return brewer.id === userBrewDefaults.defaultBrewerId;
+        })
+        : false;
+
+    const preselectedGrinderId = defaultGrinderIsAvailable && userBrewDefaults && userBrewDefaults.defaultGrinderId
+        ? String(userBrewDefaults.defaultGrinderId)
+        : formOptions.grinders.length === 1
+            ? String(formOptions.grinders[0].id)
+            : "";
+
+    const preselectedBrewerId = defaultBrewerIsAvailable && userBrewDefaults && userBrewDefaults.defaultBrewerId
+        ? String(userBrewDefaults.defaultBrewerId)
+        : formOptions.brewers.length === 1
+            ? String(formOptions.brewers[0].id)
+            : "";
+
+    const defaultCoffeeDoseGrams = userBrewDefaults
+        ? getDecimalText(userBrewDefaults.defaultCoffeeDoseGrams)
         : "";
 
-    const preselectedBrewerId = formOptions.brewers.length === 1
-        ? String(formOptions.brewers[0].id)
+    const defaultWaterTemperatureC = userBrewDefaults
+        ? getDecimalText(userBrewDefaults.defaultWaterTemperatureC)
         : "";
 
     res.render("brew-sessions/form", {
@@ -727,7 +768,7 @@ router.get("/new", async function (req: Request, res: Response) {
         formAction: "/brew-sessions",
         submitButtonText: "Save Brew Session",
         errors: [],
-        formData: getDefaultFormData(preselectedCoffeeBeanId, preselectedGrinderId, preselectedBrewerId),
+        formData: getDefaultFormData(preselectedCoffeeBeanId, preselectedGrinderId, preselectedBrewerId, defaultCoffeeDoseGrams, defaultWaterTemperatureC),
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,
         brewers: formOptions.brewers
