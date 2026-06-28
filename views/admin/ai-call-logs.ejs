@@ -2,9 +2,52 @@
     <div>
         <h1 class="h3 mb-1">AI Call Logs</h1>
         <p class="text-muted mb-0">
-            Tracks who initiated each AI call, when it started, what kind of call it was, and whether it succeeded.
+            Tracks who initiated each AI call, when it started, call type, status, token usage, image count, and estimated cost.
             Prompts and responses are not stored.
         </p>
+    </div>
+
+    <a href="/admin/ai" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        AI Administration
+    </a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small">Filtered Estimated Cost</div>
+                <div class="fs-5 fw-semibold"><%= filteredEstimatedCost || "$0.000000" %></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small">Filtered Tokens</div>
+                <div class="fs-5 fw-semibold"><%= filteredTotalTokens || 0 %></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small">Input / Output Tokens</div>
+                <div class="fs-6 fw-semibold"><%= filteredInputTokens || 0 %> / <%= filteredOutputTokens || 0 %></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small">Images Sent</div>
+                <div class="fs-5 fw-semibold"><%= filteredImageCount || 0 %></div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -45,6 +88,12 @@
     </div>
 </div>
 
+<div class="alert alert-info small">
+    <strong>Cost is estimated.</strong>
+    Token counts come from the OpenAI API usage field when available. Pricing uses built-in defaults for known models or your configured
+    <code>OPENAI_COST_INPUT_PER_1M</code> and <code>OPENAI_COST_OUTPUT_PER_1M</code> environment variables.
+</div>
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>
@@ -68,6 +117,11 @@
                             <th>Model</th>
                             <th>Status</th>
                             <th class="text-end">Duration</th>
+                            <th class="text-end">Input</th>
+                            <th class="text-end">Output</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-end">Images</th>
+                            <th class="text-end">Est. Cost</th>
                             <th>Error</th>
                         </tr>
                     </thead>
@@ -92,6 +146,11 @@
                                         <%= (log.durationMs / 1000).toFixed(2) %>s
                                     <% } %>
                                 </td>
+                                <td class="text-end"><%= log.inputTokens || "" %></td>
+                                <td class="text-end"><%= log.outputTokens || "" %></td>
+                                <td class="text-end"><%= log.totalTokens || "" %></td>
+                                <td class="text-end"><%= log.imageCount || "" %></td>
+                                <td class="text-end text-nowrap"><%= log.estimatedCost || "" %></td>
                                 <td class="text-break"><%= log.errorMessage %></td>
                             </tr>
                         <% }); %>

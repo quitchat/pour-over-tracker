@@ -13,7 +13,7 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card h-100 shadow-sm">
             <div class="card-body">
                 <div class="d-flex align-items-center gap-3">
@@ -30,7 +30,7 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card h-100 shadow-sm">
             <div class="card-body">
                 <div class="d-flex align-items-center gap-3">
@@ -47,7 +47,7 @@
         </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card h-100 shadow-sm">
             <div class="card-body">
                 <div class="d-flex align-items-center gap-3">
@@ -58,6 +58,25 @@
                     <div>
                         <div class="text-muted small">Latest AI Call</div>
                         <div class="fs-6 fw-semibold"><%= latestAiCallStartedAt || "None yet" %></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="col-md-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-info-subtle text-info d-inline-flex align-items-center justify-content-center" style="width: 3rem; height: 3rem;">
+                        <i class="bi bi-currency-dollar fs-4"></i>
+                    </div>
+
+                    <div>
+                        <div class="text-muted small">Estimated Cost This Month</div>
+                        <div class="fs-5 fw-semibold"><%= currentMonthEstimatedCost || "$0.000000" %></div>
+                        <div class="text-muted small">All time: <%= totalEstimatedCost || "$0.000000" %></div>
                     </div>
                 </div>
             </div>
@@ -78,7 +97,7 @@
                         <div>
                             <h2 class="h5 mb-1">AI Call Logs</h2>
                             <p class="text-muted mb-0">
-                                See who started each AI call, when it ran, what type of call it was, and whether it succeeded.
+                                See who started each AI call, when it ran, what type of call it was, whether it succeeded, token usage, and estimated cost.
                             </p>
                         </div>
                     </div>

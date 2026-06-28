@@ -1,5 +1,11 @@
 import OpenAI from "openai";
 import { prisma } from "../lib/prisma";
+import { AiTokenUsage, extractAiTokenUsage } from "./aiCallLog.service";
+
+export type AiServiceResult<T> = {
+    data: T;
+    usage: AiTokenUsage;
+};
 
 export type BrewAssistantInput = {
     roasterName: string;
@@ -108,7 +114,7 @@ function parseBrewRecipeSuggestionJson(outputText: string): BrewRecipeSuggestion
     };
 }
 
-export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<BrewRecipeSuggestion> {
+export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<AiServiceResult<BrewRecipeSuggestion>> {
     const client = getOpenAIClient();
     const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const promptText = await getBrewSuggestionAiPromptText();
@@ -254,5 +260,8 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<B
         throw new Error("OpenAI did not return a brewing recipe.");
     }
 
-    return parseBrewRecipeSuggestionJson(response.output_text);
+    return {
+        data: parseBrewRecipeSuggestionJson(response.output_text),
+        usage: extractAiTokenUsage(response)
+    };
 }

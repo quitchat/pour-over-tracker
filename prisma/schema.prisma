@@ -60,6 +60,11 @@ model AiCallLog {
   startedAt     DateTime  @default(now())
   completedAt   DateTime?
   durationMs    Int?
+  inputTokens   Int?
+  outputTokens  Int?
+  totalTokens   Int?
+  imageCount    Int       @default(0)
+  estimatedCostUsd Decimal? @db.Decimal(12, 6)
   errorMessage  String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

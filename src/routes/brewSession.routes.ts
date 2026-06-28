@@ -809,14 +809,15 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
         return;
     }
 
+    const aiModel = process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const aiCallLog = await startAiCallLog({
         user: getAiCallRouteUser(res),
         callType: AI_CALL_TYPES.brewRecipeSuggestion,
-        model: process.env.OPENAI_MODEL || "gpt-5.4-mini"
+        model: aiModel
     });
 
     try {
-        const recipe = await suggestBrewingRecipe({
+        const recipeResult = await suggestBrewingRecipe({
             roasterName: coffeeBean.roasterName || "",
             beanName: coffeeBean.beanName,
             origin: coffeeBean.origin || "",
@@ -833,10 +834,13 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
             brewerType: brewer.brewerType || "",
             coffeeDoseGrams: coffeeDoseGrams
         });
+        const recipe = recipeResult.data;
 
         await finishAiCallLog({
             handle: aiCallLog,
-            status: "Succeeded"
+            status: "Succeeded",
+            model: aiModel,
+            usage: recipeResult.usage
         });
 
         res.json({
@@ -849,6 +853,7 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
         await finishAiCallLog({
             handle: aiCallLog,
             status: "Failed",
+            model: aiModel,
             errorMessage: errorMessage
         });
 

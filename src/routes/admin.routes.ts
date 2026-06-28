@@ -10,6 +10,7 @@ import {
     BREW_SUGGESTION_AI_PROMPT_NAME,
     DEFAULT_BREW_SUGGESTION_AI_PROMPT
 } from "../services/brewAssistant.service";
+import { formatEstimatedCost } from "../services/aiCallLog.service";
 
 const router = Router();
 
@@ -43,7 +44,11 @@ router.get("/", function (req: Request, res: Response) {
 });
 
 router.get("/ai", async function (req: Request, res: Response) {
-    const [totalAiCallCount, failedAiCallCount, latestAiCallLog] = await Promise.all([
+    const currentMonthStart = new Date();
+    currentMonthStart.setDate(1);
+    currentMonthStart.setHours(0, 0, 0, 0);
+
+    const [totalAiCallCount, failedAiCallCount, latestAiCallLog, totalCostSummary, currentMonthCostSummary] = await Promise.all([
         prisma.aiCallLog.count(),
         prisma.aiCallLog.count({
             where: {
@@ -57,6 +62,21 @@ router.get("/ai", async function (req: Request, res: Response) {
             select: {
                 startedAt: true
             }
+        }),
+        prisma.aiCallLog.aggregate({
+            _sum: {
+                estimatedCostUsd: true
+            }
+        }),
+        prisma.aiCallLog.aggregate({
+            where: {
+                startedAt: {
+                    gte: currentMonthStart
+                }
+            },
+            _sum: {
+                estimatedCostUsd: true
+            }
         })
     ]);
 
@@ -64,7 +84,9 @@ router.get("/ai", async function (req: Request, res: Response) {
         title: "Admin - AI Administration",
         totalAiCallCount: totalAiCallCount,
         failedAiCallCount: failedAiCallCount,
-        latestAiCallStartedAt: latestAiCallLog ? formatDateTime(latestAiCallLog.startedAt) : ""
+        latestAiCallStartedAt: latestAiCallLog ? formatDateTime(latestAiCallLog.startedAt) : "",
+        totalEstimatedCost: formatEstimatedCost(totalCostSummary._sum.estimatedCostUsd),
+        currentMonthEstimatedCost: formatEstimatedCost(currentMonthCostSummary._sum.estimatedCostUsd)
     });
 });
 
@@ -85,7 +107,7 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
         where.status = status;
     }
 
-    const [aiCallLogs, callTypes, statuses] = await Promise.all([
+    const [aiCallLogs, callTypes, statuses, filteredCostSummary] = await Promise.all([
         prisma.aiCallLog.findMany({
             where: where,
             orderBy: {
@@ -110,6 +132,16 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
             select: {
                 status: true
             }
+        }),
+        prisma.aiCallLog.aggregate({
+            where: where,
+            _sum: {
+                estimatedCostUsd: true,
+                inputTokens: true,
+                outputTokens: true,
+                totalTokens: true,
+                imageCount: true
+            }
         })
     ]);
 
@@ -123,6 +155,11 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
             startedAt: formatDateTime(log.startedAt),
             completedAt: formatDateTime(log.completedAt),
             durationMs: log.durationMs,
+            inputTokens: log.inputTokens,
+            outputTokens: log.outputTokens,
+            totalTokens: log.totalTokens,
+            imageCount: log.imageCount,
+            estimatedCost: formatEstimatedCost(log.estimatedCostUsd),
             errorMessage: log.errorMessage || ""
         };
     });
@@ -133,7 +170,12 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
         callTypes: callTypes.map(function (item) { return item.callType; }),
         statuses: statuses.map(function (item) { return item.status; }),
         selectedCallType: callType,
-        selectedStatus: status
+        selectedStatus: status,
+        filteredInputTokens: filteredCostSummary._sum.inputTokens || 0,
+        filteredOutputTokens: filteredCostSummary._sum.outputTokens || 0,
+        filteredTotalTokens: filteredCostSummary._sum.totalTokens || 0,
+        filteredImageCount: filteredCostSummary._sum.imageCount || 0,
+        filteredEstimatedCost: formatEstimatedCost(filteredCostSummary._sum.estimatedCostUsd)
     });
 });
 

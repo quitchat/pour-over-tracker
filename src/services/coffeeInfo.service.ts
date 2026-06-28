@@ -1,6 +1,12 @@
 import fs from "fs";
 import OpenAI from "openai";
 import { prisma } from "../lib/prisma";
+import { AiTokenUsage, extractAiTokenUsage } from "./aiCallLog.service";
+
+export type AiServiceResult<T> = {
+    data: T;
+    usage: AiTokenUsage;
+};
 
 export type CoffeeInformationResult = {
     beanName: string | null;
@@ -90,7 +96,7 @@ function parseCoffeeInformationJson(outputText: string): CoffeeInformationResult
     };
 }
 
-export async function getCoffeeInformationFromOpenAI(roasterName: string, beanName: string): Promise<CoffeeInformationResult> {
+export async function getCoffeeInformationFromOpenAI(roasterName: string, beanName: string): Promise<AiServiceResult<CoffeeInformationResult>> {
     const client = getOpenAIClient();
     const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const promptText = await getBeanDetailAiPromptText();
@@ -188,7 +194,10 @@ export async function getCoffeeInformationFromOpenAI(roasterName: string, beanNa
         throw new Error("OpenAI did not return coffee information.");
     }
 
-    return parseCoffeeInformationJson(response.output_text);
+    return {
+        data: parseCoffeeInformationJson(response.output_text),
+        usage: extractAiTokenUsage(response)
+    };
 }
 
 
@@ -206,7 +215,7 @@ function parseCoffeeBagImageIdentityJson(outputText: string): CoffeeBagImageIden
     };
 }
 
-export async function getCoffeeBagImageIdentityFromOpenAI(imageFilePath: string, mimeType: string): Promise<CoffeeBagImageIdentityResult> {
+export async function getCoffeeBagImageIdentityFromOpenAI(imageFilePath: string, mimeType: string): Promise<AiServiceResult<CoffeeBagImageIdentityResult>> {
     const client = getOpenAIClient();
     const model = process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const imageBytes = await fs.promises.readFile(imageFilePath);
@@ -289,5 +298,8 @@ export async function getCoffeeBagImageIdentityFromOpenAI(imageFilePath: string,
         throw new Error("OpenAI did not return coffee bag information.");
     }
 
-    return parseCoffeeBagImageIdentityJson(response.output_text);
+    return {
+        data: parseCoffeeBagImageIdentityJson(response.output_text),
+        usage: extractAiTokenUsage(response)
+    };
 }

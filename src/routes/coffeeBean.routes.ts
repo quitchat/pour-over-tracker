@@ -432,19 +432,23 @@ router.post("/get-info", async function (req: Request, res: Response) {
         return;
     }
 
+    const aiModel = process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const aiCallLog = await startAiCallLog({
         user: getAiCallRouteUser(res),
         callType: AI_CALL_TYPES.beanDetailLookup,
-        model: process.env.OPENAI_MODEL || "gpt-5.4-mini"
+        model: aiModel
     });
 
     try {
-        const coffeeInfo = await getCoffeeInformationFromOpenAI(formValues.roasterName, formValues.beanName);
+        const coffeeInfoResult = await getCoffeeInformationFromOpenAI(formValues.roasterName, formValues.beanName);
+        const coffeeInfo = coffeeInfoResult.data;
         const formData = buildCoffeeInfoFormData(formValues, coffeeInfo);
 
         await finishAiCallLog({
             handle: aiCallLog,
-            status: "Succeeded"
+            status: "Succeeded",
+            model: aiModel,
+            usage: coffeeInfoResult.usage
         });
 
         res.json({
@@ -458,6 +462,7 @@ router.post("/get-info", async function (req: Request, res: Response) {
         await finishAiCallLog({
             handle: aiCallLog,
             status: "Failed",
+            model: aiModel,
             errorMessage: errorMessage
         });
 
@@ -494,19 +499,25 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
         return;
     }
 
+    const aiModel = process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const aiCallLog = await startAiCallLog({
         user: getAiCallRouteUser(res),
         callType: AI_CALL_TYPES.beanBagOcr,
-        model: process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-5.4-mini"
+        model: aiModel,
+        imageCount: 1
     });
 
     try {
         const imageFilePath = getCoffeeBeanImageAbsolutePathFromUrl(uploadedBagImageUrl);
-        const identity = await getCoffeeBagImageIdentityFromOpenAI(imageFilePath, req.file.mimetype);
+        const identityResult = await getCoffeeBagImageIdentityFromOpenAI(imageFilePath, req.file.mimetype);
+        const identity = identityResult.data;
 
         await finishAiCallLog({
             handle: aiCallLog,
-            status: "Succeeded"
+            status: "Succeeded",
+            model: aiModel,
+            usage: identityResult.usage,
+            imageCount: 1
         });
 
         res.json({
@@ -525,7 +536,9 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
         await finishAiCallLog({
             handle: aiCallLog,
             status: "Failed",
-            errorMessage: errorMessage
+            model: aiModel,
+            errorMessage: errorMessage,
+            imageCount: 1
         });
 
         res.json({
