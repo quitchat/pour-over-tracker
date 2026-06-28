@@ -253,3 +253,13 @@ main.container {
         max-width: none;
     }
 }
+.dashboard-summary-card {
+    transition: transform 0.12s ease-in-out, box-shadow 0.12s ease-in-out, border-color 0.12s ease-in-out;
+}
+
+.dashboard-summary-card:hover,
+.dashboard-summary-card:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}

@@ -1,11 +1,99 @@
 import { Router, Request, Response } from "express";
 import { Prisma } from "@prisma/client";
+import fs from "fs";
+import path from "path";
+import multer from "multer";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
 import { CoffeeInformationResult, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
 import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
 
 const router = Router();
+
+const coffeeBeanImageRelativeDirectory = "/uploads/coffee-beans";
+const coffeeBeanImageAbsoluteDirectory = path.join(__dirname, "..", "..", "public", "uploads", "coffee-beans");
+const allowedCoffeeBeanImageMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+const coffeeBeanImageStorage = multer.diskStorage({
+    destination: function (req, file, callback) {
+        fs.mkdirSync(coffeeBeanImageAbsoluteDirectory, { recursive: true });
+        callback(null, coffeeBeanImageAbsoluteDirectory);
+    },
+    filename: function (req, file, callback) {
+        const extension = path.extname(file.originalname || "").toLowerCase();
+        const safeExtension = extension || ".jpg";
+        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1000000000)}${safeExtension}`;
+
+        callback(null, uniqueName);
+    }
+});
+
+const uploadCoffeeBeanImage = multer({
+    storage: coffeeBeanImageStorage,
+    limits: {
+        fileSize: 5 * 1024 * 1024
+    },
+    fileFilter: function (req, file, callback) {
+        if (!allowedCoffeeBeanImageMimeTypes.includes(file.mimetype)) {
+            callback(new Error("Bean picture must be a JPG, PNG, WEBP, or GIF image."));
+            return;
+        }
+
+        callback(null, true);
+    }
+}).single("bagImageFile");
+
+function runCoffeeBeanImageUpload(req: Request, res: Response): Promise<string[]> {
+    return new Promise(function (resolve) {
+        uploadCoffeeBeanImage(req, res, function (error) {
+            if (!error) {
+                resolve([]);
+                return;
+            }
+
+            if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+                resolve(["Bean picture must be 5 MB or smaller."]);
+                return;
+            }
+
+            if (error instanceof Error) {
+                resolve([error.message]);
+                return;
+            }
+
+            resolve(["Bean picture could not be uploaded."]);
+        });
+    });
+}
+
+function getUploadedCoffeeBeanImageUrl(req: Request): string {
+    if (!req.file) {
+        return "";
+    }
+
+    return `${coffeeBeanImageRelativeDirectory}/${req.file.filename}`;
+}
+
+function deleteCoffeeBeanImageByUrl(imageUrl: string | null | undefined): void {
+    if (!imageUrl || !imageUrl.startsWith(`${coffeeBeanImageRelativeDirectory}/`)) {
+        return;
+    }
+
+    const fileName = path.basename(imageUrl);
+    const filePath = path.join(coffeeBeanImageAbsoluteDirectory, fileName);
+
+    fs.unlink(filePath, function () {
+        // Ignore cleanup errors. The database update should not fail because an old file is already gone.
+    });
+}
+
+function deleteUploadedCoffeeBeanImage(req: Request): void {
+    const uploadedImageUrl = getUploadedCoffeeBeanImageUrl(req);
+
+    if (uploadedImageUrl) {
+        deleteCoffeeBeanImageByUrl(uploadedImageUrl);
+    }
+}
 
 function formatDateForInput(date: Date | null): string {
     return formatDateForInputValue(date);
@@ -41,7 +129,8 @@ function getCoffeeBeanFormValues(req: Request) {
         price: String(req.body.price || "").trim(),
         flavorNotes: String(req.body.flavorNotes || "").trim(),
         sourceUrl: String(req.body.sourceUrl || "").trim(),
-        notes: String(req.body.notes || "").trim()
+        notes: String(req.body.notes || "").trim(),
+        removeBagImage: String(req.body.removeBagImage || "").trim() === "1"
     };
 }
 
@@ -214,6 +303,7 @@ router.get("/", async function (req: Request, res: Response) {
             roastLevel: bean.roastLevel || "",
             roastDate: formatDateOnly(bean.roastDate),
             price: bean.price ? bean.price.toString() : "",
+            bagImageUrl: bean.bagImageUrl || "",
             notes: bean.notes || "",
             isActive: bean.isActive,
             deactivatedAt: formatDateTime(bean.deactivatedAt),
@@ -275,10 +365,13 @@ router.post("/get-info", async function (req: Request, res: Response) {
 
 router.post("/", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const uploadErrors = await runCoffeeBeanImageUpload(req, res);
     const formValues = getCoffeeBeanFormValues(req);
-    const errors = validateCoffeeBeanForm(formValues);
+    const errors = validateCoffeeBeanForm(formValues).concat(uploadErrors);
+    const uploadedBagImageUrl = getUploadedCoffeeBeanImageUrl(req);
 
     if (errors.length > 0) {
+        deleteUploadedCoffeeBeanImage(req);
         const roasterSuggestions = await getRoasterSuggestions(userId);
 
         res.status(400).render("coffee-beans/form", {
@@ -306,6 +399,7 @@ router.post("/", async function (req: Request, res: Response) {
             price: formValues.price ? new Prisma.Decimal(formValues.price) : null,
             flavorNotes: formValues.flavorNotes || null,
             sourceUrl: formValues.sourceUrl || null,
+            bagImageUrl: uploadedBagImageUrl || null,
             notes: formValues.notes || null,
             isActive: true
         }
@@ -348,6 +442,7 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
             price: coffeeBean.price ? coffeeBean.price.toString() : "",
             flavorNotes: coffeeBean.flavorNotes || "",
             sourceUrl: coffeeBean.sourceUrl || "",
+            bagImageUrl: coffeeBean.bagImageUrl || "",
             notes: coffeeBean.notes || ""
         },
         roasterSuggestions: roasterSuggestions
@@ -356,9 +451,11 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
 
 router.post("/:id/edit", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const uploadErrors = await runCoffeeBeanImageUpload(req, res);
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id)) {
+        deleteUploadedCoffeeBeanImage(req);
         res.status(400).send("Invalid coffee bean ID.");
         return;
     }
@@ -366,14 +463,17 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
     const existingCoffeeBean = await getCoffeeBeanForUser(userId, id);
 
     if (!existingCoffeeBean) {
+        deleteUploadedCoffeeBeanImage(req);
         res.status(404).send("Coffee bean not found.");
         return;
     }
 
     const formValues = getCoffeeBeanFormValues(req);
-    const errors = validateCoffeeBeanForm(formValues);
+    const errors = validateCoffeeBeanForm(formValues).concat(uploadErrors);
+    const uploadedBagImageUrl = getUploadedCoffeeBeanImageUrl(req);
 
     if (errors.length > 0) {
+        deleteUploadedCoffeeBeanImage(req);
         const roasterSuggestions = await getRoasterSuggestions(userId);
 
         res.status(400).render("coffee-beans/form", {
@@ -382,11 +482,24 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             formAction: `/coffee-beans/${id}/edit`,
             submitButtonText: "Update Coffee Bean",
             errors: errors,
-            formData: formValues,
+            formData: {
+                ...formValues,
+                bagImageUrl: existingCoffeeBean.bagImageUrl || ""
+            },
             roasterSuggestions: roasterSuggestions
         });
 
         return;
+    }
+
+    let bagImageUrl = existingCoffeeBean.bagImageUrl || null;
+
+    if (formValues.removeBagImage) {
+        bagImageUrl = null;
+    }
+
+    if (uploadedBagImageUrl) {
+        bagImageUrl = uploadedBagImageUrl;
     }
 
     await prisma.coffeeBean.update({
@@ -403,9 +516,14 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             price: formValues.price ? new Prisma.Decimal(formValues.price) : null,
             flavorNotes: formValues.flavorNotes || null,
             sourceUrl: formValues.sourceUrl || null,
+            bagImageUrl: bagImageUrl,
             notes: formValues.notes || null
         }
     });
+
+    if (uploadedBagImageUrl || formValues.removeBagImage) {
+        deleteCoffeeBeanImageByUrl(existingCoffeeBean.bagImageUrl);
+    }
 
     res.redirect(`/coffee-beans/${id}`);
 });
@@ -561,6 +679,7 @@ router.get("/:id", async function (req: Request, res: Response) {
             price: coffeeBean.price ? coffeeBean.price.toString() : "",
             flavorNotes: coffeeBean.flavorNotes || "",
             sourceUrl: coffeeBean.sourceUrl || "",
+            bagImageUrl: coffeeBean.bagImageUrl || "",
             notes: coffeeBean.notes || "",
             isActive: coffeeBean.isActive,
             deactivatedAt: formatDateTime(coffeeBean.deactivatedAt)

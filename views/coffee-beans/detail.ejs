@@ -137,7 +137,29 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="card h-100">
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-image me-1"></i>
+                Bean Picture
+            </div>
+
+            <div class="card-body">
+                <% if (coffeeBean.bagImageUrl) { %>
+                    <img
+                        src="<%= coffeeBean.bagImageUrl %>"
+                        alt="<%= coffeeBean.beanName %> picture"
+                        class="img-fluid rounded border w-100"
+                        style="max-height: 360px; object-fit: cover;">
+                <% } else { %>
+                    <div class="text-muted text-center py-4 border rounded bg-body-tertiary">
+                        <i class="bi bi-image d-block fs-1 mb-2"></i>
+                        No picture uploaded.
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="card">
             <div class="card-header">
                 <i class="bi bi-speedometer2 me-1"></i>
                 Bean Summary

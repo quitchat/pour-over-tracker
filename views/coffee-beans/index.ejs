@@ -92,6 +92,28 @@
         vertical-align: middle;
     }
 
+    .bean-thumbnail {
+        width: 56px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: 0.5rem;
+        border: 1px solid var(--bs-border-color);
+        flex: 0 0 auto;
+    }
+
+    .bean-thumbnail-placeholder {
+        width: 56px;
+        height: 56px;
+        border-radius: 0.5rem;
+        border: 1px solid var(--bs-border-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--bs-secondary-color);
+        background-color: var(--bs-tertiary-bg);
+        flex: 0 0 auto;
+    }
+
     .bean-mobile-label {
         display: none;
         font-size: 0.75rem;
@@ -174,35 +196,50 @@
                         <td>
                             <div class="bean-mobile-label">Coffee</div>
 
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <a href="/coffee-beans/<%= bean.id %>" class="bean-name-link">
-                                    <%= bean.beanName %>
-                                </a>
-
-                                <% if (bean.isActive) { %>
-                                    <span class="badge text-bg-success bean-status-badge">
-                                        Active
-                                    </span>
+                            <div class="d-flex align-items-center gap-3">
+                                <% if (bean.bagImageUrl) { %>
+                                    <img
+                                        src="<%= bean.bagImageUrl %>"
+                                        alt="<%= bean.beanName %> picture"
+                                        class="bean-thumbnail">
                                 <% } else { %>
-                                    <span class="badge text-bg-secondary bean-status-badge">
-                                        Inactive
-                                    </span>
-                                <% } %>
-                            </div>
-
-                            <div class="bean-secondary-line">
-                                <% if (bean.roasterName) { %>
-                                    <i class="bi bi-shop me-1"></i>
-                                    <%= bean.roasterName %>
-                                <% } else { %>
-                                    <span>No roaster</span>
+                                    <div class="bean-thumbnail-placeholder" aria-hidden="true">
+                                        <i class="bi bi-image"></i>
+                                    </div>
                                 <% } %>
 
-                                <% if (!bean.isActive && bean.deactivatedAt) { %>
-                                    <span class="ms-2">
-                                        Deactivated <%= bean.deactivatedAt %>
-                                    </span>
-                                <% } %>
+                                <div class="min-width-0">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <a href="/coffee-beans/<%= bean.id %>" class="bean-name-link">
+                                            <%= bean.beanName %>
+                                        </a>
+
+                                        <% if (bean.isActive) { %>
+                                            <span class="badge text-bg-success bean-status-badge">
+                                                Active
+                                            </span>
+                                        <% } else { %>
+                                            <span class="badge text-bg-secondary bean-status-badge">
+                                                Inactive
+                                            </span>
+                                        <% } %>
+                                    </div>
+
+                                    <div class="bean-secondary-line">
+                                        <% if (bean.roasterName) { %>
+                                            <i class="bi bi-shop me-1"></i>
+                                            <%= bean.roasterName %>
+                                        <% } else { %>
+                                            <span>No roaster</span>
+                                        <% } %>
+
+                                        <% if (!bean.isActive && bean.deactivatedAt) { %>
+                                            <span class="ms-2">
+                                                Deactivated <%= bean.deactivatedAt %>
+                                            </span>
+                                        <% } %>
+                                    </div>
+                                </div>
                             </div>
                         </td>
 
