@@ -741,6 +741,114 @@ async function getBrewSessionForUser(userId: number, id: number) {
     });
 }
 
+async function getAdjacentBrewSessionsForUser(userId: number, brewSession: any) {
+    const baseBrewDate = brewSession.brewDate;
+    const baseCreatedAt = brewSession.createdAt;
+    const baseId = brewSession.id;
+
+    const [previousBrewSession, nextBrewSession] = await Promise.all([
+        prisma.brewSession.findFirst({
+            where: {
+                userId: userId,
+                OR: [
+                    {
+                        brewDate: {
+                            lt: baseBrewDate
+                        }
+                    },
+                    {
+                        brewDate: baseBrewDate,
+                        createdAt: {
+                            lt: baseCreatedAt
+                        }
+                    },
+                    {
+                        brewDate: baseBrewDate,
+                        createdAt: baseCreatedAt,
+                        id: {
+                            lt: baseId
+                        }
+                    }
+                ]
+            },
+            include: {
+                coffeeBean: true
+            },
+            orderBy: [
+                {
+                    brewDate: "desc"
+                },
+                {
+                    createdAt: "desc"
+                },
+                {
+                    id: "desc"
+                }
+            ]
+        }),
+        prisma.brewSession.findFirst({
+            where: {
+                userId: userId,
+                OR: [
+                    {
+                        brewDate: {
+                            gt: baseBrewDate
+                        }
+                    },
+                    {
+                        brewDate: baseBrewDate,
+                        createdAt: {
+                            gt: baseCreatedAt
+                        }
+                    },
+                    {
+                        brewDate: baseBrewDate,
+                        createdAt: baseCreatedAt,
+                        id: {
+                            gt: baseId
+                        }
+                    }
+                ]
+            },
+            include: {
+                coffeeBean: true
+            },
+            orderBy: [
+                {
+                    brewDate: "asc"
+                },
+                {
+                    createdAt: "asc"
+                },
+                {
+                    id: "asc"
+                }
+            ]
+        })
+    ]);
+
+    return {
+        previousBrewSession: previousBrewSession,
+        nextBrewSession: nextBrewSession
+    };
+}
+
+function mapAdjacentBrewSessionForNavigation(session: any) {
+    if (!session) {
+        return null;
+    }
+
+    return {
+        id: session.id,
+        brewDate: formatDateOnly(session.brewDate),
+        coffeeBeanName: session.coffeeBean && session.coffeeBean.roasterName
+            ? `${session.coffeeBean.roasterName} - ${session.coffeeBean.beanName}`
+            : session.coffeeBean
+                ? session.coffeeBean.beanName
+                : "Brew Session"
+    };
+}
+
 router.get("/", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
     const requestedPage = Number(req.query.page || "1");
@@ -1512,9 +1620,13 @@ router.get("/:id", async function (req: Request, res: Response) {
         return;
     }
 
+    const adjacentBrewSessions = await getAdjacentBrewSessionsForUser(userId, brewSession);
+
     res.render("brew-sessions/detail", {
         title: "Brew Session Detail",
-        brewSession: mapBrewSessionForDetail(brewSession)
+        brewSession: mapBrewSessionForDetail(brewSession),
+        previousBrewSession: mapAdjacentBrewSessionForNavigation(adjacentBrewSessions.previousBrewSession),
+        nextBrewSession: mapAdjacentBrewSessionForNavigation(adjacentBrewSessions.nextBrewSession)
     });
 });
 
