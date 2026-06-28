@@ -84,12 +84,6 @@
         font-weight: 600;
     }
 
-    .brew-mobile-help {
-        border: 1px solid var(--bs-border-color);
-        border-radius: 0.75rem;
-        padding: 0.75rem;
-        background: var(--bs-body-bg);
-    }
 
     .brew-form-actions {
         background: var(--bs-body-bg);
@@ -151,12 +145,6 @@
         </div>
 
         <div class="card-body">
-            <div class="brew-mobile-help mb-3">
-                <div class="fw-semibold mb-1">Fast phone entry</div>
-                <div class="text-muted small">
-                    Select bean, grinder, brewer, and dose first. Then use AI recipe setup or fill the recipe values below.
-                </div>
-            </div>
 
             <div class="row g-3 brew-mobile-main-grid">
                 <div class="brew-quick-field col-md-6">
@@ -372,13 +360,13 @@
                 class="btn btn-sm btn-outline-secondary d-md-none"
                 data-bs-toggle="collapse"
                 data-bs-target="#brewCharacteristicsCollapse"
-                aria-expanded="false"
+                aria-expanded="true"
                 aria-controls="brewCharacteristicsCollapse">
                 Show / Hide
             </button>
         </div>
 
-        <div class="collapse d-md-block" id="brewCharacteristicsCollapse">
+        <div class="collapse show d-md-block" id="brewCharacteristicsCollapse">
             <div class="card-body">
                 <p class="text-muted">
                     Score this specific brew from 1 to 5. The radar chart updates while you move the sliders.
