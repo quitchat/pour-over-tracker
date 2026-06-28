@@ -1,4 +1,10 @@
 <style>
+    .bean-notes-display {
+        white-space: pre-line;
+    }
+</style>
+
+<style>
     .bean-history-mobile-label {
         display: none;
         font-size: 0.75rem;
@@ -109,6 +115,15 @@
             </form>
         <% } %>
 
+        <% if (stats.brewSessionCount === 0) { %>
+            <form method="post" action="/coffee-beans/<%= coffeeBean.id %>/delete" onsubmit="return confirm('Delete this coffee bean permanently? This is only allowed because it has no brew sessions.');">
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-trash me-1"></i>
+                    Delete
+                </button>
+            </form>
+        <% } %>
+
         <a href="/coffee-beans/<%= coffeeBean.id %>/edit" class="btn btn-outline-primary">
             <i class="bi bi-pencil-square me-1"></i>
             Edit
@@ -206,7 +221,7 @@
                     <dt class="col-sm-4">Notes</dt>
                     <dd class="col-sm-8">
                         <% if (coffeeBean.notes) { %>
-                            <%= coffeeBean.notes %>
+                            <div class="bean-notes-display"><%= coffeeBean.notes %></div>
                         <% } else { %>
                             <span class="text-muted">No notes entered.</span>
                         <% } %>

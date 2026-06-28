@@ -84,7 +84,8 @@
                             class="form-control"
                             id="bagImageFile"
                             name="bagImageFile"
-                            accept="image/jpeg,image/png,image/webp,image/gif">
+                            accept="image/*"
+                            capture="environment">
 
                         <button
                             type="button"
@@ -97,6 +98,7 @@
 
                     <div class="form-text">
                         Upload JPG, PNG, WEBP, or GIF. Maximum upload size: 12 MB. The server will resize and compress it automatically.
+                        On a phone, you can choose from the photo library or take a new picture with the rear camera.
                         The upload button saves the image, reads Roaster and Coffee Name, then automatically gets bean information when both values are found.
                     </div>
                 </div>

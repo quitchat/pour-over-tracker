@@ -354,7 +354,16 @@
                                             <hr class="dropdown-divider">
                                         </li>
 
-                                        <% if (bean.isActive) { %>
+                                        <% if (bean.brewSessionCount === 0) { %>
+                                            <li>
+                                                <form method="post" action="/coffee-beans/<%= bean.id %>/delete" onsubmit="return confirm('Delete this coffee bean permanently? This is only allowed because it has no brew sessions.');">
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="bi bi-trash me-2"></i>
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        <% } else if (bean.isActive) { %>
                                             <li>
                                                 <form method="post" action="/coffee-beans/<%= bean.id %>/deactivate" onsubmit="return confirm('Deactivate this coffee bean? Historical brew sessions will stay available.');">
                                                     <button type="submit" class="dropdown-item text-danger">

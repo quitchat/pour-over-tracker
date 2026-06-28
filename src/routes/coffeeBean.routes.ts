@@ -822,7 +822,7 @@ router.post("/:id/delete", async function (req: Request, res: Response) {
     });
 
     if (brewSessionCount > 0) {
-        res.status(400).send("This coffee bean cannot be deleted because it has brew sessions. Deactivate it instead.");
+        res.redirect(`/coffee-beans/${id}?errorMessage=${encodeURIComponent("This coffee bean cannot be deleted because it has brew sessions. Deactivate it instead.")}`);
         return;
     }
 
@@ -832,7 +832,9 @@ router.post("/:id/delete", async function (req: Request, res: Response) {
         }
     });
 
-    res.redirect("/coffee-beans");
+    deleteCoffeeBeanImageByUrl(coffeeBean.bagImageUrl);
+
+    res.redirect(`/coffee-beans?message=${encodeURIComponent("Coffee bean deleted.")}`);
 });
 
 router.get("/:id", async function (req: Request, res: Response) {
