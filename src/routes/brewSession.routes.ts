@@ -165,6 +165,72 @@ function parseOptionalNumber(value: string): number | null {
     return parsed;
 }
 
+
+
+type EquipmentLocationCandidate = {
+    id: number;
+    name: string;
+    locationName: string | null;
+    latitude: number;
+    longitude: number;
+    distanceMeters: number;
+    matchStrength: "strong" | "possible";
+    lastUsedAt: Date | null;
+};
+
+function toRadians(value: number): number {
+    return value * Math.PI / 180;
+}
+
+function calculateDistanceMeters(latitude1: number, longitude1: number, latitude2: number, longitude2: number): number {
+    const earthRadiusMeters = 6371000;
+    const deltaLatitude = toRadians(latitude2 - latitude1);
+    const deltaLongitude = toRadians(longitude2 - longitude1);
+    const lat1 = toRadians(latitude1);
+    const lat2 = toRadians(latitude2);
+
+    const a = Math.sin(deltaLatitude / 2) * Math.sin(deltaLatitude / 2)
+        + Math.cos(lat1) * Math.cos(lat2)
+        * Math.sin(deltaLongitude / 2) * Math.sin(deltaLongitude / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return earthRadiusMeters * c;
+}
+
+function getMatchStrength(distanceMeters: number): "strong" | "possible" | null {
+    if (distanceMeters <= 100) {
+        return "strong";
+    }
+
+    if (distanceMeters <= 500) {
+        return "possible";
+    }
+
+    return null;
+}
+
+function sortEquipmentCandidates(candidates: EquipmentLocationCandidate[]): EquipmentLocationCandidate[] {
+    return candidates.sort(function (a, b) {
+        if (a.matchStrength !== b.matchStrength) {
+            return a.matchStrength === "strong" ? -1 : 1;
+        }
+
+        if (a.lastUsedAt && b.lastUsedAt) {
+            return b.lastUsedAt.getTime() - a.lastUsedAt.getTime();
+        }
+
+        if (a.lastUsedAt && !b.lastUsedAt) {
+            return -1;
+        }
+
+        if (!a.lastUsedAt && b.lastUsedAt) {
+            return 1;
+        }
+
+        return a.distanceMeters - b.distanceMeters;
+    });
+}
+
 function parseOptionalDecimal(value: string): Prisma.Decimal | null {
     const parsed = parseOptionalNumber(value);
 
@@ -886,10 +952,185 @@ router.get("/new", async function (req: Request, res: Response) {
         submitButtonText: "Save Brew Session",
         errors: [],
         showAiSuggestionButton: true,
+        enableLocationDefaults: true,
         formData: getDefaultFormData(preselectedCoffeeBeanId, preselectedGrinderId, preselectedBrewerId, defaultCoffeeDoseGrams, defaultWaterTemperatureC),
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,
         brewers: formOptions.brewers
+    });
+});
+
+
+
+router.post("/equipment-location-suggestions", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const latitude = parseOptionalNumber(String(req.body.latitude || "").trim());
+    const longitude = parseOptionalNumber(String(req.body.longitude || "").trim());
+
+    if (latitude === null || longitude === null) {
+        res.status(400).json({
+            ok: false,
+            errorMessage: "Latitude and longitude are required."
+        });
+
+        return;
+    }
+
+    const [grinders, brewers] = await Promise.all([
+        prisma.grinder.findMany({
+            where: {
+                userId: userId,
+                latitude: {
+                    not: null
+                },
+                longitude: {
+                    not: null
+                }
+            }
+        }),
+        prisma.brewer.findMany({
+            where: {
+                userId: userId,
+                latitude: {
+                    not: null
+                },
+                longitude: {
+                    not: null
+                }
+            }
+        })
+    ]);
+
+    const grinderIds = grinders.map(function (grinder) {
+        return grinder.id;
+    });
+    const brewerIds = brewers.map(function (brewer) {
+        return brewer.id;
+    });
+
+    const [recentGrinderBrews, recentBrewerBrews] = await Promise.all([
+        grinderIds.length > 0
+            ? prisma.brewSession.findMany({
+                where: {
+                    userId: userId,
+                    grinderId: {
+                        in: grinderIds
+                    }
+                },
+                select: {
+                    grinderId: true,
+                    brewDate: true,
+                    createdAt: true
+                },
+                orderBy: [
+                    {
+                        brewDate: "desc"
+                    },
+                    {
+                        createdAt: "desc"
+                    },
+                    {
+                        id: "desc"
+                    }
+                ]
+            })
+            : Promise.resolve([]),
+        brewerIds.length > 0
+            ? prisma.brewSession.findMany({
+                where: {
+                    userId: userId,
+                    brewerId: {
+                        in: brewerIds
+                    }
+                },
+                select: {
+                    brewerId: true,
+                    brewDate: true,
+                    createdAt: true
+                },
+                orderBy: [
+                    {
+                        brewDate: "desc"
+                    },
+                    {
+                        createdAt: "desc"
+                    },
+                    {
+                        id: "desc"
+                    }
+                ]
+            })
+            : Promise.resolve([])
+    ]);
+
+    const lastUsedByGrinderId = new Map<number, Date>();
+    recentGrinderBrews.forEach(function (brew) {
+        if (brew.grinderId && !lastUsedByGrinderId.has(brew.grinderId)) {
+            lastUsedByGrinderId.set(brew.grinderId, brew.brewDate || brew.createdAt);
+        }
+    });
+
+    const lastUsedByBrewerId = new Map<number, Date>();
+    recentBrewerBrews.forEach(function (brew) {
+        if (brew.brewerId && !lastUsedByBrewerId.has(brew.brewerId)) {
+            lastUsedByBrewerId.set(brew.brewerId, brew.brewDate || brew.createdAt);
+        }
+    });
+
+    const grinderCandidates = sortEquipmentCandidates(grinders.flatMap(function (grinder) {
+        if (grinder.latitude === null || grinder.longitude === null) {
+            return [];
+        }
+
+        const distanceMeters = calculateDistanceMeters(latitude, longitude, grinder.latitude, grinder.longitude);
+        const matchStrength = getMatchStrength(distanceMeters);
+
+        if (!matchStrength) {
+            return [];
+        }
+
+        return [{
+            id: grinder.id,
+            name: grinder.name,
+            locationName: grinder.locationName,
+            latitude: grinder.latitude,
+            longitude: grinder.longitude,
+            distanceMeters: Math.round(distanceMeters),
+            matchStrength: matchStrength,
+            lastUsedAt: lastUsedByGrinderId.get(grinder.id) || null
+        }];
+    }));
+
+    const brewerCandidates = sortEquipmentCandidates(brewers.flatMap(function (brewer) {
+        if (brewer.latitude === null || brewer.longitude === null) {
+            return [];
+        }
+
+        const distanceMeters = calculateDistanceMeters(latitude, longitude, brewer.latitude, brewer.longitude);
+        const matchStrength = getMatchStrength(distanceMeters);
+
+        if (!matchStrength) {
+            return [];
+        }
+
+        return [{
+            id: brewer.id,
+            name: brewer.name,
+            locationName: brewer.locationName,
+            latitude: brewer.latitude,
+            longitude: brewer.longitude,
+            distanceMeters: Math.round(distanceMeters),
+            matchStrength: matchStrength,
+            lastUsedAt: lastUsedByBrewerId.get(brewer.id) || null
+        }];
+    }));
+
+    res.json({
+        ok: true,
+        grinder: grinderCandidates.length > 0 ? grinderCandidates[0] : null,
+        brewer: brewerCandidates.length > 0 ? brewerCandidates[0] : null,
+        grinderCandidates: grinderCandidates,
+        brewerCandidates: brewerCandidates
     });
 });
 
@@ -1062,6 +1303,7 @@ router.post("/", async function (req: Request, res: Response) {
             submitButtonText: "Save Brew Session",
             errors: allErrors,
             showAiSuggestionButton: true,
+            enableLocationDefaults: true,
             formData: formValues,
             coffeeBeans: formOptions.coffeeBeans,
             grinders: formOptions.grinders,
@@ -1103,6 +1345,7 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
         submitButtonText: "Update Brew Session",
         errors: [],
         showAiSuggestionButton: false,
+        enableLocationDefaults: false,
         formData: buildFormDataFromBrewSession(brewSession),
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,
@@ -1142,6 +1385,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             submitButtonText: "Update Brew Session",
             errors: allErrors,
             showAiSuggestionButton: false,
+            enableLocationDefaults: false,
             formData: formValues,
             coffeeBeans: formOptions.coffeeBeans,
             grinders: formOptions.grinders,
@@ -1202,6 +1446,7 @@ router.get("/:id/duplicate", async function (req: Request, res: Response) {
         submitButtonText: "Save Duplicated Brew",
         errors: [],
         showAiSuggestionButton: true,
+        enableLocationDefaults: false,
         formData: buildDuplicateFormDataFromBrewSession(existingSession),
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,

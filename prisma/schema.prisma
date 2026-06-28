@@ -154,6 +154,9 @@ model Grinder {
   burrType              String?
   calibrationNotes      String?
   defaultGrindSizeRange String?
+  locationName          String?
+  latitude              Float?
+  longitude             Float?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
 
@@ -170,6 +173,9 @@ model Brewer {
   brand        String?
   brewerType   String?
   notes        String?
+  locationName String?
+  latitude     Float?
+  longitude    Float?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 

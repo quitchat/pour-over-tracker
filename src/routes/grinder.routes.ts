@@ -11,8 +11,26 @@ function getGrinderFormValues(req: Request) {
         grinderType: String(req.body.grinderType || "").trim(),
         burrType: String(req.body.burrType || "").trim(),
         calibrationNotes: String(req.body.calibrationNotes || "").trim(),
-        defaultGrindSizeRange: String(req.body.defaultGrindSizeRange || "").trim()
+        defaultGrindSizeRange: String(req.body.defaultGrindSizeRange || "").trim(),
+        locationName: String(req.body.locationName || "").trim(),
+        latitude: String(req.body.latitude || "").trim(),
+        longitude: String(req.body.longitude || "").trim()
     };
+}
+
+
+function parseOptionalCoordinate(value: string): number | null {
+    if (!value) {
+        return null;
+    }
+
+    const parsed = Number(value);
+
+    if (Number.isNaN(parsed)) {
+        return null;
+    }
+
+    return parsed;
 }
 
 function validateGrinderForm(formValues: ReturnType<typeof getGrinderFormValues>): string[] {
@@ -20,6 +38,18 @@ function validateGrinderForm(formValues: ReturnType<typeof getGrinderFormValues>
 
     if (!formValues.name) {
         errors.push("Grinder name is required.");
+    }
+
+    if (formValues.latitude && parseOptionalCoordinate(formValues.latitude) === null) {
+        errors.push("Latitude must be a valid number.");
+    }
+
+    if (formValues.longitude && parseOptionalCoordinate(formValues.longitude) === null) {
+        errors.push("Longitude must be a valid number.");
+    }
+
+    if ((formValues.latitude && !formValues.longitude) || (!formValues.latitude && formValues.longitude)) {
+        errors.push("Latitude and longitude must be entered together.");
     }
 
     return errors;
@@ -122,7 +152,10 @@ router.post("/", async function (req: Request, res: Response) {
             grinderType: formValues.grinderType || null,
             burrType: formValues.burrType || null,
             calibrationNotes: formValues.calibrationNotes || null,
-            defaultGrindSizeRange: formValues.defaultGrindSizeRange || null
+            defaultGrindSizeRange: formValues.defaultGrindSizeRange || null,
+            locationName: formValues.locationName || null,
+            latitude: parseOptionalCoordinate(formValues.latitude),
+            longitude: parseOptionalCoordinate(formValues.longitude)
         }
     });
 
@@ -162,7 +195,10 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
             grinderType: grinder.grinderType || "",
             burrType: grinder.burrType || "",
             calibrationNotes: grinder.calibrationNotes || "",
-            defaultGrindSizeRange: grinder.defaultGrindSizeRange || ""
+            defaultGrindSizeRange: grinder.defaultGrindSizeRange || "",
+            locationName: grinder.locationName || "",
+            latitude: grinder.latitude === null ? "" : String(grinder.latitude),
+            longitude: grinder.longitude === null ? "" : String(grinder.longitude)
         }
     });
 });
@@ -214,7 +250,10 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             grinderType: formValues.grinderType || null,
             burrType: formValues.burrType || null,
             calibrationNotes: formValues.calibrationNotes || null,
-            defaultGrindSizeRange: formValues.defaultGrindSizeRange || null
+            defaultGrindSizeRange: formValues.defaultGrindSizeRange || null,
+            locationName: formValues.locationName || null,
+            latitude: parseOptionalCoordinate(formValues.latitude),
+            longitude: parseOptionalCoordinate(formValues.longitude)
         }
     });
 

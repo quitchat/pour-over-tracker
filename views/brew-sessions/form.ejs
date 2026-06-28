@@ -26,6 +26,7 @@
 <% } %>
 
 <div id="brewAssistantMessage"></div>
+<div id="equipmentLocationMessage"></div>
 
 <style>
     .star-rating-control {
@@ -216,7 +217,7 @@
 
                 <div class="brew-quick-field col-md-4">
                     <label for="grinderId" class="form-label">Grinder</label>
-                    <select class="form-select" id="grinderId" name="grinderId">
+                    <select class="form-select" id="grinderId" name="grinderId" data-location-equipment-select>
                         <option value="">No grinder selected</option>
                         <% grinders.forEach(function (grinder) { %>
                             <option value="<%= grinder.id %>" <%= String(formData.grinderId || "") === String(grinder.id) ? "selected" : "" %>>
@@ -228,7 +229,7 @@
 
                 <div class="brew-quick-field col-md-4">
                     <label for="brewerId" class="form-label">Brewer / Brew Method</label>
-                    <select class="form-select" id="brewerId" name="brewerId">
+                    <select class="form-select" id="brewerId" name="brewerId" data-location-equipment-select>
                         <option value="">No brewer selected</option>
                         <% brewers.forEach(function (brewer) { %>
                             <option value="<%= brewer.id %>" <%= String(formData.brewerId || "") === String(brewer.id) ? "selected" : "" %>>
@@ -644,6 +645,164 @@
         ];
 
         const radarChartElement = document.getElementById("brewCharacteristicsRadarChart");
+
+        const enableLocationDefaults = <%= typeof enableLocationDefaults !== "undefined" && enableLocationDefaults ? "true" : "false" %>;
+        const equipmentLocationMessage = document.getElementById("equipmentLocationMessage");
+        const grinderSelect = document.getElementById("grinderId");
+        const brewerSelect = document.getElementById("brewerId");
+        let userManuallyChangedEquipment = false;
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function formatDistanceLabel(distanceMeters) {
+            if (typeof distanceMeters !== "number") {
+                return "";
+            }
+
+            if (distanceMeters < 1000) {
+                return Math.round(distanceMeters) + " m";
+            }
+
+            return (distanceMeters / 1000).toFixed(1) + " km";
+        }
+
+        function buildCandidateButtons(candidates, targetSelectId, label) {
+            if (!candidates || candidates.length <= 1) {
+                return "";
+            }
+
+            const buttons = candidates.slice(0, 4).map(function (candidate) {
+                const locationText = candidate.locationName ? " · " + candidate.locationName : "";
+                return "<button type=\"button\" class=\"btn btn-sm btn-outline-primary me-1 mb-1\" data-location-equipment-target=\"" + targetSelectId + "\" data-location-equipment-id=\"" + candidate.id + "\">" +
+                    escapeHtml(candidate.name + locationText + " · " + formatDistanceLabel(candidate.distanceMeters)) +
+                    "</button>";
+            }).join("");
+
+            return "<div class=\"mt-2\"><div class=\"small fw-semibold mb-1\">Other nearby " + label + " options</div>" + buttons + "</div>";
+        }
+
+        function showEquipmentLocationMessage(type, message, htmlSuffix) {
+            if (!equipmentLocationMessage) {
+                return;
+            }
+
+            equipmentLocationMessage.innerHTML = "<div class=\"alert alert-" + type + " py-2 small\">" + message + (htmlSuffix || "") + "</div>";
+        }
+
+        function clearEquipmentLocationMessage() {
+            if (equipmentLocationMessage) {
+                equipmentLocationMessage.innerHTML = "";
+            }
+        }
+
+        function applySuggestedEquipment(data) {
+            const applied = [];
+
+            if (!userManuallyChangedEquipment && data.grinder && grinderSelect) {
+                grinderSelect.value = String(data.grinder.id);
+                applied.push("grinder " + data.grinder.name + " (" + data.grinder.matchStrength + ", " + formatDistanceLabel(data.grinder.distanceMeters) + ")");
+            }
+
+            if (!userManuallyChangedEquipment && data.brewer && brewerSelect) {
+                brewerSelect.value = String(data.brewer.id);
+                applied.push("brewer " + data.brewer.name + " (" + data.brewer.matchStrength + ", " + formatDistanceLabel(data.brewer.distanceMeters) + ")");
+            }
+
+            if (applied.length === 0) {
+                return;
+            }
+
+            showEquipmentLocationMessage(
+                "info",
+                escapeHtml("Suggested nearby equipment: " + applied.join(" and ") + ". You can manually override this."),
+                buildCandidateButtons(data.grinderCandidates, "grinderId", "grinder") + buildCandidateButtons(data.brewerCandidates, "brewerId", "brewer")
+            );
+        }
+
+        async function requestLocationEquipmentDefaults() {
+            if (!enableLocationDefaults || !navigator.geolocation) {
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async function (position) {
+                if (position.coords && position.coords.accuracy && position.coords.accuracy > 500) {
+                    clearEquipmentLocationMessage();
+                    return;
+                }
+
+                const body = new URLSearchParams();
+                body.set("latitude", String(position.coords.latitude));
+                body.set("longitude", String(position.coords.longitude));
+
+                try {
+                    const response = await fetch("/brew-sessions/equipment-location-suggestions", {
+                        method: "POST",
+                        headers: {
+                            "Accept": "application/json",
+                            "Content-Type": "application/x-www-form-urlencoded",
+                            "X-Requested-With": "fetch"
+                        },
+                        body: body.toString(),
+                        credentials: "same-origin"
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok || !data || !data.ok) {
+                        return;
+                    }
+
+                    applySuggestedEquipment(data);
+                } catch {
+                    clearEquipmentLocationMessage();
+                }
+            }, function () {
+                clearEquipmentLocationMessage();
+            }, {
+                enableHighAccuracy: true,
+                timeout: 8000,
+                maximumAge: 60000
+            });
+        }
+
+        [grinderSelect, brewerSelect].forEach(function (select) {
+            if (!select) {
+                return;
+            }
+
+            select.addEventListener("change", function () {
+                userManuallyChangedEquipment = true;
+            });
+        });
+
+        if (equipmentLocationMessage) {
+            equipmentLocationMessage.addEventListener("click", function (event) {
+                const target = event.target;
+
+                if (!target || !target.matches("[data-location-equipment-target]")) {
+                    return;
+                }
+
+                const selectId = target.getAttribute("data-location-equipment-target");
+                const equipmentId = target.getAttribute("data-location-equipment-id");
+                const select = document.getElementById(selectId);
+
+                if (select && equipmentId) {
+                    select.value = equipmentId;
+                    userManuallyChangedEquipment = true;
+                }
+            });
+        }
+
+        requestLocationEquipmentDefaults();
+
         let brewCharacteristicsRadarChart = null;
         let isDraggingRadarScore = false;
 

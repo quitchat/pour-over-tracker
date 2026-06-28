@@ -9,8 +9,26 @@ function getBrewerFormValues(req: Request) {
         name: String(req.body.name || "").trim(),
         brand: String(req.body.brand || "").trim(),
         brewerType: String(req.body.brewerType || "").trim(),
-        notes: String(req.body.notes || "").trim()
+        notes: String(req.body.notes || "").trim(),
+        locationName: String(req.body.locationName || "").trim(),
+        latitude: String(req.body.latitude || "").trim(),
+        longitude: String(req.body.longitude || "").trim()
     };
+}
+
+
+function parseOptionalCoordinate(value: string): number | null {
+    if (!value) {
+        return null;
+    }
+
+    const parsed = Number(value);
+
+    if (Number.isNaN(parsed)) {
+        return null;
+    }
+
+    return parsed;
 }
 
 function validateBrewerForm(formValues: ReturnType<typeof getBrewerFormValues>): string[] {
@@ -18,6 +36,18 @@ function validateBrewerForm(formValues: ReturnType<typeof getBrewerFormValues>):
 
     if (!formValues.name) {
         errors.push("Brewer name is required.");
+    }
+
+    if (formValues.latitude && parseOptionalCoordinate(formValues.latitude) === null) {
+        errors.push("Latitude must be a valid number.");
+    }
+
+    if (formValues.longitude && parseOptionalCoordinate(formValues.longitude) === null) {
+        errors.push("Longitude must be a valid number.");
+    }
+
+    if ((formValues.latitude && !formValues.longitude) || (!formValues.latitude && formValues.longitude)) {
+        errors.push("Latitude and longitude must be entered together.");
     }
 
     return errors;
@@ -76,11 +106,14 @@ router.post("/", async function (req: Request, res: Response) {
             name: formValues.name,
             brand: formValues.brand || null,
             brewerType: formValues.brewerType || null,
-            notes: formValues.notes || null
+            notes: formValues.notes || null,
+            locationName: formValues.locationName || null,
+            latitude: parseOptionalCoordinate(formValues.latitude),
+            longitude: parseOptionalCoordinate(formValues.longitude)
         }
     });
 
-    res.redirect("/grinders");
+    res.redirect("/brewers");
 });
 
 router.get("/:id/edit", async function (req: Request, res: Response) {
@@ -114,7 +147,10 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
             name: brewer.name,
             brand: brewer.brand || "",
             brewerType: brewer.brewerType || "",
-            notes: brewer.notes || ""
+            notes: brewer.notes || "",
+            locationName: brewer.locationName || "",
+            latitude: brewer.latitude === null ? "" : String(brewer.latitude),
+            longitude: brewer.longitude === null ? "" : String(brewer.longitude)
         }
     });
 });
@@ -164,7 +200,10 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             name: formValues.name,
             brand: formValues.brand || null,
             brewerType: formValues.brewerType || null,
-            notes: formValues.notes || null
+            notes: formValues.notes || null,
+            locationName: formValues.locationName || null,
+            latitude: parseOptionalCoordinate(formValues.latitude),
+            longitude: parseOptionalCoordinate(formValues.longitude)
         }
     });
 

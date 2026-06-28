@@ -21,6 +21,7 @@
                     <th>Name</th>
                     <th>Brand</th>
                     <th>Type</th>
+                    <th>Location</th>
                     <th>Notes</th>
                     <th style="width: 180px;">Actions</th>
                 </tr>
@@ -28,7 +29,7 @@
             <tbody>
                 <% if (brewers.length === 0) { %>
                     <tr>
-                        <td colspan="5" class="text-muted text-center py-4">
+                        <td colspan="6" class="text-muted text-center py-4">
                             No brewers yet. Click Add Brewer to create one.
                         </td>
                     </tr>
@@ -39,6 +40,14 @@
                         <td><%= brewer.name %></td>
                         <td><%= brewer.brand %></td>
                         <td><%= brewer.brewerType %></td>
+                        <td>
+                            <% if (brewer.locationName || (brewer.latitude !== null && brewer.longitude !== null)) { %>
+                                <div><%= brewer.locationName || "Saved location" %></div>
+                                <% if (brewer.latitude !== null && brewer.longitude !== null) { %>
+                                    <div class="small text-muted"><%= Number(brewer.latitude).toFixed(5) %>, <%= Number(brewer.longitude).toFixed(5) %></div>
+                                <% } %>
+                            <% } %>
+                        </td>
                         <td><%= brewer.notes %></td>
                         <td>
                             <div class="d-flex gap-2">

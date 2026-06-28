@@ -23,6 +23,7 @@
                     <th class="text-end">Brews</th>
                     <th class="text-end">Total Ground</th>
                     <th>Default Grind Range</th>
+                    <th>Location</th>
                     <th>Calibration Notes</th>
                     <th style="width: 180px;">Actions</th>
                 </tr>
@@ -30,7 +31,7 @@
             <tbody>
                 <% if (grinders.length === 0) { %>
                     <tr>
-                        <td colspan="9" class="text-muted text-center py-4">
+                        <td colspan="10" class="text-muted text-center py-4">
                             No grinders yet. Click Add Grinder to create one.
                         </td>
                     </tr>
@@ -49,6 +50,14 @@
                             <%= grinder.totalGramsGround || "0.0" %> g
                         </td>
                         <td><%= grinder.defaultGrindSizeRange || "" %></td>
+                        <td>
+                            <% if (grinder.locationName || (grinder.latitude !== null && grinder.longitude !== null)) { %>
+                                <div><%= grinder.locationName || "Saved location" %></div>
+                                <% if (grinder.latitude !== null && grinder.longitude !== null) { %>
+                                    <div class="small text-muted"><%= Number(grinder.latitude).toFixed(5) %>, <%= Number(grinder.longitude).toFixed(5) %></div>
+                                <% } %>
+                            <% } %>
+                        </td>
                         <td><%= grinder.calibrationNotes || "" %></td>
                         <td>
                             <div class="d-flex gap-2">

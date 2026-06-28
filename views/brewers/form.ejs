@@ -60,6 +60,60 @@
                 </select>
             </div>
 
+
+            <div class="card bg-light border-0 mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-2 flex-column flex-md-row mb-3">
+                        <div>
+                            <h2 class="h6 mb-1">Equipment Location</h2>
+                            <p class="text-muted small mb-0">Optional. Used to suggest this grinder when adding a brew near this location.</p>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-fill-current-location>
+                            <i class="bi bi-geo-alt me-1"></i>
+                            Use Current Location
+                        </button>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="locationName" class="form-label">Location Name</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="locationName"
+                                name="locationName"
+                                placeholder="Example: Home, Office, Travel Kit"
+                                value="<%= formData.locationName || "" %>">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="latitude" class="form-label">Latitude</label>
+                            <input
+                                type="number"
+                                step="any"
+                                class="form-control"
+                                id="latitude"
+                                name="latitude"
+                                value="<%= formData.latitude || "" %>">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="longitude" class="form-label">Longitude</label>
+                            <input
+                                type="number"
+                                step="any"
+                                class="form-control"
+                                id="longitude"
+                                name="longitude"
+                                value="<%= formData.longitude || "" %>">
+                        </div>
+                    </div>
+
+                    <div class="small text-muted mt-2" data-location-fill-message></div>
+                </div>
+            </div>
+
             <div class="mb-3">
                 <label for="notes" class="form-label">Notes</label>
                 <textarea
@@ -77,3 +131,57 @@
         <a href="/brewers" class="btn btn-outline-secondary">Cancel</a>
     </div>
 </form>
+
+<script>
+    (function () {
+        const locationButton = document.querySelector("[data-fill-current-location]");
+        const messageElement = document.querySelector("[data-location-fill-message]");
+
+        if (!locationButton) {
+            return;
+        }
+
+        locationButton.addEventListener("click", function () {
+            if (!navigator.geolocation) {
+                if (messageElement) {
+                    messageElement.textContent = "Geolocation is not available in this browser.";
+                }
+                return;
+            }
+
+            locationButton.disabled = true;
+            if (messageElement) {
+                messageElement.textContent = "Getting current location...";
+            }
+
+            navigator.geolocation.getCurrentPosition(function (position) {
+                const latitudeInput = document.getElementById("latitude");
+                const longitudeInput = document.getElementById("longitude");
+
+                if (latitudeInput) {
+                    latitudeInput.value = position.coords.latitude.toFixed(6);
+                }
+
+                if (longitudeInput) {
+                    longitudeInput.value = position.coords.longitude.toFixed(6);
+                }
+
+                if (messageElement) {
+                    messageElement.textContent = "Location saved into the form. Add a location name like Home or Office if useful.";
+                }
+
+                locationButton.disabled = false;
+            }, function () {
+                if (messageElement) {
+                    messageElement.textContent = "Could not read current location. You can enter latitude and longitude manually.";
+                }
+
+                locationButton.disabled = false;
+            }, {
+                enableHighAccuracy: true,
+                timeout: 8000,
+                maximumAge: 60000
+            });
+        });
+    })();
+</script>
