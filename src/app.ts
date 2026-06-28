@@ -222,5 +222,5 @@ app.use(function (error: unknown, req: Request, res: Response, next: NextFunctio
 });
 
 app.listen(port, function () {
-    console.log(`Track My Brews is running at http://localhost:${port}`);
+    console.log(`Brew. Track. Improve. is running at http://localhost:${port}`);
 });
