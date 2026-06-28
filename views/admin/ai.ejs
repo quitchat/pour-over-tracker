@@ -77,6 +77,8 @@
                         <div class="text-muted small">Estimated Cost This Month</div>
                         <div class="fs-5 fw-semibold"><%= currentMonthEstimatedCost || "$0.000000" %></div>
                         <div class="text-muted small">All time: <%= totalEstimatedCost || "$0.000000" %></div>
+                        <div class="text-muted small">Input: $<%= inputCostPer1MTokens %> / 1M</div>
+                        <div class="text-muted small">Output: $<%= outputCostPer1MTokens %> / 1M</div>
                         <div class="text-muted small">Web search: $<%= webSearchCostPer1KCalls %> / 1K</div>
                     </div>
                 </div>
@@ -119,7 +121,7 @@
                         <div>
                             <h2 class="h5 mb-1">AI Cost Settings</h2>
                             <p class="text-muted mb-0">
-                                Override estimated base costs such as web search cost per 1,000 calls.
+                                Override estimated input token, output token, and web search base costs.
                             </p>
                         </div>
                     </div>

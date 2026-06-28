@@ -23,12 +23,52 @@
 <div class="card mb-3">
     <div class="card-header">
         <i class="bi bi-currency-dollar me-1"></i>
-        API Tool Base Costs
+        AI Base Costs
     </div>
     <div class="card-body">
         <form method="post" action="/admin/ai-cost-settings">
-            <div class="row g-3 align-items-end">
-                <div class="col-lg-6">
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <label for="inputCostPer1MTokens" class="form-label">Input token cost</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input
+                            type="number"
+                            step="0.000001"
+                            min="0"
+                            class="form-control"
+                            id="inputCostPer1MTokens"
+                            name="inputCostPer1MTokens"
+                            value="<%= inputCostPer1MTokens %>"
+                            required>
+                        <span class="input-group-text">per 1M</span>
+                    </div>
+                    <div class="form-text">
+                        Used when calculating token cost for AI input tokens.
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <label for="outputCostPer1MTokens" class="form-label">Output token cost</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input
+                            type="number"
+                            step="0.000001"
+                            min="0"
+                            class="form-control"
+                            id="outputCostPer1MTokens"
+                            name="outputCostPer1MTokens"
+                            value="<%= outputCostPer1MTokens %>"
+                            required>
+                        <span class="input-group-text">per 1M</span>
+                    </div>
+                    <div class="form-text">
+                        Used when calculating token cost for AI output tokens.
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
                     <label for="webSearchCostPer1KCalls" class="form-label">Web search tool cost</label>
                     <div class="input-group">
                         <span class="input-group-text">$</span>
@@ -41,15 +81,51 @@
                             name="webSearchCostPer1KCalls"
                             value="<%= webSearchCostPer1KCalls %>"
                             required>
-                        <span class="input-group-text">per 1,000 calls</span>
+                        <span class="input-group-text">per 1K</span>
                     </div>
                     <div class="form-text">
-                        Used when calculating <strong>Tool $</strong> for AI calls logged as Web search.
+                        Used when calculating tool cost for Web search calls.
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-lg-4">
+                    <div class="border rounded p-3 bg-light h-100">
+                        <div class="text-muted small">Current unit</div>
+                        <div class="fw-semibold"><%= inputUnit %></div>
+
+                        <% if (inputUpdatedByEmail || inputUpdatedAt) { %>
+                            <div class="text-muted small mt-2">Last updated</div>
+                            <div class="small">
+                                <%= inputUpdatedAt || "" %>
+                                <% if (inputUpdatedByEmail) { %>
+                                    by <%= inputUpdatedByEmail %>
+                                <% } %>
+                            </div>
+                        <% } %>
                     </div>
                 </div>
 
-                <div class="col-lg-6">
-                    <div class="border rounded p-3 bg-light">
+                <div class="col-lg-4">
+                    <div class="border rounded p-3 bg-light h-100">
+                        <div class="text-muted small">Current unit</div>
+                        <div class="fw-semibold"><%= outputUnit %></div>
+
+                        <% if (outputUpdatedByEmail || outputUpdatedAt) { %>
+                            <div class="text-muted small mt-2">Last updated</div>
+                            <div class="small">
+                                <%= outputUpdatedAt || "" %>
+                                <% if (outputUpdatedByEmail) { %>
+                                    by <%= outputUpdatedByEmail %>
+                                <% } %>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="border rounded p-3 bg-light h-100">
                         <div class="text-muted small">Current unit</div>
                         <div class="fw-semibold"><%= webSearchUnit %></div>
 
@@ -82,5 +158,5 @@
 
 <div class="alert alert-info small">
     <strong>Note:</strong>
-    This is an estimate for your own tracking. It does not change what OpenAI charges. Existing AI call logs keep the cost calculated at the time the log was created.
+    These values are estimates for your own tracking. They do not change what OpenAI charges. Existing AI call logs keep the cost calculated at the time the log was created.
 </div>

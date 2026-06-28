@@ -37,9 +37,13 @@ export const AI_TOOL_CALL_TYPES = {
 } as const;
 
 export const AI_COST_SETTING_KEYS = {
+    inputPer1MTokens: "input_per_1m_tokens",
+    outputPer1MTokens: "output_per_1m_tokens",
     webSearchPer1KCalls: "web_search_per_1k_calls"
 } as const;
 
+export const DEFAULT_INPUT_COST_PER_1M_TOKENS = 0.4;
+export const DEFAULT_OUTPUT_COST_PER_1M_TOKENS = 1.6;
 export const DEFAULT_WEB_SEARCH_COST_PER_1K_CALLS = 10;
 
 type AiModelPrice = {
@@ -49,16 +53,16 @@ type AiModelPrice = {
 
 const DEFAULT_MODEL_PRICES_PER_MILLION: Record<string, AiModelPrice> = {
     "gpt-4.1-mini": {
-        inputPerMillion: 0.4,
-        outputPerMillion: 1.6
+        inputPerMillion: DEFAULT_INPUT_COST_PER_1M_TOKENS,
+        outputPerMillion: DEFAULT_OUTPUT_COST_PER_1M_TOKENS
     },
     "gpt-5.4-mini": {
-        inputPerMillion: 0.4,
-        outputPerMillion: 1.6
+        inputPerMillion: DEFAULT_INPUT_COST_PER_1M_TOKENS,
+        outputPerMillion: DEFAULT_OUTPUT_COST_PER_1M_TOKENS
     },
     "gpt-5.5-mini": {
-        inputPerMillion: 0.4,
-        outputPerMillion: 1.6
+        inputPerMillion: DEFAULT_INPUT_COST_PER_1M_TOKENS,
+        outputPerMillion: DEFAULT_OUTPUT_COST_PER_1M_TOKENS
     }
 };
 
@@ -118,6 +122,14 @@ function getEnvNumber(name: string): number | null {
     return parsed;
 }
 
+function getDefaultInputCostPer1MTokens(): number {
+    return getEnvNumber("OPENAI_COST_INPUT_PER_1M") ?? DEFAULT_INPUT_COST_PER_1M_TOKENS;
+}
+
+function getDefaultOutputCostPer1MTokens(): number {
+    return getEnvNumber("OPENAI_COST_OUTPUT_PER_1M") ?? DEFAULT_OUTPUT_COST_PER_1M_TOKENS;
+}
+
 function getDefaultWebSearchCostPer1KCalls(): number {
     return getEnvNumber("OPENAI_COST_WEB_SEARCH_PER_1K") ?? DEFAULT_WEB_SEARCH_COST_PER_1K_CALLS;
 }
@@ -149,33 +161,67 @@ async function getAiCostSettingNumber(key: string, fallbackValue: number): Promi
     }
 }
 
+export async function getInputCostPer1MTokens(): Promise<number> {
+    return getAiCostSettingNumber(AI_COST_SETTING_KEYS.inputPer1MTokens, getDefaultInputCostPer1MTokens());
+}
+
+export async function getOutputCostPer1MTokens(): Promise<number> {
+    return getAiCostSettingNumber(AI_COST_SETTING_KEYS.outputPer1MTokens, getDefaultOutputCostPer1MTokens());
+}
+
 export async function getWebSearchCostPer1KCalls(): Promise<number> {
     return getAiCostSettingNumber(AI_COST_SETTING_KEYS.webSearchPer1KCalls, getDefaultWebSearchCostPer1KCalls());
 }
 
 export async function ensureAiCostSettings(): Promise<void> {
     try {
-        await prisma.aiCostSetting.upsert({
-            where: {
-                key: AI_COST_SETTING_KEYS.webSearchPer1KCalls
+        const settings = [
+            {
+                key: AI_COST_SETTING_KEYS.inputPer1MTokens,
+                label: "Input token cost",
+                description: "Estimated base cost charged for OpenAI input tokens. Used to calculate AI log token cost.",
+                value: getDefaultInputCostPer1MTokens(),
+                unit: "USD per 1,000,000 input tokens"
             },
-            create: {
+            {
+                key: AI_COST_SETTING_KEYS.outputPer1MTokens,
+                label: "Output token cost",
+                description: "Estimated base cost charged for OpenAI output tokens. Used to calculate AI log token cost.",
+                value: getDefaultOutputCostPer1MTokens(),
+                unit: "USD per 1,000,000 output tokens"
+            },
+            {
                 key: AI_COST_SETTING_KEYS.webSearchPer1KCalls,
                 label: "Web search tool cost",
                 description: "Estimated base cost charged for OpenAI web search tool calls. Used to calculate AI log tool cost.",
-                valueDecimal: new Prisma.Decimal(getDefaultWebSearchCostPer1KCalls().toFixed(6)),
+                value: getDefaultWebSearchCostPer1KCalls(),
                 unit: "USD per 1,000 calls"
-            },
-            update: {}
-        });
+            }
+        ];
+
+        for (const setting of settings) {
+            await prisma.aiCostSetting.upsert({
+                where: {
+                    key: setting.key
+                },
+                create: {
+                    key: setting.key,
+                    label: setting.label,
+                    description: setting.description,
+                    valueDecimal: new Prisma.Decimal(setting.value.toFixed(6)),
+                    unit: setting.unit
+                },
+                update: {}
+            });
+        }
     } catch (error) {
         // Cost settings should not block admin pages or AI features.
     }
 }
 
-function getModelPrice(model: string | null | undefined): AiModelPrice | null {
-    const configuredInputPrice = getEnvNumber("OPENAI_COST_INPUT_PER_1M");
-    const configuredOutputPrice = getEnvNumber("OPENAI_COST_OUTPUT_PER_1M");
+async function getModelPrice(model: string | null | undefined): Promise<AiModelPrice | null> {
+    const configuredInputPrice = await getInputCostPer1MTokens();
+    const configuredOutputPrice = await getOutputCostPer1MTokens();
 
     if (configuredInputPrice !== null && configuredOutputPrice !== null) {
         return {
@@ -197,12 +243,12 @@ function getModelPrice(model: string | null | undefined): AiModelPrice | null {
     return null;
 }
 
-function estimateTokenCostUsd(args: {
+async function estimateTokenCostUsd(args: {
     model: string | null | undefined;
     inputTokens: number | null;
     outputTokens: number | null;
-}): Prisma.Decimal | null {
-    const price = getModelPrice(args.model);
+}): Promise<Prisma.Decimal | null> {
+    const price = await getModelPrice(args.model);
 
     if (!price) {
         return null;
@@ -381,7 +427,7 @@ export async function finishAiCallLog(args: {
     const inputTokens = usage ? usage.inputTokens : null;
     const outputTokens = usage ? usage.outputTokens : null;
     const totalTokens = usage ? usage.totalTokens : null;
-    const tokenEstimatedCostUsd = estimateTokenCostUsd({
+    const tokenEstimatedCostUsd = await estimateTokenCostUsd({
         model: args.model,
         inputTokens: inputTokens,
         outputTokens: outputTokens

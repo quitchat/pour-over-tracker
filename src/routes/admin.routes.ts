@@ -16,6 +16,8 @@ import {
     AI_COST_SETTING_KEYS,
     ensureAiCostSettings,
     formatEstimatedCost,
+    getInputCostPer1MTokens,
+    getOutputCostPer1MTokens,
     getWebSearchCostPer1KCalls
 } from "../services/aiCallLog.service";
 
@@ -95,7 +97,7 @@ router.get("/ai", async function (req: Request, res: Response) {
     currentMonthStart.setDate(1);
     currentMonthStart.setHours(0, 0, 0, 0);
 
-    const [totalAiCallCount, failedAiCallCount, latestAiCallLog, totalCostSummary, currentMonthCostSummary, webSearchCostPer1KCalls] = await Promise.all([
+    const [totalAiCallCount, failedAiCallCount, latestAiCallLog, totalCostSummary, currentMonthCostSummary, inputCostPer1MTokens, outputCostPer1MTokens, webSearchCostPer1KCalls] = await Promise.all([
         prisma.aiCallLog.count(),
         prisma.aiCallLog.count({
             where: {
@@ -125,6 +127,8 @@ router.get("/ai", async function (req: Request, res: Response) {
                 estimatedCostUsd: true
             }
         }),
+        getInputCostPer1MTokens(),
+        getOutputCostPer1MTokens(),
         getWebSearchCostPer1KCalls()
     ]);
 
@@ -135,6 +139,8 @@ router.get("/ai", async function (req: Request, res: Response) {
         latestAiCallStartedAt: latestAiCallLog ? formatDateTime(latestAiCallLog.startedAt) : "",
         totalEstimatedCost: formatEstimatedCost(totalCostSummary._sum.estimatedCostUsd),
         currentMonthEstimatedCost: formatEstimatedCost(currentMonthCostSummary._sum.estimatedCostUsd),
+        inputCostPer1MTokens: formatCostNumber(inputCostPer1MTokens),
+        outputCostPer1MTokens: formatCostNumber(outputCostPer1MTokens),
         webSearchCostPer1KCalls: formatCostNumber(webSearchCostPer1KCalls)
     });
 });
@@ -142,21 +148,47 @@ router.get("/ai", async function (req: Request, res: Response) {
 router.get("/ai-cost-settings", async function (req: Request, res: Response) {
     await ensureAiCostSettings();
 
-    const webSearchSetting = await prisma.aiCostSetting.findUnique({
-        where: {
-            key: AI_COST_SETTING_KEYS.webSearchPer1KCalls
-        }
-    });
+    const [inputSetting, outputSetting, webSearchSetting] = await Promise.all([
+        prisma.aiCostSetting.findUnique({
+            where: {
+                key: AI_COST_SETTING_KEYS.inputPer1MTokens
+            }
+        }),
+        prisma.aiCostSetting.findUnique({
+            where: {
+                key: AI_COST_SETTING_KEYS.outputPer1MTokens
+            }
+        }),
+        prisma.aiCostSetting.findUnique({
+            where: {
+                key: AI_COST_SETTING_KEYS.webSearchPer1KCalls
+            }
+        })
+    ]);
 
+    const effectiveInputCost = inputSetting
+        ? Number(inputSetting.valueDecimal.toString())
+        : await getInputCostPer1MTokens();
+    const effectiveOutputCost = outputSetting
+        ? Number(outputSetting.valueDecimal.toString())
+        : await getOutputCostPer1MTokens();
     const effectiveWebSearchCost = webSearchSetting
         ? Number(webSearchSetting.valueDecimal.toString())
         : await getWebSearchCostPer1KCalls();
 
     res.render("admin/ai-cost-settings", {
         title: "Admin - AI Cost Settings",
+        inputCostPer1MTokens: formatCostNumber(effectiveInputCost),
+        outputCostPer1MTokens: formatCostNumber(effectiveOutputCost),
         webSearchCostPer1KCalls: formatCostNumber(effectiveWebSearchCost),
+        inputUnit: inputSetting ? inputSetting.unit || "USD per 1,000,000 input tokens" : "USD per 1,000,000 input tokens",
+        outputUnit: outputSetting ? outputSetting.unit || "USD per 1,000,000 output tokens" : "USD per 1,000,000 output tokens",
         webSearchUnit: webSearchSetting ? webSearchSetting.unit || "USD per 1,000 calls" : "USD per 1,000 calls",
+        inputUpdatedByEmail: inputSetting ? inputSetting.updatedByEmail || "" : "",
+        outputUpdatedByEmail: outputSetting ? outputSetting.updatedByEmail || "" : "",
         webSearchUpdatedByEmail: webSearchSetting ? webSearchSetting.updatedByEmail || "" : "",
+        inputUpdatedAt: inputSetting ? formatDateTime(inputSetting.updatedAt) : "",
+        outputUpdatedAt: outputSetting ? formatDateTime(outputSetting.updatedAt) : "",
         webSearchUpdatedAt: webSearchSetting ? formatDateTime(webSearchSetting.updatedAt) : "",
         message: String(req.query.message || ""),
         error: String(req.query.error || "")
@@ -165,33 +197,76 @@ router.get("/ai-cost-settings", async function (req: Request, res: Response) {
 
 router.post("/ai-cost-settings", async function (req: Request, res: Response) {
     const currentAdmin = getCurrentAdminFromLocals(res);
+    const inputCostRaw = String(req.body.inputCostPer1MTokens || "").trim();
+    const outputCostRaw = String(req.body.outputCostPer1MTokens || "").trim();
     const webSearchCostRaw = String(req.body.webSearchCostPer1KCalls || "").trim();
+    const inputCost = parseNonNegativeDecimal(inputCostRaw);
+    const outputCost = parseNonNegativeDecimal(outputCostRaw);
     const webSearchCost = parseNonNegativeDecimal(webSearchCostRaw);
+
+    if (inputCost === null) {
+        res.redirect("/admin/ai-cost-settings?error=Input%20token%20cost%20must%20be%20a%20number%20greater%20than%20or%20equal%20to%200.");
+        return;
+    }
+
+    if (outputCost === null) {
+        res.redirect("/admin/ai-cost-settings?error=Output%20token%20cost%20must%20be%20a%20number%20greater%20than%20or%20equal%20to%200.");
+        return;
+    }
 
     if (webSearchCost === null) {
         res.redirect("/admin/ai-cost-settings?error=Web%20search%20cost%20must%20be%20a%20number%20greater%20than%20or%20equal%20to%200.");
         return;
     }
 
-    await prisma.aiCostSetting.upsert({
-        where: {
-            key: AI_COST_SETTING_KEYS.webSearchPer1KCalls
+    const settings = [
+        {
+            key: AI_COST_SETTING_KEYS.inputPer1MTokens,
+            label: "Input token cost",
+            description: "Estimated base cost charged for OpenAI input tokens. Used to calculate AI log token cost.",
+            value: inputCost,
+            unit: "USD per 1,000,000 input tokens"
         },
-        create: {
+        {
+            key: AI_COST_SETTING_KEYS.outputPer1MTokens,
+            label: "Output token cost",
+            description: "Estimated base cost charged for OpenAI output tokens. Used to calculate AI log token cost.",
+            value: outputCost,
+            unit: "USD per 1,000,000 output tokens"
+        },
+        {
             key: AI_COST_SETTING_KEYS.webSearchPer1KCalls,
             label: "Web search tool cost",
             description: "Estimated base cost charged for OpenAI web search tool calls. Used to calculate AI log tool cost.",
-            valueDecimal: webSearchCost.toFixed(6),
-            unit: "USD per 1,000 calls",
-            updatedByUserId: currentAdmin ? currentAdmin.id : null,
-            updatedByEmail: currentAdmin ? currentAdmin.email : null
-        },
-        update: {
-            valueDecimal: webSearchCost.toFixed(6),
-            updatedByUserId: currentAdmin ? currentAdmin.id : null,
-            updatedByEmail: currentAdmin ? currentAdmin.email : null
+            value: webSearchCost,
+            unit: "USD per 1,000 calls"
         }
-    });
+    ];
+
+    for (const setting of settings) {
+        await prisma.aiCostSetting.upsert({
+            where: {
+                key: setting.key
+            },
+            create: {
+                key: setting.key,
+                label: setting.label,
+                description: setting.description,
+                valueDecimal: setting.value.toFixed(6),
+                unit: setting.unit,
+                updatedByUserId: currentAdmin ? currentAdmin.id : null,
+                updatedByEmail: currentAdmin ? currentAdmin.email : null
+            },
+            update: {
+                label: setting.label,
+                description: setting.description,
+                valueDecimal: setting.value.toFixed(6),
+                unit: setting.unit,
+                updatedByUserId: currentAdmin ? currentAdmin.id : null,
+                updatedByEmail: currentAdmin ? currentAdmin.email : null
+            }
+        });
+    }
 
     res.redirect("/admin/ai-cost-settings?message=AI%20cost%20settings%20saved.");
 });
