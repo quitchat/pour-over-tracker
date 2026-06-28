@@ -79,9 +79,9 @@
 
                         <td>
                             <% if (user.allowAi) { %>
-                                <span class="badge text-bg-success">Allowed</span>
+                                <span class="badge text-bg-success">AI Enabled</span>
                             <% } else { %>
-                                <span class="badge text-bg-secondary">Off</span>
+                                <span class="badge text-bg-secondary">AI Disabled</span>
                             <% } %>
                         </td>
 
@@ -97,13 +97,13 @@
                                 <% if (user.allowAi) { %>
                                     <form method="post" action="/admin/users/<%= user.id %>/disable-ai">
                                         <button type="submit" class="btn btn-sm btn-outline-warning">
-                                            Disable AI
+                                            AI Enabled
                                         </button>
                                     </form>
                                 <% } else { %>
                                     <form method="post" action="/admin/users/<%= user.id %>/enable-ai">
                                         <button type="submit" class="btn btn-sm btn-outline-success">
-                                            Enable AI
+                                            AI Disabled
                                         </button>
                                     </form>
                                 <% } %>

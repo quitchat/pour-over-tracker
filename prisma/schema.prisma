@@ -136,7 +136,6 @@ model CoffeeBean {
   beanNotes     String?
   rating        Decimal?      @db.Decimal(4, 2)
   isActive      Boolean       @default(true)
-  allowAi       Boolean       @default(false)
   deactivatedAt DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -146,7 +145,6 @@ model CoffeeBean {
 
   @@index([userId])
   @@index([isActive])
-  @@index([allowAi])
 }
 
 model Grinder {
