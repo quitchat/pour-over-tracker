@@ -84,7 +84,7 @@ router.post("/", async function (req: Request, res: Response) {
         }
     });
 
-    res.redirect(`/grinders/${grinder.id}/edit`);
+    res.redirect("/grinders");
 });
 
 router.get("/:id/edit", async function (req: Request, res: Response) {
