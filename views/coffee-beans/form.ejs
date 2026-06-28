@@ -25,6 +25,66 @@
 
 <div id="coffeeInfoAjaxMessage"></div>
 
+<style>
+    .bean-star-rating-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15rem;
+    }
+
+    .bean-star-rating-button {
+        position: relative;
+        width: 2.1rem;
+        height: 2.1rem;
+        border: 0;
+        background: transparent;
+        padding: 0;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .bean-star-rating-button:focus-visible {
+        outline: 2px solid var(--bs-primary);
+        outline-offset: 2px;
+        border-radius: 0.35rem;
+    }
+
+    .bean-star-rating-empty,
+    .bean-star-rating-filled {
+        position: absolute;
+        left: 0;
+        top: 0;
+        font-size: 2rem;
+    }
+
+    .bean-star-rating-empty {
+        color: #dee2e6;
+    }
+
+    .bean-star-rating-filled {
+        color: #ffc107;
+        width: var(--bean-star-fill-width, 0%);
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .bean-star-rating-button:hover .bean-star-rating-empty {
+        color: #ced4da;
+    }
+
+    @media (max-width: 767.98px) {
+        .bean-star-rating-button {
+            width: 2.4rem;
+            height: 2.4rem;
+        }
+
+        .bean-star-rating-empty,
+        .bean-star-rating-filled {
+            font-size: 2.3rem;
+        }
+    }
+</style>
+
 <form method="post" action="<%= formAction %>" id="coffeeBeanForm" enctype="multipart/form-data">
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -189,18 +249,39 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label for="rating" class="form-label">Bean Rating</label>
+                    <label class="form-label d-flex justify-content-between align-items-center" for="rating">
+                        <span>Bean Rating</span>
+                        <span class="text-muted small" id="beanRatingDisplay">No rating</span>
+                    </label>
+
                     <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        max="5"
-                        class="form-control"
+                        type="hidden"
                         id="rating"
                         name="rating"
-                        placeholder="0 to 5"
                         value="<%= formData.rating || "" %>">
-                    <div class="form-text">Bean-level 0–5 star rating, separate from brew-session radar scores.</div>
+
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="bean-star-rating-control" id="beanRatingStars" role="radiogroup" aria-label="Bean rating">
+                            <% [1, 2, 3, 4, 5].forEach(function (starNumber) { %>
+                                <button
+                                    type="button"
+                                    class="bean-star-rating-button"
+                                    data-star-number="<%= starNumber %>"
+                                    aria-label="Rate <%= starNumber %> star">
+                                    <i class="bi bi-star-fill bean-star-rating-empty"></i>
+                                    <i class="bi bi-star-fill bean-star-rating-filled"></i>
+                                </button>
+                            <% }); %>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearBeanRatingButton">
+                            Clear
+                        </button>
+                    </div>
+
+                    <div class="form-text">
+                        Bean-level 0–5 star rating, separate from brew-session radar scores. Click the left half of a star for a half-star rating.
+                    </div>
                 </div>
 
                 <div class="col-md-6">
@@ -271,6 +352,125 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        const beanRatingInput = document.getElementById("rating");
+        const beanRatingDisplay = document.getElementById("beanRatingDisplay");
+        const beanRatingButtons = document.querySelectorAll(".bean-star-rating-button");
+        const clearBeanRatingButton = document.getElementById("clearBeanRatingButton");
+
+        function normalizeBeanRatingValue(value) {
+            if (value === null || typeof value === "undefined" || value === "") {
+                return "";
+            }
+
+            const parsed = Number(value);
+
+            if (Number.isNaN(parsed) || parsed <= 0) {
+                return "";
+            }
+
+            const clamped = Math.min(5, Math.max(0.5, parsed));
+            const roundedToHalf = Math.round(clamped * 2) / 2;
+
+            if (Number.isInteger(roundedToHalf)) {
+                return String(roundedToHalf);
+            }
+
+            return roundedToHalf.toFixed(1);
+        }
+
+        function getBeanRatingDisplayText(value) {
+            const normalized = normalizeBeanRatingValue(value);
+
+            if (!normalized) {
+                return "No rating";
+            }
+
+            return normalized + " / 5";
+        }
+
+        function setBeanStarVisual(value) {
+            const normalized = normalizeBeanRatingValue(value);
+            const rating = normalized ? Number(normalized) : 0;
+
+            beanRatingButtons.forEach(function (button) {
+                const starNumber = Number(button.getAttribute("data-star-number") || "0");
+                let fillWidth = 0;
+
+                if (rating >= starNumber) {
+                    fillWidth = 100;
+                } else if (rating >= starNumber - 0.5) {
+                    fillWidth = 50;
+                }
+
+                button.style.setProperty("--bean-star-fill-width", fillWidth + "%");
+            });
+        }
+
+        function setBeanRating(value) {
+            const normalized = normalizeBeanRatingValue(value);
+
+            if (beanRatingInput) {
+                beanRatingInput.value = normalized;
+            }
+
+            if (beanRatingDisplay) {
+                beanRatingDisplay.textContent = getBeanRatingDisplayText(normalized);
+            }
+
+            setBeanStarVisual(normalized);
+        }
+
+        function getBeanRatingFromPointerEvent(button, event) {
+            const starNumber = Number(button.getAttribute("data-star-number") || "0");
+            const buttonRect = button.getBoundingClientRect();
+            const offsetX = event.clientX - buttonRect.left;
+            const isLeftHalf = offsetX <= buttonRect.width / 2;
+
+            if (isLeftHalf) {
+                return starNumber - 0.5;
+            }
+
+            return starNumber;
+        }
+
+        beanRatingButtons.forEach(function (button) {
+            button.addEventListener("mousemove", function (event) {
+                const previewRating = getBeanRatingFromPointerEvent(button, event);
+
+                setBeanStarVisual(previewRating);
+
+                if (beanRatingDisplay) {
+                    beanRatingDisplay.textContent = getBeanRatingDisplayText(previewRating);
+                }
+            });
+
+            button.addEventListener("mouseleave", function () {
+                const currentValue = beanRatingInput ? beanRatingInput.value : "";
+
+                setBeanStarVisual(currentValue);
+
+                if (beanRatingDisplay) {
+                    beanRatingDisplay.textContent = getBeanRatingDisplayText(currentValue);
+                }
+            });
+
+            button.addEventListener("click", function (event) {
+                const selectedRating = getBeanRatingFromPointerEvent(button, event);
+
+                setBeanRating(selectedRating);
+            });
+        });
+
+        if (clearBeanRatingButton) {
+            clearBeanRatingButton.addEventListener("click", function () {
+                setBeanRating("");
+            });
+        }
+
+        if (beanRatingInput) {
+            setBeanRating(beanRatingInput.value);
+        }
+
         const getCoffeeInfoButton = document.getElementById("getCoffeeInfoButton");
         const uploadBagImageButton = document.getElementById("uploadBagImageButton");
         const bagImageFileInput = document.getElementById("bagImageFile");
