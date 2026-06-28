@@ -85,7 +85,7 @@
     }
 
     .radar-score-editor {
-        max-width: 420px;
+        max-width: 460px;
         margin: 0 auto;
         touch-action: none;
         user-select: none;
@@ -156,9 +156,15 @@
         padding: 0.4rem 0.7rem;
         background: var(--bs-body-bg);
         display: flex;
+        align-items: center;
         justify-content: space-between;
         gap: 0.5rem;
         font-size: 0.9rem;
+    }
+
+    .radar-score-value-pill strong {
+        white-space: nowrap;
+        flex-shrink: 0;
     }
 
 
@@ -457,11 +463,11 @@
 
                 <div class="row g-4 align-items-center">
                     <div class="col-lg-7">
-                        <div class="border rounded p-3 bg-light">
+                        <div class="border rounded p-2 p-sm-3 bg-light">
                             <div class="radar-score-editor" id="brewCharacteristicsRadarEditor">
                                 <svg
                                     id="brewCharacteristicsRadarSvg"
-                                    viewBox="0 0 320 320"
+                                    viewBox="0 0 360 360"
                                     role="img"
                                     tabindex="0"
                                     aria-label="Interactive brew characteristics pentagon radar score editor">
@@ -660,10 +666,10 @@
     document.addEventListener("DOMContentLoaded", function () {
         const radarScoreFields = [
             { id: "richness", label: "Richness", outputId: "richnessValue" },
-            { id: "sweetness", label: "Sweetness", outputId: "sweetnessValue" },
+            { id: "sweetness", label: "Sweetness", outputId: "sweetnessValue", labelOffsetX: -30, labelOffsetY: -8 },
             { id: "aftertaste", label: "Aftertaste", outputId: "aftertasteValue" },
             { id: "aroma", label: "Aroma", outputId: "aromaValue" },
-            { id: "acidity", label: "Acidity", outputId: "acidityValue" }
+            { id: "acidity", label: "Acidity", outputId: "acidityValue", labelOffsetX: 30, labelOffsetY: -8 }
         ];
 
         const radarSvg = document.getElementById("brewCharacteristicsRadarSvg");
@@ -671,9 +677,9 @@
         const radarScoreArea = document.getElementById("radarScoreArea");
         const radarHandles = document.getElementById("radarScoreHandles");
         const radarLabels = document.getElementById("radarScoreLabels");
-        const radarCenter = { x: 160, y: 160 };
-        const radarRadius = 105;
-        const radarLabelRadius = 137;
+        const radarCenter = { x: 180, y: 180 };
+        const radarRadius = 126;
+        const radarLabelRadius = 152;
         let isDraggingRadarScore = false;
 
         function createSvgElement(tagName) {
@@ -749,6 +755,8 @@
             radarScoreFields.forEach(function (field, index) {
                 const edgePoint = getRadarPoint(index, 5);
                 const labelPoint = getRadarPoint(index, 5, radarLabelRadius);
+                labelPoint.x += field.labelOffsetX || 0;
+                labelPoint.y += field.labelOffsetY || 0;
                 const axisLine = createSvgElement("line");
 
                 axisLine.setAttribute("x1", String(radarCenter.x));
