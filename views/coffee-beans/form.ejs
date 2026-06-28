@@ -91,13 +91,13 @@
                             class="btn btn-outline-primary"
                             id="uploadBagImageButton">
                             <i class="bi bi-upload me-1"></i>
-                            Upload + Read Label
+                            Upload + Read Label + Get Info
                         </button>
                     </div>
 
                     <div class="form-text">
                         Upload JPG, PNG, WEBP, or GIF. Maximum upload size: 12 MB. The server will resize and compress it automatically.
-                        The upload button saves the image and uses AI/OCR to fill Roaster and Coffee Name.
+                        The upload button saves the image, reads Roaster and Coffee Name, then automatically gets bean information when both values are found.
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -323,7 +323,7 @@
                 uploadBagImageButton.disabled = false;
                 uploadBagImageButton.innerHTML =
                     '<i class="bi bi-upload me-1"></i>' +
-                    'Upload + Read Label';
+                    'Upload + Read Label + Get Info';
             }
         }
 
@@ -436,17 +436,21 @@
                 }
 
                 if (data.formData) {
-                    if (data.formData.roasterName) {
-                        setElementValue("roasterName", data.formData.roasterName);
-                    }
-
-                    if (data.formData.beanName) {
-                        setElementValue("beanName", data.formData.beanName);
-                    }
+                    populateForm(data.formData);
                 }
 
+                populateConfirmedNotes(data.confirmedNotes || []);
+
                 const confidenceText = data.confidence ? " Confidence: " + data.confidence + "." : "";
-                showMessage("success", "Bean bag picture uploaded and label fields filled. Review them before saving." + confidenceText);
+                const roasterName = getElementValue("roasterName").trim();
+                const beanName = getElementValue("beanName").trim();
+
+                if (roasterName && beanName) {
+                    showMessage("success", "Bean bag picture uploaded, label fields read, and coffee information filled in one AI call. Review everything before saving." + confidenceText);
+                    return;
+                }
+
+                showMessage("success", "Bean bag picture uploaded and any readable label fields were filled. Enter Roaster and Coffee Name, then use Get Coffee Information." + confidenceText);
             } catch (error) {
                 if (error && error.name === "AbortError") {
                     showMessage("danger", "Uploading and reading the bean bag picture took too long. Please try again.");
@@ -459,18 +463,29 @@
             }
         }
 
-        async function getCoffeeInformation() {
-            clearMessage();
+        async function getCoffeeInformation(options) {
+            const settings = Object.assign({
+                clearExistingMessage: true,
+                manageButtonLoading: true,
+                successMessage: "Coffee information filled. Review it before saving.",
+                failureMessagePrefix: ""
+            }, options || {});
 
-            const roasterName = getElementValue("roasterName");
-            const beanName = getElementValue("beanName");
+            if (settings.clearExistingMessage) {
+                clearMessage();
+            }
+
+            const roasterName = getElementValue("roasterName").trim();
+            const beanName = getElementValue("beanName").trim();
 
             if (!roasterName || !beanName) {
                 showMessage("warning", "Enter Roaster and Coffee Name before getting coffee information.");
-                return;
+                return false;
             }
 
-            setButtonLoading(true);
+            if (settings.manageButtonLoading) {
+                setButtonLoading(true);
+            }
 
             const controller = new AbortController();
             const timeoutId = window.setTimeout(function () {
@@ -509,26 +524,40 @@
                 }
 
                 if (!response.ok || !data || !data.ok) {
-                    const errorMessage = data && data.errorMessage
+                    const baseErrorMessage = data && data.errorMessage
                         ? data.errorMessage
                         : "Could not get coffee information.";
+                    const errorMessage = settings.failureMessagePrefix
+                        ? settings.failureMessagePrefix + " " + baseErrorMessage
+                        : baseErrorMessage;
 
                     showMessage("danger", errorMessage);
-                    return;
+                    return false;
                 }
 
                 populateForm(data.formData || {});
                 populateConfirmedNotes(data.confirmedNotes || []);
-                showMessage("success", "Coffee information filled. Review it before saving.");
+                showMessage("success", settings.successMessage);
+                return true;
             } catch (error) {
+                let errorMessage = "Could not get coffee information.";
+
                 if (error && error.name === "AbortError") {
-                    showMessage("danger", "Getting coffee information took too long. Please try again.");
-                } else {
-                    showMessage("danger", "Could not get coffee information.");
+                    errorMessage = "Getting coffee information took too long. Please try again.";
                 }
+
+                if (settings.failureMessagePrefix) {
+                    errorMessage = settings.failureMessagePrefix + " " + errorMessage;
+                }
+
+                showMessage("danger", errorMessage);
+                return false;
             } finally {
                 window.clearTimeout(timeoutId);
-                setButtonLoading(false);
+
+                if (settings.manageButtonLoading) {
+                    setButtonLoading(false);
+                }
             }
         }
 

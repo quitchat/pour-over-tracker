@@ -20,6 +20,7 @@ export type AiTokenUsage = {
 export const AI_CALL_TYPES = {
     beanDetailLookup: "Bean Detail Lookup",
     beanBagOcr: "Bean Bag OCR",
+    beanBagLookup: "Bean Bag Image Lookup",
     brewRecipeSuggestion: "Brew Recipe Suggestion"
 } as const;
 

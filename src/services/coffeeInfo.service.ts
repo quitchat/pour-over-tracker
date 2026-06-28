@@ -26,33 +26,53 @@ export type CoffeeBagImageIdentityResult = {
     notes: string[];
 };
 
+export type CoffeeBagImageInformationResult = CoffeeInformationResult & {
+    confidence: "high" | "medium" | "low";
+    notes: string[];
+};
+
 export const BEAN_DETAIL_AI_PROMPT_NAME = "default";
 export const COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT_NAME = "default";
 
 export const DEFAULT_COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT = [
-    "You are helping a pour-over coffee tracking app read a coffee bag label from an uploaded image.",
+    "You are helping a pour-over coffee tracking app read a coffee bag label from an uploaded image and fill coffee bean information.",
     "",
-    "Extract only the roaster name and the coffee bean name from the image.",
+    "This is a single-call workflow:",
+    "1. First, read the uploaded coffee bag image and extract the roaster name and coffee bean/product name.",
+    "2. If both roasterName and beanName are valid, use web search to find coffee bean details using the same source priority rules below.",
+    "3. If either roasterName or beanName cannot be determined, return null for unknown fields and do not guess bean details.",
     "",
-    "Rules:",
+    "Image reading rules:",
     "",
     "1. Return the roaster name only if it is clearly visible or strongly supported by the bag label.",
     "2. Return the coffee bean name only if it is clearly visible or strongly supported by the bag label.",
-    "3. Do not guess.",
-    "4. Do not return origin, process, roast level, tasting notes, price, image URL, or marketing text.",
-    "5. If the bag shows multiple possible names, choose the one most likely to be the coffee product name.",
-    "6. If a value cannot be determined, return null.",
-    "7. Prefer the exact text printed on the bag, but clean obvious OCR mistakes.",
-    "8. Do not include explanations.",
+    "3. If the bag shows multiple possible names, choose the one most likely to be the coffee product name.",
+    "4. Prefer the exact text printed on the bag, but clean obvious OCR mistakes.",
+    "5. Do not guess. If a value cannot be determined, return null.",
     "",
-    "Return JSON only in this shape:",
+    "Bean detail source priority:",
     "",
-    "{",
-    "  \"roasterName\": \"string or null\",",
-    "  \"beanName\": \"string or null\",",
-    "  \"confidence\": \"high, medium, or low\",",
-    "  \"notes\": []",
-    "}"
+    "1. First, search the roaster's official website.",
+    "2. Use the official roaster product page as the primary source whenever it exists.",
+    "3. If the exact official product page cannot be found, use other pages from the roaster's official website only if they clearly describe the same coffee.",
+    "4. Only use non-roaster sources if no useful official roaster source can be found.",
+    "5. If using a non-roaster source, do not treat uncertain or promotional claims as confirmed facts.",
+    "",
+    "Bean detail rules:",
+    "",
+    "1. Prefer the roaster's official website over retailers, reviews, Reddit, blogs, coffee databases, marketplace pages, or cached snippets.",
+    "2. Do not guess. If a field is not clearly supported by the source, return null or an empty array.",
+    "3. For roastLevel, only return Light, Medium, Dark, or null.",
+    "4. Do not look for coffee bag images. Do not return image URLs.",
+    "5. Do not return price information. Price is manually entered by the user only.",
+    "6. For sourceUrl, return the official roaster product page URL if found. If the exact official product page is not found but another official roaster page clearly supports the facts, return that official roaster URL. Only return a non-roaster URL if no useful official roaster source is found.",
+    "7. For confirmedNotes, include 3 to 8 short useful confirmed facts about the bean itself when the source supports that much information.",
+    "8. Good confirmedNotes examples include region, farm, producer, cooperative, variety/cultivar, elevation, harvest season, blend components, decaf method, roast style, processing details, certification, recommended brewing notes, or a roaster's own description of the coffee.",
+    "9. Do not duplicate the exact same information already returned in origin, process, roastLevel, or flavorNotes unless the note adds more detail.",
+    "10. Do not include statements about missing data. Do not say not listed, not mentioned, unavailable, unknown, unclear, or not specified.",
+    "11. If there are no extra confirmed facts, return an empty confirmedNotes array.",
+    "",
+    "Return JSON only. Do not include explanations."
 ].join("\n");
 
 export const DEFAULT_BEAN_DETAIL_AI_PROMPT = [
@@ -286,6 +306,150 @@ function parseCoffeeBagImageIdentityJson(outputText: string): CoffeeBagImageIden
         beanName: parsed.beanName || null,
         confidence: confidence,
         notes: Array.isArray(parsed.notes) ? parsed.notes : []
+    };
+}
+
+function parseCoffeeBagImageInformationJson(outputText: string): CoffeeBagImageInformationResult {
+    const parsed = JSON.parse(outputText) as CoffeeBagImageInformationResult;
+    const confidence = parsed.confidence === "high" || parsed.confidence === "medium" || parsed.confidence === "low"
+        ? parsed.confidence
+        : "low";
+
+    return {
+        beanName: parsed.beanName || null,
+        roasterName: parsed.roasterName || null,
+        origin: parsed.origin || null,
+        process: parsed.process || null,
+        roastLevel: parsed.roastLevel || null,
+        flavorNotes: Array.isArray(parsed.flavorNotes) ? parsed.flavorNotes : [],
+        sourceUrl: parsed.sourceUrl || null,
+        confirmedNotes: Array.isArray(parsed.confirmedNotes) ? parsed.confirmedNotes : [],
+        confidence: confidence,
+        notes: Array.isArray(parsed.notes) ? parsed.notes : []
+    };
+}
+
+export async function getCoffeeBagImageInformationFromOpenAI(imageFilePath: string, mimeType: string): Promise<AiServiceResult<CoffeeBagImageInformationResult>> {
+    const client = getOpenAIClient();
+    const model = process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-5.4-mini";
+    const promptText = await getCoffeeBagImageIdentityAiPromptText();
+    const imageBytes = await fs.promises.readFile(imageFilePath);
+    const imageBase64 = imageBytes.toString("base64");
+    const imageUrl = `data:${mimeType};base64,${imageBase64}`;
+
+    const response = await client.responses.create({
+        model: model,
+        store: false,
+        tools: [
+            {
+                type: "web_search"
+            }
+        ],
+        input: [
+            {
+                role: "system",
+                content: [
+                    {
+                        type: "input_text",
+                        text: promptText
+                    }
+                ]
+            },
+            {
+                role: "user",
+                content: [
+                    {
+                        type: "input_text",
+                        text: [
+                            "Read this coffee bag image.",
+                            "Extract roasterName and beanName.",
+                            "If both are valid, search the web and fill supported coffee bean details.",
+                            "Return structured JSON only."
+                        ].join("\n")
+                    },
+                    {
+                        type: "input_image",
+                        image_url: imageUrl,
+                        detail: "high"
+                    }
+                ]
+            }
+        ],
+        text: {
+            format: {
+                type: "json_schema",
+                name: "coffee_bag_image_information",
+                strict: true,
+                schema: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                        beanName: {
+                            type: ["string", "null"]
+                        },
+                        roasterName: {
+                            type: ["string", "null"]
+                        },
+                        origin: {
+                            type: ["string", "null"]
+                        },
+                        process: {
+                            type: ["string", "null"]
+                        },
+                        roastLevel: {
+                            type: ["string", "null"],
+                            enum: ["Light", "Medium", "Dark", null]
+                        },
+                        flavorNotes: {
+                            type: "array",
+                            items: {
+                                type: "string"
+                            }
+                        },
+                        sourceUrl: {
+                            type: ["string", "null"]
+                        },
+                        confirmedNotes: {
+                            type: "array",
+                            items: {
+                                type: "string"
+                            }
+                        },
+                        confidence: {
+                            type: "string",
+                            enum: ["high", "medium", "low"]
+                        },
+                        notes: {
+                            type: "array",
+                            items: {
+                                type: "string"
+                            }
+                        }
+                    },
+                    required: [
+                        "beanName",
+                        "roasterName",
+                        "origin",
+                        "process",
+                        "roastLevel",
+                        "flavorNotes",
+                        "sourceUrl",
+                        "confirmedNotes",
+                        "confidence",
+                        "notes"
+                    ]
+                }
+            }
+        }
+    });
+
+    if (!response.output_text) {
+        throw new Error("OpenAI did not return coffee bag information.");
+    }
+
+    return {
+        data: parseCoffeeBagImageInformationJson(response.output_text),
+        usage: extractAiTokenUsage(response)
     };
 }
 
