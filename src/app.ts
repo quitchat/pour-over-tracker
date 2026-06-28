@@ -20,7 +20,7 @@ import adminRoutes from "./routes/admin.routes";
 import analyticsRoutes from "./routes/analytics.routes";
 
 const app = express();
-app.set("trust proxy", 1);
+
 const port = Number(process.env.PORT || 3000);
 const sessionSecret = process.env.SESSION_SECRET || "change-this-session-secret";
 const sessionMaxAgeDays = Number(process.env.SESSION_MAX_AGE_DAYS || 30);
