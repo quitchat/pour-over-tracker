@@ -2,6 +2,12 @@
     .bean-notes-display {
         white-space: pre-line;
     }
+
+    .bean-rating-stars {
+        color: #f5b301;
+        letter-spacing: 0.05rem;
+        white-space: nowrap;
+    }
 </style>
 
 <style>
@@ -198,6 +204,18 @@
                     <dt class="col-sm-4">Price US$</dt>
                     <dd class="col-sm-8"><%= coffeeBean.price %></dd>
 
+                    <dt class="col-sm-4">Bean Rating</dt>
+                    <dd class="col-sm-8">
+                        <% if (coffeeBean.rating) { %>
+                            <span class="bean-rating-stars" aria-label="<%= coffeeBean.rating %> out of 5 stars">
+                                <% for (let i = 1; i <= 5; i++) { %><%= Number(coffeeBean.rating) >= i ? "★" : "☆" %><% } %>
+                            </span>
+                            <span class="ms-1 text-muted"><%= coffeeBean.rating %> / 5</span>
+                        <% } else { %>
+                            <span class="text-muted">No bean rating.</span>
+                        <% } %>
+                    </dd>
+
                     <dt class="col-sm-4">Flavor Notes</dt>
                     <dd class="col-sm-8">
                         <% if (coffeeBean.flavorNotes) { %>
@@ -218,12 +236,21 @@
                         <% } %>
                     </dd>
 
-                    <dt class="col-sm-4">Notes</dt>
+                    <dt class="col-sm-4">Bean Info</dt>
                     <dd class="col-sm-8">
-                        <% if (coffeeBean.notes) { %>
-                            <div class="bean-notes-display"><%= coffeeBean.notes %></div>
+                        <% if (coffeeBean.beanInfo) { %>
+                            <div class="bean-notes-display"><%= coffeeBean.beanInfo %></div>
                         <% } else { %>
-                            <span class="text-muted">No notes entered.</span>
+                            <span class="text-muted">No bean info entered.</span>
+                        <% } %>
+                    </dd>
+
+                    <dt class="col-sm-4">Bean Notes</dt>
+                    <dd class="col-sm-8">
+                        <% if (coffeeBean.beanNotes) { %>
+                            <div class="bean-notes-display"><%= coffeeBean.beanNotes %></div>
+                        <% } else { %>
+                            <span class="text-muted">No bean notes entered.</span>
                         <% } %>
                     </dd>
                 </dl>
@@ -273,6 +300,11 @@
                     <div class="col-6">
                         <div class="text-muted small">Brews</div>
                         <div class="h3 mb-0"><%= stats.brewSessionCount %></div>
+                    </div>
+
+                    <div class="col-6">
+                        <div class="text-muted small">Total Grams Brewed</div>
+                        <div class="h3 mb-0"><%= stats.totalGramsBrewed || "0.0" %> g</div>
                     </div>
 
                     <div class="col-6">

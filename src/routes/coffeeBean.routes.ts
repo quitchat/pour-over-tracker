@@ -208,7 +208,9 @@ function getCoffeeBeanFormValues(req: Request) {
         flavorNotes: String(req.body.flavorNotes || "").trim(),
         sourceUrl: String(req.body.sourceUrl || "").trim(),
         bagImageUrl: String(req.body.bagImageUrl || "").trim(),
-        notes: String(req.body.notes || "").trim(),
+        beanInfo: String(req.body.beanInfo || "").trim(),
+        beanNotes: String(req.body.beanNotes || "").trim(),
+        rating: String(req.body.rating || "").trim(),
         removeBagImage: String(req.body.removeBagImage || "").trim() === "1"
     };
 }
@@ -217,6 +219,7 @@ function validateCoffeeBeanForm(formValues: ReturnType<typeof getCoffeeBeanFormV
     const errors: string[] = [];
     const validRoastLevels = ["", "Light", "Medium", "Dark"];
     const price = Number(formValues.price);
+    const rating = Number(formValues.rating);
 
     if (!formValues.beanName) {
         errors.push("Coffee name is required.");
@@ -232,6 +235,10 @@ function validateCoffeeBeanForm(formValues: ReturnType<typeof getCoffeeBeanFormV
 
     if (formValues.sourceUrl && !formValues.sourceUrl.startsWith("http")) {
         errors.push("Source URL must start with http or https.");
+    }
+
+    if (formValues.rating && (Number.isNaN(rating) || rating < 0 || rating > 5)) {
+        errors.push("Bean rating must be between 0 and 5.");
     }
 
     return errors;
@@ -256,7 +263,7 @@ function buildCoffeeInfoFormData(currentValues: any, coffeeInfo: CoffeeInformati
             ? coffeeInfo.flavorNotes.join(", ")
             : currentValues.flavorNotes || "",
         sourceUrl: coffeeInfo.sourceUrl || currentValues.sourceUrl || "",
-        notes: confirmedNotesText || currentValues.notes || ""
+        beanInfo: confirmedNotesText || currentValues.beanInfo || ""
     };
 }
 
@@ -285,6 +292,14 @@ function buildBeanStats(brewSessions: any[]) {
         return !!session.brewRatio;
     });
 
+    const totalGramsBrewed = brewSessions.reduce(function (sum, session) {
+        if (!session.coffeeDoseGrams) {
+            return sum;
+        }
+
+        return sum + Number(session.coffeeDoseGrams.toString());
+    }, 0);
+
     const totalRating = ratedSessions.reduce(function (sum, session) {
         return sum + Number(session.overallRating.toString());
     }, 0);
@@ -301,6 +316,7 @@ function buildBeanStats(brewSessions: any[]) {
 
     return {
         brewSessionCount: brewSessions.length,
+        totalGramsBrewed: totalGramsBrewed.toFixed(1),
         ratedSessionCount: ratedSessions.length,
         averageRating: ratedSessions.length > 0 ? (totalRating / ratedSessions.length).toFixed(1) : "",
         bestRating: bestSession ? bestSession.overallRating.toString() : "",
@@ -355,29 +371,54 @@ async function getRoasterSuggestions(userId: number): Promise<string[]> {
 
 router.get("/", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const requestedPage = Number(req.query.page || "1");
+    const pageSize = 10;
+    const currentPage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const skip = (currentPage - 1) * pageSize;
 
-    const coffeeBeansFromDatabase = await prisma.coffeeBean.findMany({
-        where: {
-            userId: userId
-        },
-        orderBy: [
-            {
-                isActive: "desc"
-            },
-            {
-                createdAt: "desc"
-            }
-        ],
-        include: {
-            brewSessions: {
-                where: {
-                    userId: userId
+    const where = {
+        userId: userId
+    };
+
+    const [totalBeanCount, coffeeBeansFromDatabase] = await Promise.all([
+        prisma.coffeeBean.count({
+            where: where
+        }),
+        prisma.coffeeBean.findMany({
+            where: where,
+            orderBy: [
+                {
+                    isActive: "desc"
+                },
+                {
+                    createdAt: "desc"
+                }
+            ],
+            skip: skip,
+            take: pageSize,
+            include: {
+                brewSessions: {
+                    where: {
+                        userId: userId
+                    },
+                    select: {
+                        id: true,
+                        coffeeDoseGrams: true
+                    }
                 }
             }
-        }
-    });
+        })
+    ]);
 
     const coffeeBeans = coffeeBeansFromDatabase.map(function (bean) {
+        const totalGramsBrewed = bean.brewSessions.reduce(function (sum, session) {
+            if (!session.coffeeDoseGrams) {
+                return sum;
+            }
+
+            return sum + Number(session.coffeeDoseGrams.toString());
+        }, 0);
+
         return {
             id: bean.id,
             beanName: bean.beanName,
@@ -388,16 +429,31 @@ router.get("/", async function (req: Request, res: Response) {
             roastDate: formatDateOnly(bean.roastDate),
             price: bean.price ? bean.price.toString() : "",
             bagImageUrl: bean.bagImageUrl || "",
-            notes: bean.notes || "",
+            beanInfo: bean.beanInfo || "",
+            beanNotes: bean.beanNotes || "",
+            rating: bean.rating ? bean.rating.toString() : "",
             isActive: bean.isActive,
             deactivatedAt: formatDateTime(bean.deactivatedAt),
-            brewSessionCount: bean.brewSessions.length
+            brewSessionCount: bean.brewSessions.length,
+            totalGramsBrewed: totalGramsBrewed.toFixed(1)
         };
     });
 
+    const totalPages = Math.max(1, Math.ceil(totalBeanCount / pageSize));
+
     res.render("coffee-beans/index", {
         title: "Coffee Beans",
-        coffeeBeans: coffeeBeans
+        coffeeBeans: coffeeBeans,
+        pagination: {
+            currentPage: currentPage,
+            pageSize: pageSize,
+            totalItems: totalBeanCount,
+            totalPages: totalPages,
+            hasPreviousPage: currentPage > 1,
+            hasNextPage: currentPage < totalPages,
+            previousPage: currentPage - 1,
+            nextPage: currentPage + 1
+        }
     });
 });
 
@@ -609,7 +665,9 @@ router.post("/", async function (req: Request, res: Response) {
             flavorNotes: formValues.flavorNotes || null,
             sourceUrl: formValues.sourceUrl || null,
             bagImageUrl: uploadedBagImageUrl || existingUploadedBagImageUrl || null,
-            notes: formValues.notes || null,
+            beanInfo: formValues.beanInfo || null,
+            beanNotes: formValues.beanNotes || null,
+            rating: formValues.rating ? new Prisma.Decimal(formValues.rating) : null,
             isActive: true
         }
     });
@@ -652,7 +710,9 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
             flavorNotes: coffeeBean.flavorNotes || "",
             sourceUrl: coffeeBean.sourceUrl || "",
             bagImageUrl: coffeeBean.bagImageUrl || "",
-            notes: coffeeBean.notes || ""
+            beanInfo: coffeeBean.beanInfo || "",
+            beanNotes: coffeeBean.beanNotes || "",
+            rating: coffeeBean.rating ? coffeeBean.rating.toString() : ""
         },
         roasterSuggestions: roasterSuggestions
     });
@@ -733,7 +793,9 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             flavorNotes: formValues.flavorNotes || null,
             sourceUrl: formValues.sourceUrl || null,
             bagImageUrl: bagImageUrl,
-            notes: formValues.notes || null
+            beanInfo: formValues.beanInfo || null,
+            beanNotes: formValues.beanNotes || null,
+            rating: formValues.rating ? new Prisma.Decimal(formValues.rating) : null
         }
     });
 
@@ -900,7 +962,9 @@ router.get("/:id", async function (req: Request, res: Response) {
             flavorNotes: coffeeBean.flavorNotes || "",
             sourceUrl: coffeeBean.sourceUrl || "",
             bagImageUrl: coffeeBean.bagImageUrl || "",
-            notes: coffeeBean.notes || "",
+            beanInfo: coffeeBean.beanInfo || "",
+            beanNotes: coffeeBean.beanNotes || "",
+            rating: coffeeBean.rating ? coffeeBean.rating.toString() : "",
             isActive: coffeeBean.isActive,
             deactivatedAt: formatDateTime(coffeeBean.deactivatedAt)
         },

@@ -78,14 +78,20 @@
                         </div>
                     <% } %>
 
-                    <div class="input-group">
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
                         <input
                             type="file"
-                            class="form-control"
+                            class="visually-hidden"
                             id="bagImageFile"
                             name="bagImageFile"
-                            accept="image/*"
-                            capture="environment">
+                            accept="image/*">
+
+                        <label class="btn btn-outline-secondary mb-0" for="bagImageFile" title="Choose bean bag picture">
+                            <i class="bi bi-image me-1"></i>
+                            <span class="d-none d-sm-inline">Choose Photo</span>
+                        </label>
+
+                        <span class="text-muted small" id="bagImageFileName">No photo selected</span>
 
                         <button
                             type="button"
@@ -183,6 +189,21 @@
                 </div>
 
                 <div class="col-md-6">
+                    <label for="rating" class="form-label">Bean Rating</label>
+                    <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        max="5"
+                        class="form-control"
+                        id="rating"
+                        name="rating"
+                        placeholder="0 to 5"
+                        value="<%= formData.rating || "" %>">
+                    <div class="form-text">Bean-level 0–5 star rating, separate from brew-session radar scores.</div>
+                </div>
+
+                <div class="col-md-6">
                     <label for="sourceUrl" class="form-label">Source URL</label>
                     <input
                         type="url"
@@ -203,12 +224,23 @@
                 </div>
 
                 <div class="col-12">
-                    <label for="notes" class="form-label">Notes</label>
+                    <label for="beanInfo" class="form-label">Bean Info</label>
                     <textarea
                         class="form-control"
-                        id="notes"
-                        name="notes"
-                        rows="4"><%= formData.notes || "" %></textarea>
+                        id="beanInfo"
+                        name="beanInfo"
+                        rows="4"
+                        placeholder="Factual bean information confirmed by the roaster or AI lookup."><%= formData.beanInfo || "" %></textarea>
+                </div>
+
+                <div class="col-12">
+                    <label for="beanNotes" class="form-label">Bean Notes</label>
+                    <textarea
+                        class="form-control"
+                        id="beanNotes"
+                        name="beanNotes"
+                        rows="4"
+                        placeholder="Your own notes about this bean."><%= formData.beanNotes || "" %></textarea>
                 </div>
             </div>
         </div>
@@ -242,6 +274,7 @@
         const getCoffeeInfoButton = document.getElementById("getCoffeeInfoButton");
         const uploadBagImageButton = document.getElementById("uploadBagImageButton");
         const bagImageFileInput = document.getElementById("bagImageFile");
+        const bagImageFileName = document.getElementById("bagImageFileName");
         const bagImageUrlInput = document.getElementById("bagImageUrl");
         const bagImagePreviewContainer = document.getElementById("bagImagePreviewContainer");
         const bagImagePreview = document.getElementById("bagImagePreview");
@@ -381,7 +414,19 @@
             setElementValue("roastLevel", formData.roastLevel);
             setElementValue("flavorNotes", formData.flavorNotes);
             setElementValue("sourceUrl", formData.sourceUrl);
-            setElementValue("notes", formData.notes);
+            setElementValue("beanInfo", formData.beanInfo);
+        }
+
+
+        if (bagImageFileInput && bagImageFileName) {
+            bagImageFileInput.addEventListener("change", function () {
+                if (!bagImageFileInput.files || bagImageFileInput.files.length === 0) {
+                    bagImageFileName.textContent = "No photo selected";
+                    return;
+                }
+
+                bagImageFileName.textContent = bagImageFileInput.files[0].name;
+            });
         }
 
         async function uploadBagImageAndIdentify() {
@@ -512,7 +557,7 @@
             body.set("roastLevel", getElementValue("roastLevel"));
             body.set("flavorNotes", getElementValue("flavorNotes"));
             body.set("sourceUrl", getElementValue("sourceUrl"));
-            body.set("notes", getElementValue("notes"));
+            body.set("beanInfo", getElementValue("beanInfo"));
 
             try {
                 const response = await fetch("/coffee-beans/get-info", {

@@ -34,6 +34,7 @@ export type BrewAssistantInput = {
     process: string;
     roastLevel: string;
     flavorNotes: string;
+    beanInfo: string;
     beanNotes: string;
     grinderName: string;
     grinderBrand: string;
@@ -193,6 +194,7 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
         `Process: ${input.process || "Unknown"}`,
         `Roast level: ${input.roastLevel || "Unknown"}`,
         `Flavor notes: ${input.flavorNotes || "Unknown"}`,
+        `Bean info: ${input.beanInfo || "Unknown"}`,
         `Bean notes: ${input.beanNotes || "Unknown"}`,
         "",
         `Grinder: ${input.grinderBrand || ""} ${input.grinderName || "Unknown"}`.trim(),

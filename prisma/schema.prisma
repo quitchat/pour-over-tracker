@@ -130,7 +130,9 @@ model CoffeeBean {
   flavorNotes   String?
   bagImageUrl   String?
   sourceUrl     String?
-  notes         String?
+  beanInfo      String?
+  beanNotes     String?
+  rating        Decimal?      @db.Decimal(4, 2)
   isActive      Boolean       @default(true)
   deactivatedAt DateTime?
   createdAt     DateTime      @default(now())

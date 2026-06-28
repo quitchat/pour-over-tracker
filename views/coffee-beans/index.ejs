@@ -1,5 +1,6 @@
 <%
     const beans = typeof coffeeBeans !== "undefined" ? coffeeBeans : [];
+    const pageInfo = typeof pagination !== "undefined" ? pagination : { currentPage: 1, totalPages: 1, totalItems: beans.length, hasPreviousPage: false, hasNextPage: false, previousPage: 1, nextPage: 1 };
 %>
 
 <div class="d-flex justify-content-between align-items-start align-items-md-center mb-3 gap-3 flex-column flex-md-row">
@@ -196,7 +197,7 @@
             Beans
         </span>
 
-        <span class="text-muted small"><%= beans.length %> bean(s)</span>
+        <span class="text-muted small"><%= pageInfo.totalItems %> bean(s)</span>
     </div>
 
     <div class="table-responsive bean-table-responsive">
@@ -206,7 +207,9 @@
                     <th>Coffee</th>
                     <th>Origin / Process</th>
                     <th>Roast</th>
+                    <th>Bean Rating</th>
                     <th class="text-center">Brews</th>
+                    <th class="text-center">Grams Brewed</th>
                     <th class="text-end bean-actions-cell">Actions</th>
                 </tr>
             </thead>
@@ -214,7 +217,7 @@
             <tbody>
                 <% if (beans.length === 0) { %>
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
+                        <td colspan="7" class="text-center text-muted py-4">
                             No coffee beans yet.
                         </td>
                     </tr>
@@ -316,6 +319,19 @@
                             <% } %>
                         </td>
 
+                        <td>
+                            <div class="bean-mobile-label">Bean Rating</div>
+
+                            <% if (bean.rating) { %>
+                                <span class="text-warning" aria-label="<%= bean.rating %> out of 5 stars">
+                                    <% for (let i = 1; i <= 5; i++) { %><%= Number(bean.rating) >= i ? "★" : "☆" %><% } %>
+                                </span>
+                                <span class="small text-muted d-block"><%= bean.rating %> / 5</span>
+                            <% } else { %>
+                                <span class="text-muted">Not rated</span>
+                            <% } %>
+                        </td>
+
                         <td class="text-md-center">
                             <div class="bean-mobile-label">Brews</div>
 
@@ -324,6 +340,11 @@
                                     <%= bean.brewSessionCount %>
                                 </span>
                             </a>
+                        </td>
+
+                        <td class="text-md-center">
+                            <div class="bean-mobile-label">Grams Brewed</div>
+                            <%= bean.totalGramsBrewed || "0.0" %> g
                         </td>
 
                         <td class="text-md-end bean-actions-cell">
@@ -392,6 +413,26 @@
         </table>
     </div>
 </div>
+
+<% if (pageInfo.totalPages > 1) { %>
+    <nav class="mt-3" aria-label="Coffee bean pagination">
+        <ul class="pagination justify-content-center mb-0">
+            <li class="page-item <%= pageInfo.hasPreviousPage ? "" : "disabled" %>">
+                <a class="page-link" href="/coffee-beans?page=<%= pageInfo.previousPage %>">Previous</a>
+            </li>
+
+            <% for (let pageNumber = 1; pageNumber <= pageInfo.totalPages; pageNumber++) { %>
+                <li class="page-item <%= pageNumber === pageInfo.currentPage ? "active" : "" %>">
+                    <a class="page-link" href="/coffee-beans?page=<%= pageNumber %>"><%= pageNumber %></a>
+                </li>
+            <% } %>
+
+            <li class="page-item <%= pageInfo.hasNextPage ? "" : "disabled" %>">
+                <a class="page-link" href="/coffee-beans?page=<%= pageInfo.nextPage %>">Next</a>
+            </li>
+        </ul>
+    </nav>
+<% } %>
 
 <div class="modal fade" id="beanPhotoModal" tabindex="-1" aria-labelledby="beanPhotoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
