@@ -1,7 +1,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h1 class="h3 mb-1">Grinders</h1>
-        <p class="text-muted mb-0">Track grinders, burr type, calibration notes, and grind size range.</p>
+        <p class="text-muted mb-0">Track grinders, burr type, calibration notes, grind size range, and usage.</p>
     </div>
 
     <a href="/grinders/new" class="btn btn-primary">Add Grinder</a>
@@ -13,13 +13,15 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-striped table-hover mb-0">
+        <table class="table table-striped table-hover mb-0 align-middle">
             <thead>
                 <tr>
                     <th>Name</th>
                     <th>Brand</th>
                     <th>Type</th>
                     <th>Burr Type</th>
+                    <th class="text-end">Brews</th>
+                    <th class="text-end">Total Ground</th>
                     <th>Default Grind Range</th>
                     <th>Calibration Notes</th>
                     <th style="width: 180px;">Actions</th>
@@ -28,7 +30,7 @@
             <tbody>
                 <% if (grinders.length === 0) { %>
                     <tr>
-                        <td colspan="7" class="text-muted text-center py-4">
+                        <td colspan="9" class="text-muted text-center py-4">
                             No grinders yet. Click Add Grinder to create one.
                         </td>
                     </tr>
@@ -37,11 +39,17 @@
                 <% grinders.forEach(function (grinder) { %>
                     <tr>
                         <td><%= grinder.name %></td>
-                        <td><%= grinder.brand %></td>
-                        <td><%= grinder.grinderType %></td>
-                        <td><%= grinder.burrType %></td>
-                        <td><%= grinder.defaultGrindSizeRange %></td>
-                        <td><%= grinder.calibrationNotes %></td>
+                        <td><%= grinder.brand || "" %></td>
+                        <td><%= grinder.grinderType || "" %></td>
+                        <td><%= grinder.burrType || "" %></td>
+                        <td class="text-end">
+                            <span class="badge text-bg-secondary"><%= grinder.brewCount || 0 %></span>
+                        </td>
+                        <td class="text-end">
+                            <%= grinder.totalGramsGround || "0.0" %> g
+                        </td>
+                        <td><%= grinder.defaultGrindSizeRange || "" %></td>
+                        <td><%= grinder.calibrationNotes || "" %></td>
                         <td>
                             <div class="d-flex gap-2">
                                 <a href="/grinders/<%= grinder.id %>/edit" class="btn btn-sm btn-outline-primary">
