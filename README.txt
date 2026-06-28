@@ -1,39 +1,23 @@
-Brew Suggestion AI Prompt Management
-====================================
+Dashboard Fix Files
+===================
 
-This package adds an Admin page to manage the AI Brew Assistant prompt.
+Copy these files into your project root:
 
-Files included:
-- prisma/schema.prisma
-- src/services/brewAssistant.service.ts
-- src/routes/admin.routes.ts
-- views/admin/brew-suggestion-ai-prompt.ejs
+D:\work\pour-over-tracker\src\app.ts
+D:\work\pour-over-tracker\views\home\index.ejs
 
-What changed:
-1. Added Prisma model BrewSuggestionAiPrompt.
-2. Updated brewAssistant.service.ts to read the prompt from the database.
-3. Added /admin/brew-suggestion-ai-prompt GET/POST routes.
-4. Added a new admin view for editing/resetting the prompt.
+What this fixes:
+- / no longer redirects to /brew-sessions
+- / renders the real dashboard page
+- Dashboard still has Add Brew button that correctly goes to /brew-sessions/new
+- Signed-out users are still redirected to /auth/sign-in
 
-After copying the files, run on Windows dev:
+After copying files, run:
 
-npx.cmd prisma migrate dev --name add_brew_suggestion_ai_prompt
-npx.cmd prisma generate
+cd D:\work\pour-over-tracker
 npm.cmd run dev
 
-Open:
-http://localhost:3000/admin/brew-suggestion-ai-prompt
+Then test:
 
-For Raspberry Pi deployment later, after pulling the changes:
+http://localhost:3000/
 
-npx prisma generate
-npx prisma migrate deploy
-npm run build
-pm2 restart pour-over-tracker
-
-Optional navbar link:
-Add this wherever your Admin links are shown:
-
-<a class="dropdown-item" href="/admin/brew-suggestion-ai-prompt">Brew Suggestion Prompt</a>
-
-If your admin.routes.ts already has custom changes, merge carefully. This replacement keeps the earlier User Management and Bean Detail AI Prompt routes, then adds Brew Suggestion AI Prompt routes.

@@ -46,6 +46,8 @@ router.get("/", function (req: Request, res: Response) {
 });
 
 router.get("/users", async function (req: Request, res: Response) {
+    const currentAdmin = getCurrentAdminFromLocals(res);
+
     const usersFromDatabase = await prisma.user.findMany({
         orderBy: [
             {
@@ -86,6 +88,7 @@ router.get("/users", async function (req: Request, res: Response) {
     res.render("admin/users", {
         title: "Admin - Users",
         users: users,
+        currentUserId: currentAdmin ? currentAdmin.id : null,
         message: String(req.query.message || ""),
         error: String(req.query.error || "")
     });

@@ -1,218 +1,268 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-        <h1 class="h3 mb-1">
-            <i class="bi bi-journal-text me-2"></i>
-            Brew Session Detail
-        </h1>
-        <p class="text-muted mb-0">
-            <%= brewSession.coffeeBeanName %> brewed on <%= brewSession.brewDate %>
-        </p>
+<%
+    const session = typeof brewSession !== "undefined" ? brewSession : null;
+    const tastingScore = session && session.tastingScore ? session.tastingScore : {
+        richness: 3,
+        sweetness: 3,
+        aftertaste: 3,
+        aroma: 3,
+        acidity: 3
+    };
+
+    function formatDisplayValue(value) {
+        if (value === null || typeof value === "undefined" || value === "") {
+            return "-";
+        }
+
+        return value;
+    }
+
+    function buildRatingStars(value) {
+        if (value === null || typeof value === "undefined" || value === "") {
+            return "<span class=\"text-muted\">Not rated</span>";
+        }
+
+        const numericValue = Number(value);
+
+        if (Number.isNaN(numericValue)) {
+            return "<span class=\"text-muted\">Not rated</span>";
+        }
+
+        let html = "";
+
+        for (let index = 1; index <= 5; index++) {
+            if (numericValue >= index) {
+                html += "<i class=\"bi bi-star-fill text-warning\"></i>";
+            } else if (numericValue >= index - 0.5) {
+                html += "<i class=\"bi bi-star-half text-warning\"></i>";
+            } else {
+                html += "<i class=\"bi bi-star text-warning\"></i>";
+            }
+        }
+
+        html += " <span class=\"text-muted small\">" + numericValue + " / 5</span>";
+        return html;
+    }
+%>
+
+<% if (!session) { %>
+    <div class="alert alert-danger">
+        Brew session was not found.
     </div>
+<% } else { %>
+    <div class="d-flex justify-content-between align-items-start align-items-md-center mb-3 gap-3 flex-column flex-md-row">
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="bi bi-journal-check me-2"></i>
+                Brew Session Detail
+            </h1>
+            <p class="text-muted mb-0">
+                <%= session.coffeeBeanName %> · <%= session.brewDate %>
+            </p>
+        </div>
 
-    <div class="d-flex gap-2">
-        <a href="/brew-sessions/<%= brewSession.id %>/edit" class="btn btn-outline-primary">
-            <i class="bi bi-pencil-square me-1"></i>
-            Edit
-        </a>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/brew-sessions/<%= session.id %>/edit" class="btn btn-outline-primary">
+                <i class="bi bi-pencil-square me-1"></i>
+                Edit
+            </a>
 
-        <form method="post" action="/brew-sessions/<%= brewSession.id %>/duplicate">
-            <button type="submit" class="btn btn-outline-success">
-                <i class="bi bi-copy me-1"></i>
-                Duplicate
-            </button>
-        </form>
+            <form method="post" action="/brew-sessions/<%= session.id %>/duplicate" class="m-0">
+                <button type="submit" class="btn btn-outline-success">
+                    <i class="bi bi-files me-1"></i>
+                    Duplicate
+                </button>
+            </form>
 
-        <form method="post" action="/brew-sessions/<%= brewSession.id %>/delete">
-            <button type="submit" class="btn btn-outline-danger">
-                <i class="bi bi-trash me-1"></i>
-                Delete
-            </button>
-        </form>
-
-        <a href="/brew-sessions" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>
-            Back to List
-        </a>
-    </div>
-</div>
-
-<div class="row g-3 mb-4">
-    <div class="col-lg-7">
-        <div class="card h-100">
-            <div class="card-header">
-                <i class="bi bi-cup-hot me-1"></i>
-                Brew Information
-            </div>
-
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-4">Coffee Bean</dt>
-                    <dd class="col-sm-8">
-                        <a href="/coffee-beans/<%= brewSession.coffeeBeanId %>">
-                            <%= brewSession.coffeeBeanName %>
-                        </a>
-                    </dd>
-
-                    <dt class="col-sm-4">Brew Date</dt>
-                    <dd class="col-sm-8"><%= brewSession.brewDate %></dd>
-
-                    <dt class="col-sm-4">Grinder</dt>
-                    <dd class="col-sm-8"><%= brewSession.grinderName || "-" %></dd>
-
-                    <dt class="col-sm-4">Brewer</dt>
-                    <dd class="col-sm-8"><%= brewSession.brewerName || "-" %></dd>
-
-                    <dt class="col-sm-4">Grind Size</dt>
-                    <dd class="col-sm-8"><%= brewSession.grindSize || "-" %></dd>
-
-                    <dt class="col-sm-4">Coffee Dose</dt>
-                    <dd class="col-sm-8"><%= brewSession.coffeeDoseGrams %></dd>
-
-                    <dt class="col-sm-4">Total Yield</dt>
-                    <dd class="col-sm-8"><%= brewSession.totalYieldGrams || "-" %></dd>
-
-                    <dt class="col-sm-4">Ratio</dt>
-                    <dd class="col-sm-8">
-                        <% if (brewSession.brewRatio) { %>
-                            1:<%= brewSession.brewRatio %>
-                        <% } else { %>
-                            -
-                        <% } %>
-                    </dd>
-
-                    <dt class="col-sm-4">Water Temp °C</dt>
-                    <dd class="col-sm-8"><%= brewSession.waterTemperatureC || "-" %></dd>
-
-                    <dt class="col-sm-4">Total Brew Time</dt>
-                    <dd class="col-sm-8"><%= brewSession.totalBrewTime || "-" %></dd>
-
-                    <dt class="col-sm-4">Overall Rating</dt>
-                    <dd class="col-sm-8">
-                        <% if (brewSession.overallRating) { %>
-                            <%= brewSession.overallRating %> / 5
-                        <% } else { %>
-                            -
-                        <% } %>
-                    </dd>
-
-                    <dt class="col-sm-4">Would Repeat</dt>
-                    <dd class="col-sm-8">
-                        <% if (brewSession.wouldRepeat) { %>
-                            <i class="bi bi-check-circle me-1"></i>
-                            Yes
-                        <% } else { %>
-                            <i class="bi bi-x-circle me-1"></i>
-                            No
-                        <% } %>
-                    </dd>
-
-                    <dt class="col-sm-4">Notes</dt>
-                    <dd class="col-sm-8">
-                        <% if (brewSession.notes) { %>
-                            <%= brewSession.notes %>
-                        <% } else { %>
-                            <span class="text-muted">No notes entered.</span>
-                        <% } %>
-                    </dd>
-                </dl>
-            </div>
+            <a href="/brew-sessions" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>
+                Back to Brews
+            </a>
         </div>
     </div>
 
-    <div class="col-lg-5">
-        <div class="card h-100">
-            <div class="card-header">
-                <i class="bi bi-radar me-1"></i>
-                Bean Characteristics
+    <div class="row g-3 mb-4">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="bi bi-card-checklist me-1"></i>
+                    Brew Details
+                </div>
+
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Coffee Bean</dt>
+                        <dd class="col-sm-8">
+                            <a href="/coffee-beans/<%= session.coffeeBeanId %>">
+                                <%= session.coffeeBeanName %>
+                            </a>
+                        </dd>
+
+                        <dt class="col-sm-4">Brew Date</dt>
+                        <dd class="col-sm-8"><%= formatDisplayValue(session.brewDate) %></dd>
+
+                        <dt class="col-sm-4">Grinder</dt>
+                        <dd class="col-sm-8"><%= formatDisplayValue(session.grinderName) %></dd>
+
+                        <dt class="col-sm-4">Brewer</dt>
+                        <dd class="col-sm-8"><%= formatDisplayValue(session.brewerName) %></dd>
+
+                        <dt class="col-sm-4">Grind Size</dt>
+                        <dd class="col-sm-8"><%= formatDisplayValue(session.grindSize) %></dd>
+
+                        <dt class="col-sm-4">Coffee Dose</dt>
+                        <dd class="col-sm-8"><%= formatDisplayValue(session.coffeeDoseGrams) %> g</dd>
+
+                        <dt class="col-sm-4">Total Yield</dt>
+                        <dd class="col-sm-8"><%= formatDisplayValue(session.totalYieldGrams) %> g</dd>
+
+                        <dt class="col-sm-4">Ratio</dt>
+                        <dd class="col-sm-8">
+                            <% if (session.brewRatio) { %>
+                                1:<%= session.brewRatio %>
+                            <% } else { %>
+                                <span class="text-muted">-</span>
+                            <% } %>
+                        </dd>
+
+                        <dt class="col-sm-4">Water Temp</dt>
+                        <dd class="col-sm-8">
+                            <% if (session.waterTemperatureC) { %>
+                                <%= session.waterTemperatureC %> °C
+                            <% } else { %>
+                                <span class="text-muted">-</span>
+                            <% } %>
+                        </dd>
+
+                        <dt class="col-sm-4">Total Brew Time</dt>
+                        <dd class="col-sm-8"><%= formatDisplayValue(session.totalBrewTime) %></dd>
+
+                        <dt class="col-sm-4">Overall Rating</dt>
+                        <dd class="col-sm-8"><%- buildRatingStars(session.overallRating) %></dd>
+
+                        <dt class="col-sm-4">Would Repeat</dt>
+                        <dd class="col-sm-8">
+                            <% if (session.wouldRepeat) { %>
+                                <span class="badge text-bg-success">Yes</span>
+                            <% } else { %>
+                                <span class="badge text-bg-secondary">No</span>
+                            <% } %>
+                        </dd>
+                    </dl>
+                </div>
             </div>
+        </div>
 
-            <div class="card-body">
-                <canvas id="tastingScoreChart" height="280"></canvas>
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="bi bi-activity me-1"></i>
+                    Brew Characteristics Radar
+                </div>
 
-                <div class="table-responsive mt-3">
-                    <table class="table table-sm mb-0">
-                        <tbody>
-                            <tr>
-                                <th>Richness</th>
-                                <td class="text-end"><%= brewSession.tastingScore.richness %> / 5</td>
-                            </tr>
-                            <tr>
-                                <th>Sweetness</th>
-                                <td class="text-end"><%= brewSession.tastingScore.sweetness %> / 5</td>
-                            </tr>
-                            <tr>
-                                <th>Aftertaste</th>
-                                <td class="text-end"><%= brewSession.tastingScore.aftertaste %> / 5</td>
-                            </tr>
-                            <tr>
-                                <th>Aroma</th>
-                                <td class="text-end"><%= brewSession.tastingScore.aroma %> / 5</td>
-                            </tr>
-                            <tr>
-                                <th>Acidity</th>
-                                <td class="text-end"><%= brewSession.tastingScore.acidity %> / 5</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="card-body">
+                    <canvas id="brewCharacteristicsRadarChart" height="260"></canvas>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <div class="row g-3 mb-4">
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="bi bi-sliders me-1"></i>
+                    Characteristics Scores
+                </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const chartElement = document.getElementById("tastingScoreChart");
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-6">Richness</dt>
+                        <dd class="col-6"><%= tastingScore.richness %> / 5</dd>
 
-        if (!chartElement) {
-            return;
-        }
+                        <dt class="col-6">Sweetness</dt>
+                        <dd class="col-6"><%= tastingScore.sweetness %> / 5</dd>
 
-        const chartData = {
-            labels: [
-                "Richness",
-                "Sweetness",
-                "Aftertaste",
-                "Aroma",
-                "Acidity"
-            ],
-            datasets: [
-                {
-                    label: "Bean Characteristics",
-                    data: [
-                        <%= brewSession.tastingScore.richness %>,
-                        <%= brewSession.tastingScore.sweetness %>,
-                        <%= brewSession.tastingScore.aftertaste %>,
-                        <%= brewSession.tastingScore.aroma %>,
-                        <%= brewSession.tastingScore.acidity %>
-                    ],
-                    fill: true
-                }
-            ]
-        };
+                        <dt class="col-6">Aftertaste</dt>
+                        <dd class="col-6"><%= tastingScore.aftertaste %> / 5</dd>
 
-        new Chart(chartElement, {
-            type: "radar",
-            data: chartData,
-            options: {
-                responsive: true,
-                scales: {
-                    r: {
-                        min: 0,
-                        max: 5,
-                        ticks: {
-                            stepSize: 1
+                        <dt class="col-6">Aroma</dt>
+                        <dd class="col-6"><%= tastingScore.aroma %> / 5</dd>
+
+                        <dt class="col-6">Acidity</dt>
+                        <dd class="col-6"><%= tastingScore.acidity %> / 5</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="bi bi-journal-text me-1"></i>
+                    Notes
+                </div>
+
+                <div class="card-body">
+                    <% if (session.notes) { %>
+                        <div style="white-space: pre-wrap;"><%= session.notes %></div>
+                    <% } else { %>
+                        <span class="text-muted">No notes entered.</span>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+        <form method="post" action="/brew-sessions/<%= session.id %>/delete" class="m-0" onsubmit="return confirm('Delete this brew session?');">
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="bi bi-trash me-1"></i>
+                Delete Brew Session
+            </button>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const radarChartElement = document.getElementById("brewCharacteristicsRadarChart");
+
+            if (!window.Chart || !radarChartElement) {
+                return;
+            }
+
+            new Chart(radarChartElement, {
+                type: "radar",
+                data: {
+                    labels: ["Richness", "Sweetness", "Aftertaste", "Aroma", "Acidity"],
+                    datasets: [
+                        {
+                            label: "This Brew",
+                            data: [
+                                <%= tastingScore.richness %>,
+                                <%= tastingScore.sweetness %>,
+                                <%= tastingScore.aftertaste %>,
+                                <%= tastingScore.aroma %>,
+                                <%= tastingScore.acidity %>
+                            ]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: 5,
+                            ticks: {
+                                stepSize: 1
+                            }
                         }
                     }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
                 }
-            }
+            });
         });
-    });
-</script>
+    </script>
+<% } %>
