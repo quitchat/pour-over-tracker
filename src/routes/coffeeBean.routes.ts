@@ -5,7 +5,7 @@ import path from "path";
 import multer from "multer";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
-import { CoffeeInformationResult, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
+import { CoffeeInformationResult, getCoffeeBagImageIdentityFromOpenAI, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
 import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
 
 const router = Router();
@@ -95,6 +95,24 @@ function deleteUploadedCoffeeBeanImage(req: Request): void {
     }
 }
 
+function getCoffeeBeanImageAbsolutePathFromUrl(imageUrl: string): string {
+    const fileName = path.basename(imageUrl);
+
+    return path.join(coffeeBeanImageAbsoluteDirectory, fileName);
+}
+
+function isManagedCoffeeBeanImageUrl(imageUrl: string): boolean {
+    return imageUrl.startsWith(`${coffeeBeanImageRelativeDirectory}/`);
+}
+
+function getExistingUploadedCoffeeBeanImageUrl(imageUrl: string): string {
+    if (!imageUrl || !isManagedCoffeeBeanImageUrl(imageUrl)) {
+        return "";
+    }
+
+    return imageUrl;
+}
+
 function formatDateForInput(date: Date | null): string {
     return formatDateForInputValue(date);
 }
@@ -129,6 +147,7 @@ function getCoffeeBeanFormValues(req: Request) {
         price: String(req.body.price || "").trim(),
         flavorNotes: String(req.body.flavorNotes || "").trim(),
         sourceUrl: String(req.body.sourceUrl || "").trim(),
+        bagImageUrl: String(req.body.bagImageUrl || "").trim(),
         notes: String(req.body.notes || "").trim(),
         removeBagImage: String(req.body.removeBagImage || "").trim() === "1"
     };
@@ -363,12 +382,62 @@ router.post("/get-info", async function (req: Request, res: Response) {
     }
 });
 
+router.post("/upload-bag-image-identify", async function (req: Request, res: Response) {
+    const uploadErrors = await runCoffeeBeanImageUpload(req, res);
+    const uploadedBagImageUrl = getUploadedCoffeeBeanImageUrl(req);
+
+    if (uploadErrors.length > 0) {
+        deleteUploadedCoffeeBeanImage(req);
+
+        res.status(400).json({
+            ok: false,
+            errorMessage: uploadErrors.join(" ")
+        });
+
+        return;
+    }
+
+    if (!uploadedBagImageUrl || !req.file) {
+        res.status(400).json({
+            ok: false,
+            errorMessage: "Choose a bean bag picture before uploading."
+        });
+
+        return;
+    }
+
+    try {
+        const imageFilePath = getCoffeeBeanImageAbsolutePathFromUrl(uploadedBagImageUrl);
+        const identity = await getCoffeeBagImageIdentityFromOpenAI(imageFilePath, req.file.mimetype);
+
+        res.json({
+            ok: true,
+            bagImageUrl: uploadedBagImageUrl,
+            formData: {
+                roasterName: identity.roasterName || "",
+                beanName: identity.beanName || ""
+            },
+            confidence: identity.confidence,
+            notes: identity.notes
+        });
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Could not read the coffee bag picture.";
+
+        res.json({
+            ok: false,
+            bagImageUrl: uploadedBagImageUrl,
+            errorMessage: errorMessage
+        });
+    }
+});
+
 router.post("/", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
     const uploadErrors = await runCoffeeBeanImageUpload(req, res);
     const formValues = getCoffeeBeanFormValues(req);
     const errors = validateCoffeeBeanForm(formValues).concat(uploadErrors);
     const uploadedBagImageUrl = getUploadedCoffeeBeanImageUrl(req);
+    const existingUploadedBagImageUrl = getExistingUploadedCoffeeBeanImageUrl(formValues.bagImageUrl);
 
     if (errors.length > 0) {
         deleteUploadedCoffeeBeanImage(req);
@@ -380,7 +449,10 @@ router.post("/", async function (req: Request, res: Response) {
             formAction: "/coffee-beans",
             submitButtonText: "Save Coffee Bean",
             errors: errors,
-            formData: formValues,
+            formData: {
+                ...formValues,
+                bagImageUrl: existingUploadedBagImageUrl
+            },
             roasterSuggestions: roasterSuggestions
         });
 
@@ -399,7 +471,7 @@ router.post("/", async function (req: Request, res: Response) {
             price: formValues.price ? new Prisma.Decimal(formValues.price) : null,
             flavorNotes: formValues.flavorNotes || null,
             sourceUrl: formValues.sourceUrl || null,
-            bagImageUrl: uploadedBagImageUrl || null,
+            bagImageUrl: uploadedBagImageUrl || existingUploadedBagImageUrl || null,
             notes: formValues.notes || null,
             isActive: true
         }
@@ -471,6 +543,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
     const formValues = getCoffeeBeanFormValues(req);
     const errors = validateCoffeeBeanForm(formValues).concat(uploadErrors);
     const uploadedBagImageUrl = getUploadedCoffeeBeanImageUrl(req);
+    const existingUploadedBagImageUrl = getExistingUploadedCoffeeBeanImageUrl(formValues.bagImageUrl);
 
     if (errors.length > 0) {
         deleteUploadedCoffeeBeanImage(req);
@@ -484,7 +557,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             errors: errors,
             formData: {
                 ...formValues,
-                bagImageUrl: existingCoffeeBean.bagImageUrl || ""
+                bagImageUrl: existingUploadedBagImageUrl || existingCoffeeBean.bagImageUrl || ""
             },
             roasterSuggestions: roasterSuggestions
         });
@@ -496,6 +569,10 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
 
     if (formValues.removeBagImage) {
         bagImageUrl = null;
+    }
+
+    if (existingUploadedBagImageUrl) {
+        bagImageUrl = existingUploadedBagImageUrl;
     }
 
     if (uploadedBagImageUrl) {
@@ -521,8 +598,10 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
         }
     });
 
-    if (uploadedBagImageUrl || formValues.removeBagImage) {
-        deleteCoffeeBeanImageByUrl(existingCoffeeBean.bagImageUrl);
+    if (uploadedBagImageUrl || existingUploadedBagImageUrl || formValues.removeBagImage) {
+        if (existingCoffeeBean.bagImageUrl !== bagImageUrl) {
+            deleteCoffeeBeanImageByUrl(existingCoffeeBean.bagImageUrl);
+        }
     }
 
     res.redirect(`/coffee-beans/${id}`);

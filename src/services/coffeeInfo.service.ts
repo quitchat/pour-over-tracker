@@ -1,3 +1,4 @@
+import fs from "fs";
 import OpenAI from "openai";
 import { prisma } from "../lib/prisma";
 
@@ -10,6 +11,13 @@ export type CoffeeInformationResult = {
     flavorNotes: string[];
     sourceUrl: string | null;
     confirmedNotes: string[];
+};
+
+export type CoffeeBagImageIdentityResult = {
+    roasterName: string | null;
+    beanName: string | null;
+    confidence: "high" | "medium" | "low";
+    notes: string[];
 };
 
 export const BEAN_DETAIL_AI_PROMPT_NAME = "default";
@@ -181,4 +189,105 @@ export async function getCoffeeInformationFromOpenAI(roasterName: string, beanNa
     }
 
     return parseCoffeeInformationJson(response.output_text);
+}
+
+
+function parseCoffeeBagImageIdentityJson(outputText: string): CoffeeBagImageIdentityResult {
+    const parsed = JSON.parse(outputText) as CoffeeBagImageIdentityResult;
+    const confidence = parsed.confidence === "high" || parsed.confidence === "medium" || parsed.confidence === "low"
+        ? parsed.confidence
+        : "low";
+
+    return {
+        roasterName: parsed.roasterName || null,
+        beanName: parsed.beanName || null,
+        confidence: confidence,
+        notes: Array.isArray(parsed.notes) ? parsed.notes : []
+    };
+}
+
+export async function getCoffeeBagImageIdentityFromOpenAI(imageFilePath: string, mimeType: string): Promise<CoffeeBagImageIdentityResult> {
+    const client = getOpenAIClient();
+    const model = process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-5.4-mini";
+    const imageBytes = await fs.promises.readFile(imageFilePath);
+    const imageBase64 = imageBytes.toString("base64");
+    const imageUrl = `data:${mimeType};base64,${imageBase64}`;
+
+    const response = await client.responses.create({
+        model: model,
+        store: false,
+        input: [
+            {
+                role: "system",
+                content: [
+                    {
+                        type: "input_text",
+                        text: [
+                            "You extract coffee bag label information for a pour-over coffee tracking app.",
+                            "Use OCR/vision on the provided coffee bag image.",
+                            "Return only the roaster name and coffee bean/product name when visible on the bag.",
+                            "Do not guess. If either value is not clearly visible, return null for that value.",
+                            "Do not return origin, process, roast level, price, or tasting notes from this step.",
+                            "The coffee bean/product name should not include the roaster name unless it is truly part of the product name."
+                        ].join("\n")
+                    }
+                ]
+            },
+            {
+                role: "user",
+                content: [
+                    {
+                        type: "input_text",
+                        text: "Read this coffee bag image and identify the roaster name and coffee bean/product name."
+                    },
+                    {
+                        type: "input_image",
+                        image_url: imageUrl,
+                        detail: "high"
+                    }
+                ]
+            }
+        ],
+        text: {
+            format: {
+                type: "json_schema",
+                name: "coffee_bag_image_identity",
+                strict: true,
+                schema: {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                        roasterName: {
+                            type: ["string", "null"]
+                        },
+                        beanName: {
+                            type: ["string", "null"]
+                        },
+                        confidence: {
+                            type: "string",
+                            enum: ["high", "medium", "low"]
+                        },
+                        notes: {
+                            type: "array",
+                            items: {
+                                type: "string"
+                            }
+                        }
+                    },
+                    required: [
+                        "roasterName",
+                        "beanName",
+                        "confidence",
+                        "notes"
+                    ]
+                }
+            }
+        }
+    });
+
+    if (!response.output_text) {
+        throw new Error("OpenAI did not return coffee bag information.");
+    }
+
+    return parseCoffeeBagImageIdentityJson(response.output_text);
 }

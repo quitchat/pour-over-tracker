@@ -41,11 +41,65 @@
 
         <div class="card-body">
             <p class="text-muted">
-                Enter Roaster and Coffee Name first, then use AI to fill the remaining bean information.
+                Upload a bean bag picture first to let AI read the roaster and coffee name, or enter them manually.
                 Price is always manual and will not be changed by AI.
             </p>
 
             <div class="row g-3">
+                <div class="col-12">
+                    <label for="bagImageFile" class="form-label">Bean Bag Picture</label>
+
+                    <input
+                        type="hidden"
+                        id="bagImageUrl"
+                        name="bagImageUrl"
+                        value="<%= formData.bagImageUrl || "" %>">
+
+                    <div id="bagImagePreviewContainer" class="mb-2 <%= formData.bagImageUrl ? "" : "d-none" %>">
+                        <img
+                            src="<%= formData.bagImageUrl || "" %>"
+                            alt="Current bean picture"
+                            id="bagImagePreview"
+                            class="img-thumbnail"
+                            style="max-width: 220px; max-height: 220px; object-fit: cover;">
+                    </div>
+
+                    <% if (formData.bagImageUrl) { %>
+                        <div class="form-check mb-2" id="removeBagImageContainer">
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                value="1"
+                                id="removeBagImage"
+                                name="removeBagImage">
+                            <label class="form-check-label" for="removeBagImage">
+                                Remove current picture
+                            </label>
+                        </div>
+                    <% } %>
+
+                    <div class="input-group">
+                        <input
+                            type="file"
+                            class="form-control"
+                            id="bagImageFile"
+                            name="bagImageFile"
+                            accept="image/jpeg,image/png,image/webp,image/gif">
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-primary"
+                            id="uploadBagImageButton">
+                            <i class="bi bi-upload me-1"></i>
+                            Upload + Read Label
+                        </button>
+                    </div>
+
+                    <div class="form-text">
+                        Upload JPG, PNG, WEBP, or GIF. Maximum size: 5 MB.
+                        The upload button saves the image and uses AI/OCR to fill Roaster and Coffee Name.
+                    </div>
+                </div>
                 <div class="col-md-6">
                     <label for="roasterName" class="form-label">Roaster</label>
                     <input
@@ -135,44 +189,6 @@
                         value="<%= formData.sourceUrl || "" %>">
                 </div>
 
-                <div class="col-12">
-                    <label for="bagImageFile" class="form-label">Bean Picture</label>
-
-                    <% if (formData.bagImageUrl) { %>
-                        <div class="mb-2">
-                            <img
-                                src="<%= formData.bagImageUrl %>"
-                                alt="Current bean picture"
-                                class="img-thumbnail"
-                                style="max-width: 220px; max-height: 220px; object-fit: cover;">
-                        </div>
-
-                        <div class="form-check mb-2">
-                            <input
-                                class="form-check-input"
-                                type="checkbox"
-                                value="1"
-                                id="removeBagImage"
-                                name="removeBagImage">
-                            <label class="form-check-label" for="removeBagImage">
-                                Remove current picture
-                            </label>
-                        </div>
-                    <% } %>
-
-                    <input
-                        type="file"
-                        class="form-control"
-                        id="bagImageFile"
-                        name="bagImageFile"
-                        accept="image/jpeg,image/png,image/webp,image/gif">
-                    <div class="form-text">
-                        Upload JPG, PNG, WEBP, or GIF. Maximum size: 5 MB.
-                        <% if (formData.bagImageUrl) { %>
-                            Uploading a new picture will replace the current one.
-                        <% } %>
-                    </div>
-                </div>
 
                 <div class="col-12">
                     <label for="flavorNotes" class="form-label">Flavor Notes</label>
@@ -221,6 +237,12 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         const getCoffeeInfoButton = document.getElementById("getCoffeeInfoButton");
+        const uploadBagImageButton = document.getElementById("uploadBagImageButton");
+        const bagImageFileInput = document.getElementById("bagImageFile");
+        const bagImageUrlInput = document.getElementById("bagImageUrl");
+        const bagImagePreviewContainer = document.getElementById("bagImagePreviewContainer");
+        const bagImagePreview = document.getElementById("bagImagePreview");
+        const removeBagImageCheckbox = document.getElementById("removeBagImage");
         const messageContainer = document.getElementById("coffeeInfoAjaxMessage");
         const confirmedAiNotesCard = document.getElementById("confirmedAiNotesCard");
         const confirmedAiNotesList = document.getElementById("confirmedAiNotesList");
@@ -287,6 +309,39 @@
             }
         }
 
+        function setUploadBagImageButtonLoading(isLoading) {
+            if (!uploadBagImageButton) {
+                return;
+            }
+
+            if (isLoading) {
+                uploadBagImageButton.disabled = true;
+                uploadBagImageButton.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' +
+                    'Uploading + Reading...';
+            } else {
+                uploadBagImageButton.disabled = false;
+                uploadBagImageButton.innerHTML =
+                    '<i class="bi bi-upload me-1"></i>' +
+                    'Upload + Read Label';
+            }
+        }
+
+        function setBagImagePreview(imageUrl) {
+            if (bagImageUrlInput) {
+                bagImageUrlInput.value = imageUrl || "";
+            }
+
+            if (bagImagePreview && bagImagePreviewContainer && imageUrl) {
+                bagImagePreview.src = imageUrl;
+                bagImagePreviewContainer.classList.remove("d-none");
+            }
+
+            if (removeBagImageCheckbox && imageUrl) {
+                removeBagImageCheckbox.checked = false;
+            }
+        }
+
         function populateConfirmedNotes(confirmedNotes) {
             if (!confirmedAiNotesCard || !confirmedAiNotesList) {
                 return;
@@ -309,12 +364,99 @@
         }
 
         function populateForm(formData) {
+            if (formData.roasterName) {
+                setElementValue("roasterName", formData.roasterName);
+            }
+
+            if (formData.beanName) {
+                setElementValue("beanName", formData.beanName);
+            }
+
             setElementValue("origin", formData.origin);
             setElementValue("process", formData.process);
             setElementValue("roastLevel", formData.roastLevel);
             setElementValue("flavorNotes", formData.flavorNotes);
             setElementValue("sourceUrl", formData.sourceUrl);
             setElementValue("notes", formData.notes);
+        }
+
+        async function uploadBagImageAndIdentify() {
+            clearMessage();
+
+            if (!bagImageFileInput || !bagImageFileInput.files || bagImageFileInput.files.length === 0) {
+                showMessage("warning", "Choose a bean bag picture first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("bagImageFile", bagImageFileInput.files[0]);
+
+            setUploadBagImageButtonLoading(true);
+
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(function () {
+                controller.abort();
+            }, 90000);
+
+            try {
+                const response = await fetch("/coffee-beans/upload-bag-image-identify", {
+                    method: "POST",
+                    headers: {
+                        "Accept": "application/json",
+                        "X-Requested-With": "fetch"
+                    },
+                    body: formData,
+                    credentials: "same-origin",
+                    signal: controller.signal
+                });
+
+                let data = null;
+
+                try {
+                    data = await response.json();
+                } catch {
+                    data = null;
+                }
+
+                if (data && data.bagImageUrl) {
+                    setBagImagePreview(data.bagImageUrl);
+
+                    if (bagImageFileInput) {
+                        bagImageFileInput.value = "";
+                    }
+                }
+
+                if (!response.ok || !data || !data.ok) {
+                    const errorMessage = data && data.errorMessage
+                        ? data.errorMessage
+                        : "Could not upload and read the bean bag picture.";
+
+                    showMessage("danger", errorMessage);
+                    return;
+                }
+
+                if (data.formData) {
+                    if (data.formData.roasterName) {
+                        setElementValue("roasterName", data.formData.roasterName);
+                    }
+
+                    if (data.formData.beanName) {
+                        setElementValue("beanName", data.formData.beanName);
+                    }
+                }
+
+                const confidenceText = data.confidence ? " Confidence: " + data.confidence + "." : "";
+                showMessage("success", "Bean bag picture uploaded and label fields filled. Review them before saving." + confidenceText);
+            } catch (error) {
+                if (error && error.name === "AbortError") {
+                    showMessage("danger", "Uploading and reading the bean bag picture took too long. Please try again.");
+                } else {
+                    showMessage("danger", "Could not upload and read the bean bag picture.");
+                }
+            } finally {
+                window.clearTimeout(timeoutId);
+                setUploadBagImageButtonLoading(false);
+            }
         }
 
         async function getCoffeeInformation() {
@@ -388,6 +530,10 @@
                 window.clearTimeout(timeoutId);
                 setButtonLoading(false);
             }
+        }
+
+        if (uploadBagImageButton) {
+            uploadBagImageButton.addEventListener("click", uploadBagImageAndIdentify);
         }
 
         if (getCoffeeInfoButton) {
