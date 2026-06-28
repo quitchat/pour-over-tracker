@@ -1,7 +1,7 @@
 <div class="mb-4">
     <h1 class="h3 mb-1">Analytics</h1>
     <p class="text-muted mb-0">
-        Compare your brew sessions by bean, grinder, brewer, rating, repeat count, and ratio.
+        Compare your brew sessions by bean, grinder, brewer, rating, and ratio.
     </p>
 </div>
 
@@ -33,14 +33,6 @@
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="text-muted small">Would Repeat</div>
-                <div class="display-6"><%= summary.repeatCount %></div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -106,13 +98,12 @@
                     <th>Brew Count</th>
                     <th>Average Rating</th>
                     <th>Average Ratio</th>
-                    <th>Would Repeat Count</th>
                 </tr>
             </thead>
             <tbody>
                 <% if (beanRows.length === 0) { %>
                     <tr>
-                        <td colspan="5" class="text-muted text-center py-4">
+                        <td colspan="4" class="text-muted text-center py-4">
                             No brew session data yet.
                         </td>
                     </tr>
@@ -124,7 +115,6 @@
                         <td><%= row.count %></td>
                         <td><%= row.averageRating || "-" %></td>
                         <td><%= row.averageRatio ? "1:" + row.averageRatio : "-" %></td>
-                        <td><%= row.repeatCount %></td>
                     </tr>
                 <% }); %>
             </tbody>
@@ -145,13 +135,12 @@
                     <th>Brew Count</th>
                     <th>Average Rating</th>
                     <th>Average Ratio</th>
-                    <th>Would Repeat Count</th>
                 </tr>
             </thead>
             <tbody>
                 <% if (grinderRows.length === 0) { %>
                     <tr>
-                        <td colspan="5" class="text-muted text-center py-4">
+                        <td colspan="4" class="text-muted text-center py-4">
                             No brew session data yet.
                         </td>
                     </tr>
@@ -163,7 +152,6 @@
                         <td><%= row.count %></td>
                         <td><%= row.averageRating || "-" %></td>
                         <td><%= row.averageRatio ? "1:" + row.averageRatio : "-" %></td>
-                        <td><%= row.repeatCount %></td>
                     </tr>
                 <% }); %>
             </tbody>
@@ -184,13 +172,12 @@
                     <th>Brew Count</th>
                     <th>Average Rating</th>
                     <th>Average Ratio</th>
-                    <th>Would Repeat Count</th>
                 </tr>
             </thead>
             <tbody>
                 <% if (brewerRows.length === 0) { %>
                     <tr>
-                        <td colspan="5" class="text-muted text-center py-4">
+                        <td colspan="4" class="text-muted text-center py-4">
                             No brew session data yet.
                         </td>
                     </tr>
@@ -202,7 +189,6 @@
                         <td><%= row.count %></td>
                         <td><%= row.averageRating || "-" %></td>
                         <td><%= row.averageRatio ? "1:" + row.averageRatio : "-" %></td>
-                        <td><%= row.repeatCount %></td>
                     </tr>
                 <% }); %>
             </tbody>

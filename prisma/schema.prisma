@@ -201,7 +201,6 @@ model BrewSession {
   pourStructure         String?
   recipeSteps           String?
   adjustmentNotes       String?
-  wouldRepeat           Boolean       @default(false)
 
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt

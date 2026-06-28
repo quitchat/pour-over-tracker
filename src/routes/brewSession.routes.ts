@@ -74,7 +74,6 @@ function getBrewSessionFormValues(req: Request) {
         totalBrewTimeMinutes: String(req.body.totalBrewTimeMinutes || "").trim(),
         totalBrewTimeSeconds: String(req.body.totalBrewTimeSeconds || "").trim(),
         overallRating: String(req.body.overallRating || "").trim(),
-        wouldRepeat: req.body.wouldRepeat === "on" || req.body.wouldRepeat === "true",
         pourStructure: String(req.body.pourStructure || "").trim(),
         recipeSteps: String(req.body.recipeSteps || "").trim(),
         adjustmentNotes: String(req.body.adjustmentNotes || "").trim(),
@@ -99,7 +98,6 @@ function getDefaultFormData(preselectedCoffeeBeanId: string, preselectedGrinderI
         totalBrewTimeMinutes: "",
         totalBrewTimeSeconds: "",
         overallRating: "",
-        wouldRepeat: false,
         pourStructure: "",
         recipeSteps: "",
         adjustmentNotes: "",
@@ -376,7 +374,6 @@ function buildBrewSessionCreateData(userId: number, formValues: ReturnType<typeo
         waterTemperatureC: parseOptionalDecimal(formValues.waterTemperatureC),
         totalBrewTimeSeconds: totalBrewTimeSeconds,
         overallRating: formValues.overallRating ? new Prisma.Decimal(formValues.overallRating) : null,
-        wouldRepeat: formValues.wouldRepeat,
         notes: null as string | null,
         pourStructure: formValues.pourStructure || null,
         recipeSteps: formValues.recipeSteps || null,
@@ -402,7 +399,6 @@ function buildBrewSessionUpdateData(formValues: ReturnType<typeof getBrewSession
         waterTemperatureC: parseOptionalDecimal(formValues.waterTemperatureC),
         totalBrewTimeSeconds: totalBrewTimeSeconds,
         overallRating: formValues.overallRating ? new Prisma.Decimal(formValues.overallRating) : null,
-        wouldRepeat: formValues.wouldRepeat,
         notes: null as string | null,
         pourStructure: formValues.pourStructure || null,
         recipeSteps: formValues.recipeSteps || null,
@@ -428,7 +424,6 @@ function buildFormDataFromBrewSession(session: any) {
         totalBrewTimeMinutes: minutes,
         totalBrewTimeSeconds: seconds,
         overallRating: getDecimalText(session.overallRating),
-        wouldRepeat: session.wouldRepeat,
         pourStructure: session.pourStructure || "",
         recipeSteps: session.recipeSteps || session.notes || "",
         adjustmentNotes: session.adjustmentNotes || "",
@@ -457,7 +452,6 @@ function buildDuplicateFormDataFromBrewSession(session: any) {
         totalBrewTimeMinutes: minutes,
         totalBrewTimeSeconds: seconds,
         overallRating: "",
-        wouldRepeat: false,
         pourStructure: session.pourStructure || "",
         recipeSteps: session.recipeSteps || session.notes || "",
         adjustmentNotes: session.adjustmentNotes || "",
@@ -495,8 +489,7 @@ function mapBrewSessionForList(session: any) {
         brewRatio: getDecimalText(session.brewRatio),
         waterTemperatureC: getDecimalText(session.waterTemperatureC),
         totalBrewTime: formatSeconds(session.totalBrewTimeSeconds),
-        overallRating: getDecimalText(session.overallRating),
-        wouldRepeat: session.wouldRepeat
+        overallRating: getDecimalText(session.overallRating)
     };
 }
 
@@ -519,7 +512,6 @@ function mapBrewSessionForDetail(session: any) {
         waterTemperatureC: getDecimalText(session.waterTemperatureC),
         totalBrewTime: formatSeconds(session.totalBrewTimeSeconds),
         overallRating: getDecimalText(session.overallRating),
-        wouldRepeat: session.wouldRepeat,
         pourStructure: session.pourStructure || "",
         recipeSteps: session.recipeSteps || session.notes || "",
         adjustmentNotes: session.adjustmentNotes || "",

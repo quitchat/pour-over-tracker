@@ -4,8 +4,7 @@
         activeBeans: 0,
         inactiveBeans: 0,
         totalBrews: 0,
-        averageRating: 0,
-        repeatRate: 0
+        averageRating: 0
     };
 
     const topBeanList = typeof topBeans !== "undefined" ? topBeans : [];
@@ -29,7 +28,7 @@
             Analytics
         </h1>
         <p class="text-muted mb-0">
-            Review brew activity, ratings, repeat rate, and tasting trends.
+            Review brew activity, ratings, and tasting trends.
         </p>
     </div>
 
@@ -59,14 +58,6 @@
         </div>
     </div>
 
-    <div class="col-6 col-lg-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="text-muted small">Repeat Rate</div>
-                <div class="display-6 fw-semibold"><%= summaryValue.repeatRate %>%</div>
-            </div>
-        </div>
-    </div>
 
     <div class="col-6 col-lg-3">
         <div class="card h-100">
@@ -224,7 +215,6 @@
                     <th>Coffee</th>
                     <th>Setup</th>
                     <th>Rating</th>
-                    <th>Repeat</th>
                     <th class="text-end">Action</th>
                 </tr>
             </thead>
@@ -232,7 +222,7 @@
             <tbody>
                 <% if (recentBrewList.length === 0) { %>
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">
+                        <td colspan="5" class="text-center text-muted py-4">
                             No brew sessions yet.
                         </td>
                     </tr>
@@ -269,13 +259,6 @@
                             <% } %>
                         </td>
 
-                        <td>
-                            <% if (brew.wouldRepeat) { %>
-                                <span class="badge text-bg-success">Yes</span>
-                            <% } else { %>
-                                <span class="badge text-bg-secondary">No</span>
-                            <% } %>
-                        </td>
 
                         <td class="text-end">
                             <a href="/brew-sessions/<%= brew.id %>" class="btn btn-sm btn-outline-primary">

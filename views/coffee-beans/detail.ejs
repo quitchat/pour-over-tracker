@@ -292,10 +292,6 @@
                         </div>
                     </div>
 
-                    <div class="col-6">
-                        <div class="text-muted small">Would Repeat</div>
-                        <div class="h3 mb-0"><%= stats.repeatCount %></div>
-                    </div>
 
                     <div class="col-6">
                         <div class="text-muted small">Rated Brews</div>
@@ -375,14 +371,13 @@
                     <th>Temp</th>
                     <th>Time</th>
                     <th>Rating</th>
-                    <th>Repeat?</th>
                     <th style="width: 90px;">Action</th>
                 </tr>
             </thead>
             <tbody>
                 <% if (brewSessions.length === 0) { %>
                     <tr>
-                        <td colspan="12" class="text-muted text-center py-4">
+                        <td colspan="11" class="text-muted text-center py-4">
                             No brew sessions yet for this bean.
                         </td>
                     </tr>
@@ -429,16 +424,6 @@
                         <td>
                             <span class="bean-history-mobile-label">Rating</span>
                             <%= session.overallRating || "-" %>
-                        </td>
-                        <td>
-                            <span class="bean-history-mobile-label">Repeat?</span>
-                            <% if (session.wouldRepeat) { %>
-                                <i class="bi bi-check-circle me-1"></i>
-                                Yes
-                            <% } else { %>
-                                <i class="bi bi-x-circle me-1"></i>
-                                No
-                            <% } %>
                         </td>
                         <td class="bean-history-action-cell">
                             <a href="/brew-sessions/<%= session.id %>" class="btn btn-sm btn-outline-primary">

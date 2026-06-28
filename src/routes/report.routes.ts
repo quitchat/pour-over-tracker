@@ -9,7 +9,6 @@ type GroupBucket = {
     count: number;
     ratingCount: number;
     totalRating: number;
-    repeatCount: number;
     ratioCount: number;
     totalRatio: number;
 };
@@ -18,7 +17,6 @@ type AnalyticsRow = {
     name: string;
     count: number;
     averageRating: string;
-    repeatCount: number;
     averageRatio: string;
 };
 
@@ -28,7 +26,6 @@ function createBucket(name: string): GroupBucket {
         count: 0,
         ratingCount: 0,
         totalRating: 0,
-        repeatCount: 0,
         ratioCount: 0,
         totalRatio: 0
     };
@@ -42,9 +39,6 @@ function addSessionToBucket(bucket: GroupBucket, session: any) {
         bucket.totalRating += Number(session.overallRating.toString());
     }
 
-    if (session.wouldRepeat) {
-        bucket.repeatCount += 1;
-    }
 
     if (session.brewRatio) {
         bucket.ratioCount += 1;
@@ -65,7 +59,6 @@ function bucketToRow(bucket: GroupBucket): AnalyticsRow {
         name: bucket.name,
         count: bucket.count,
         averageRating: averageRating,
-        repeatCount: bucket.repeatCount,
         averageRatio: averageRatio
     };
 }
@@ -165,17 +158,12 @@ router.get("/", async function (req: Request, res: Response) {
         ? (totalRating / ratedSessions.length).toFixed(1)
         : "";
 
-    const repeatCount = sessions.filter(function (session) {
-        return session.wouldRepeat;
-    }).length;
-
     res.render("reports/index", {
         title: "Analytics",
         summary: {
             brewSessionCount: sessions.length,
             ratedSessionCount: ratedSessions.length,
-            averageRating: averageRating,
-            repeatCount: repeatCount
+            averageRating: averageRating
         },
         beanRows: beanRows,
         grinderRows: grinderRows,

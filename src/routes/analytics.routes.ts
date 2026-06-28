@@ -146,10 +146,6 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             return session.overallRating !== null;
         });
 
-        const repeatedSessions = brewSessions.filter(function (session) {
-            return session.wouldRepeat;
-        });
-
         const averageRating = ratedSessions.length > 0
             ? round(
                 ratedSessions.reduce(function (sum, session) {
@@ -157,10 +153,6 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                 }, 0) / ratedSessions.length,
                 2
             )
-            : 0;
-
-        const repeatRate = totalBrews > 0
-            ? round((repeatedSessions.length / totalBrews) * 100, 1)
             : 0;
 
         const lastSixMonthKeys = buildLastMonthKeys(6);
@@ -317,8 +309,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                     roasterName: session.coffeeBean.roasterName || "",
                     grinderName: session.grinder ? session.grinder.name : "",
                     brewerName: session.brewer ? session.brewer.name : "",
-                    overallRating: session.overallRating !== null ? toNumber(session.overallRating) : null,
-                    wouldRepeat: session.wouldRepeat
+                    overallRating: session.overallRating !== null ? toNumber(session.overallRating) : null
                 };
             });
 
@@ -329,8 +320,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                 activeBeans: activeBeans,
                 inactiveBeans: totalBeans - activeBeans,
                 totalBrews: totalBrews,
-                averageRating: averageRating,
-                repeatRate: repeatRate
+                averageRating: averageRating
             },
             topBeans: topBeans,
             topGrinders: topGrinders,

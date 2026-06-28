@@ -185,8 +185,7 @@ app.get("/", async function (req: Request, res: Response, next: NextFunction) {
                         roasterName: brew.coffeeBean.roasterName || "",
                         grinderName: brew.grinder ? brew.grinder.name : "",
                         brewerName: brew.brewer ? brew.brewer.name : "",
-                        overallRating: brew.overallRating === null ? null : Number(brew.overallRating),
-                        wouldRepeat: brew.wouldRepeat
+                        overallRating: brew.overallRating === null ? null : Number(brew.overallRating)
                     };
                 }),
                 topBeans: topBeans

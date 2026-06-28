@@ -272,8 +272,7 @@ function mapBrewSessionForBeanDetail(session: any) {
         brewRatio: session.brewRatio.toString(),
         waterTemperatureC: session.waterTemperatureC ? session.waterTemperatureC.toString() : "",
         totalBrewTime: formatSeconds(session.totalBrewTimeSeconds),
-        overallRating: session.overallRating ? session.overallRating.toString() : "",
-        wouldRepeat: session.wouldRepeat
+        overallRating: session.overallRating ? session.overallRating.toString() : ""
     };
 }
 
@@ -306,9 +305,6 @@ function buildBeanStats(brewSessions: any[]) {
         averageRating: ratedSessions.length > 0 ? (totalRating / ratedSessions.length).toFixed(1) : "",
         bestRating: bestSession ? bestSession.overallRating.toString() : "",
         averageRatio: ratioSessions.length > 0 ? (totalRatio / ratioSessions.length).toFixed(2) : "",
-        repeatCount: brewSessions.filter(function (session) {
-            return session.wouldRepeat;
-        }).length,
         bestBrewSessionId: bestSession ? bestSession.id : null,
         bestBrewDate: bestSession ? formatDateOnly(bestSession.brewDate) : "",
         bestGrinderName: bestSession && bestSession.grinder ? bestSession.grinder.name : "",
