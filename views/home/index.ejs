@@ -115,14 +115,13 @@
                             <th>Coffee</th>
                             <th>Setup</th>
                             <th>Rating</th>
-                            <th class="text-end">Action</th>
                         </tr>
                     </thead>
 
                     <tbody>
                         <% if (recentBrewList.length === 0) { %>
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-4">
+                                <td colspan="4" class="text-center text-muted py-4">
                                     No brew sessions yet.
                                 </td>
                             </tr>
@@ -164,11 +163,6 @@
                                     <% } %>
                                 </td>
 
-                                <td class="text-end">
-                                    <a href="/brew-sessions/<%= brew.id %>" class="btn btn-sm btn-outline-primary">
-                                        View
-                                    </a>
-                                </td>
                             </tr>
                         <% }); %>
                     </tbody>
