@@ -54,7 +54,13 @@
                             <% if (grinder.locationName || (grinder.latitude !== null && grinder.longitude !== null)) { %>
                                 <div><%= grinder.locationName || "Saved location" %></div>
                                 <% if (grinder.latitude !== null && grinder.longitude !== null) { %>
-                                    <div class="small text-muted"><%= Number(grinder.latitude).toFixed(5) %>, <%= Number(grinder.longitude).toFixed(5) %></div>
+                                    <% const grinderMapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(grinder.latitude) + "," + String(grinder.longitude)); %>
+                                    <div class="small text-muted">
+                                        <a href="<%= grinderMapUrl %>" target="_blank" rel="noopener noreferrer">
+                                            <i class="bi bi-geo-alt me-1"></i>
+                                            <%= Number(grinder.latitude).toFixed(5) %>, <%= Number(grinder.longitude).toFixed(5) %>
+                                        </a>
+                                    </div>
                                 <% } %>
                             <% } %>
                         </td>

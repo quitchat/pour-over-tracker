@@ -127,6 +127,16 @@
                     </div>
 
                     <div class="small text-muted mt-2" data-location-fill-message></div>
+
+                    <% if (formData.latitude && formData.longitude) { %>
+                        <% const equipmentMapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(formData.latitude) + "," + String(formData.longitude)); %>
+                        <div class="small mt-2">
+                            <a href="<%= equipmentMapUrl %>" target="_blank" rel="noopener noreferrer">
+                                <i class="bi bi-geo-alt me-1"></i>
+                                Open saved location in Google Maps
+                            </a>
+                        </div>
+                    <% } %>
                 </div>
             </div>
 

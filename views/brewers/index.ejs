@@ -44,7 +44,13 @@
                             <% if (brewer.locationName || (brewer.latitude !== null && brewer.longitude !== null)) { %>
                                 <div><%= brewer.locationName || "Saved location" %></div>
                                 <% if (brewer.latitude !== null && brewer.longitude !== null) { %>
-                                    <div class="small text-muted"><%= Number(brewer.latitude).toFixed(5) %>, <%= Number(brewer.longitude).toFixed(5) %></div>
+                                    <% const brewerMapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(brewer.latitude) + "," + String(brewer.longitude)); %>
+                                    <div class="small text-muted">
+                                        <a href="<%= brewerMapUrl %>" target="_blank" rel="noopener noreferrer">
+                                            <i class="bi bi-geo-alt me-1"></i>
+                                            <%= Number(brewer.latitude).toFixed(5) %>, <%= Number(brewer.longitude).toFixed(5) %>
+                                        </a>
+                                    </div>
                                 <% } %>
                             <% } %>
                         </td>
