@@ -329,7 +329,7 @@ function buildTastingScoreCreateData(formValues: ReturnType<typeof getBrewSessio
         aftertaste: getScoreValue(formValues, "aftertaste"),
         aroma: getScoreValue(formValues, "aroma"),
         acidity: getScoreValue(formValues, "acidity"),
-        bitterness: null
+        bitterness: null as number | null
     };
 }
 
@@ -340,7 +340,7 @@ function buildTastingScoreUpdateData(formValues: ReturnType<typeof getBrewSessio
         aftertaste: getScoreValue(formValues, "aftertaste"),
         aroma: getScoreValue(formValues, "aroma"),
         acidity: getScoreValue(formValues, "acidity"),
-        bitterness: null
+        bitterness: null as number | null
     };
 }
 

@@ -4,7 +4,9 @@
   "private": true,
   "main": "dist/app.js",
   "scripts": {
-    "dev": "tsx src/app.ts"
+    "dev": "tsx src/app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
