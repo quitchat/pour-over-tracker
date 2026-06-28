@@ -11,10 +11,10 @@
     <div>
         <h1 class="h3 mb-1">
             <i class="bi bi-camera me-2"></i>
-            Bean Bag Image Lookup AI Prompt
+            Bean Bag Image OCR AI Prompt
         </h1>
         <p class="text-muted mb-0">
-            Manage the prompt used by Upload + Read Label + Get Info to read the bean bag photo, extract Roaster and Coffee Name, and then look up bean details in one AI call.
+            Manage the prompt used to read the bean bag photo and extract Roaster and Coffee Name only. When both values are found, the app then makes a separate Bean Detail AI call to fill the remaining bean information.
         </p>
     </div>
 
@@ -51,7 +51,7 @@
                 <textarea id="promptText" name="promptText" class="form-control font-monospace" rows="18" required><%= promptTextValue %></textarea>
 
                 <div class="form-text">
-                    This prompt is used with the uploaded bean bag image in the one-call workflow. It should extract Roaster and Coffee Name first, then fill supported bean details from web search when both values are valid. Do not ask it to fill price.
+                    This prompt is used with the uploaded bean bag image for OCR/identity only. It should extract Roaster and Coffee Name only. Do not ask it to fill origin, process, roast level, flavor notes, price, or other bean details.
                 </div>
             </div>
 

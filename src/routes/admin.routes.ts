@@ -403,7 +403,7 @@ router.get("/coffee-bag-image-identity-ai-prompt", async function (req: Request,
     }
 
     res.render("admin/coffee-bag-image-identity-ai-prompt", {
-        title: "Admin - Bean Bag Image Lookup AI Prompt",
+        title: "Admin - Bean Bag Image OCR AI Prompt",
         promptRecord: promptRecord,
         defaultPromptText: DEFAULT_COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT,
         message: getPromptStatusMessage(req),

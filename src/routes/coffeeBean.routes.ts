@@ -6,7 +6,7 @@ import multer from "multer";
 import sharp from "sharp";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
-import { CoffeeInformationResult, getCoffeeBagImageInformationFromOpenAI, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
+import { CoffeeInformationResult, getCoffeeBagImageIdentityFromOpenAI, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
 import { AI_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
 import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
 
@@ -502,25 +502,21 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
     const aiModel = process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const aiCallLog = await startAiCallLog({
         user: getAiCallRouteUser(res),
-        callType: AI_CALL_TYPES.beanBagLookup,
+        callType: AI_CALL_TYPES.beanBagOcr,
         model: aiModel,
         imageCount: 1
     });
 
     try {
         const imageFilePath = getCoffeeBeanImageAbsolutePathFromUrl(uploadedBagImageUrl);
-        const imageInformationResult = await getCoffeeBagImageInformationFromOpenAI(imageFilePath, req.file.mimetype);
-        const imageInformation = imageInformationResult.data;
-        const formData = buildCoffeeInfoFormData({
-            roasterName: imageInformation.roasterName || "",
-            beanName: imageInformation.beanName || ""
-        }, imageInformation);
+        const imageIdentityResult = await getCoffeeBagImageIdentityFromOpenAI(imageFilePath, req.file.mimetype);
+        const imageIdentity = imageIdentityResult.data;
 
         await finishAiCallLog({
             handle: aiCallLog,
             status: "Succeeded",
             model: aiModel,
-            usage: imageInformationResult.usage,
+            usage: imageIdentityResult.usage,
             imageCount: 1
         });
 
@@ -528,18 +524,11 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
             ok: true,
             bagImageUrl: uploadedBagImageUrl,
             formData: {
-                roasterName: imageInformation.roasterName || "",
-                beanName: imageInformation.beanName || "",
-                origin: formData.origin || "",
-                process: formData.process || "",
-                roastLevel: formData.roastLevel || "",
-                flavorNotes: formData.flavorNotes || "",
-                sourceUrl: formData.sourceUrl || "",
-                notes: formData.notes || ""
+                roasterName: imageIdentity.roasterName || "",
+                beanName: imageIdentity.beanName || ""
             },
-            confirmedNotes: imageInformation.confirmedNotes,
-            confidence: imageInformation.confidence,
-            notes: imageInformation.notes
+            confidence: imageIdentity.confidence,
+            notes: imageIdentity.notes
         });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Could not read the coffee bag picture.";

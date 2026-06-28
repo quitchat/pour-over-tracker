@@ -84,7 +84,8 @@
                             class="form-control"
                             id="bagImageFile"
                             name="bagImageFile"
-                            accept="image/*">
+                            accept="image/*"
+                            capture="environment">
 
                         <button
                             type="button"
@@ -442,14 +443,22 @@
                     populateForm(data.formData);
                 }
 
-                populateConfirmedNotes(data.confirmedNotes || []);
+                populateConfirmedNotes([]);
 
                 const confidenceText = data.confidence ? " Confidence: " + data.confidence + "." : "";
                 const roasterName = getElementValue("roasterName").trim();
                 const beanName = getElementValue("beanName").trim();
 
                 if (roasterName && beanName) {
-                    showMessage("success", "Bean bag picture uploaded, label fields read, and coffee information filled in one AI call. Review everything before saving." + confidenceText);
+                    showMessage("info", "Bean bag picture uploaded and label fields were read." + confidenceText + " Getting coffee information...");
+
+                    await getCoffeeInformation({
+                        clearExistingMessage: false,
+                        manageButtonLoading: false,
+                        successMessage: "Bean bag picture uploaded, label fields read, and coffee information filled. Review everything before saving.",
+                        failureMessagePrefix: "Bean bag picture uploaded and label fields were read, but coffee information lookup failed."
+                    });
+
                     return;
                 }
 
