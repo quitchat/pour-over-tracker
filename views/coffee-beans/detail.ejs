@@ -15,6 +15,26 @@
         background: var(--bs-body-bg);
     }
 
+    .bean-photo-detail-button {
+        display: block;
+        width: 100%;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        border-radius: 0.5rem;
+    }
+
+    .bean-photo-detail-button:hover img,
+    .bean-photo-detail-button:focus img {
+        border-color: var(--bs-primary) !important;
+        box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.2);
+    }
+
+    .bean-photo-modal-image {
+        max-height: 82vh;
+        object-fit: contain;
+    }
+
     @media (max-width: 991.98px) {
         .bean-detail-header {
             align-items: stretch !important;
@@ -205,11 +225,19 @@
 
             <div class="card-body">
                 <% if (coffeeBean.bagImageUrl) { %>
-                    <img
-                        src="<%= coffeeBean.bagImageUrl %>"
-                        alt="<%= coffeeBean.beanName %> picture"
-                        class="img-fluid rounded border w-100"
-                        style="max-height: 360px; object-fit: cover;">
+                    <button
+                        type="button"
+                        class="bean-photo-detail-button"
+                        data-bs-toggle="modal"
+                        data-bs-target="#beanPhotoModal"
+                        aria-label="Enlarge picture for <%= coffeeBean.beanName %>">
+                        <img
+                            src="<%= coffeeBean.bagImageUrl %>"
+                            alt="<%= coffeeBean.beanName %> picture"
+                            class="img-fluid rounded border w-100"
+                            style="max-height: 360px; object-fit: cover;">
+                    </button>
+                    <div class="form-text text-center mt-2">Click photo to enlarge.</div>
                 <% } else { %>
                     <div class="text-muted text-center py-4 border rounded bg-body-tertiary">
                         <i class="bi bi-image d-block fs-1 mb-2"></i>
@@ -409,3 +437,25 @@
         </table>
     </div>
 </div>
+
+<% if (coffeeBean.bagImageUrl) { %>
+    <div class="modal fade" id="beanPhotoModal" tabindex="-1" aria-labelledby="beanPhotoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="beanPhotoModalLabel">
+                        <%= coffeeBean.roasterName ? coffeeBean.roasterName + " - " : "" %><%= coffeeBean.beanName %>
+                    </h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body text-center bg-body-tertiary">
+                    <img
+                        src="<%= coffeeBean.bagImageUrl %>"
+                        alt="<%= coffeeBean.beanName %> picture enlarged"
+                        class="img-fluid rounded bean-photo-modal-image">
+                </div>
+            </div>
+        </div>
+    </div>
+<% } %>

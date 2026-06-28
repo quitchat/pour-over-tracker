@@ -110,6 +110,26 @@
         flex: 0 0 auto;
     }
 
+    .bean-photo-button {
+        border: 0;
+        padding: 0;
+        background: transparent;
+        line-height: 0;
+        border-radius: 0.5rem;
+        flex: 0 0 auto;
+    }
+
+    .bean-photo-button:hover .bean-thumbnail,
+    .bean-photo-button:focus .bean-thumbnail {
+        border-color: var(--bs-primary);
+        box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb), 0.2);
+    }
+
+    .bean-photo-modal-image {
+        max-height: 82vh;
+        object-fit: contain;
+    }
+
     .bean-thumbnail-placeholder {
         width: 56px;
         height: 56px;
@@ -212,10 +232,17 @@
 
                             <div class="d-flex align-items-center gap-3">
                                 <% if (bean.bagImageUrl) { %>
-                                    <img
-                                        src="<%= bean.bagImageUrl %>"
-                                        alt="<%= bean.beanName %> picture"
-                                        class="bean-thumbnail">
+                                    <button
+                                        type="button"
+                                        class="bean-photo-button"
+                                        data-bean-photo-src="<%= bean.bagImageUrl %>"
+                                        data-bean-photo-title="<%= bean.roasterName ? bean.roasterName + ' - ' : '' %><%= bean.beanName %>"
+                                        aria-label="Enlarge picture for <%= bean.beanName %>">
+                                        <img
+                                            src="<%= bean.bagImageUrl %>"
+                                            alt="<%= bean.beanName %> picture"
+                                            class="bean-thumbnail">
+                                    </button>
                                 <% } else { %>
                                     <div class="bean-thumbnail-placeholder" aria-hidden="true">
                                         <i class="bi bi-image"></i>
@@ -357,8 +384,50 @@
     </div>
 </div>
 
+<div class="modal fade" id="beanPhotoModal" tabindex="-1" aria-labelledby="beanPhotoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="beanPhotoModalLabel">Bean Picture</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center bg-body-tertiary">
+                <img src="" alt="Bean picture enlarged" class="img-fluid rounded bean-photo-modal-image" id="beanPhotoModalImage">
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        const beanPhotoModalElement = document.getElementById("beanPhotoModal");
+        const beanPhotoModalImage = document.getElementById("beanPhotoModalImage");
+        const beanPhotoModalLabel = document.getElementById("beanPhotoModalLabel");
+        const beanPhotoModal = beanPhotoModalElement ? new bootstrap.Modal(beanPhotoModalElement) : null;
+
+        document.querySelectorAll("[data-bean-photo-src]").forEach(function (button) {
+            button.addEventListener("click", function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (!beanPhotoModal || !beanPhotoModalImage) {
+                    return;
+                }
+
+                const imageUrl = button.getAttribute("data-bean-photo-src") || "";
+                const title = button.getAttribute("data-bean-photo-title") || "Bean Picture";
+
+                beanPhotoModalImage.src = imageUrl;
+                beanPhotoModalImage.alt = title + " picture";
+
+                if (beanPhotoModalLabel) {
+                    beanPhotoModalLabel.textContent = title;
+                }
+
+                beanPhotoModal.show();
+            });
+        });
+
         document.querySelectorAll(".bean-clickable-row[data-href]").forEach(function (row) {
             row.addEventListener("click", function (event) {
                 if (event.target.closest("a, button, input, select, textarea, label, form, .dropdown, .dropdown-menu")) {
