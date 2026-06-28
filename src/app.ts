@@ -3,6 +3,7 @@ import "dotenv/config";
 import express, { Request, Response, NextFunction } from "express";
 import path from "path";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import expressLayouts from "express-ejs-layouts";
 
 import { prisma } from "./lib/prisma";
@@ -22,6 +23,13 @@ const app = express();
 
 const port = Number(process.env.PORT || 3000);
 const sessionSecret = process.env.SESSION_SECRET || "change-this-session-secret";
+const sessionMaxAgeDays = Number(process.env.SESSION_MAX_AGE_DAYS || 30);
+const sessionMaxAgeMilliseconds = sessionMaxAgeDays * 24 * 60 * 60 * 1000;
+const PgSessionStore = connectPgSimple(session);
+const sessionStore = new PgSessionStore({
+    conString: process.env.DATABASE_URL,
+    tableName: "session"
+});
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "..", "views"));
@@ -34,13 +42,17 @@ app.use(express.json());
 
 app.use(
     session({
+        name: "track-my-brews.sid",
+        store: sessionStore,
         secret: sessionSecret,
         resave: false,
         saveUninitialized: false,
+        rolling: true,
         cookie: {
             httpOnly: true,
             sameSite: "lax",
-            secure: process.env.COOKIE_SECURE === "true"
+            secure: process.env.COOKIE_SECURE === "true",
+            maxAge: sessionMaxAgeMilliseconds
         }
     })
 );
