@@ -18,6 +18,29 @@
         return value;
     }
 
+
+
+    function getBrewSummaryText(session) {
+        const dose = session.coffeeDoseGrams ? `${session.coffeeDoseGrams}g` : "-";
+        const totalYield = session.totalYieldGrams ? `${session.totalYieldGrams}g` : "-";
+        const waterTemperature = session.waterTemperatureC ? ` @ ${session.waterTemperatureC}°C` : "";
+        const totalBrewTime = session.totalBrewTime ? ` over ${session.totalBrewTime}` : "";
+
+        if (dose === "-" && totalYield === "-" && !waterTemperature && !totalBrewTime) {
+            return "-";
+        }
+
+        return `${dose} → ${totalYield}${waterTemperature}${totalBrewTime}`;
+    }
+
+    function getBrewSummarySubtext(session) {
+        if (!session.brewRatio) {
+            return "";
+        }
+
+        return `Ratio 1:${session.brewRatio}`;
+    }
+
     function buildRatingStars(value) {
         if (value === null || typeof value === "undefined" || value === "") {
             return "<span class=\"text-muted\">Not rated</span>";
@@ -134,35 +157,16 @@
                         <dt class="col-sm-4">Brewer</dt>
                         <dd class="col-sm-8"><%= formatDisplayValue(session.brewerName) %></dd>
 
-                        <dt class="col-sm-4">Coffee Dose</dt>
-                        <dd class="col-sm-8"><%= formatDisplayValue(session.coffeeDoseGrams) %> g</dd>
+                        <dt class="col-sm-4">Brew</dt>
+                        <dd class="col-sm-8">
+                            <div class="fw-semibold"><%= getBrewSummaryText(session) %></div>
+                            <% if (getBrewSummarySubtext(session)) { %>
+                                <div class="text-muted small"><%= getBrewSummarySubtext(session) %></div>
+                            <% } %>
+                        </dd>
 
                         <dt class="col-sm-4">Grind Size</dt>
                         <dd class="col-sm-8"><%= formatDisplayValue(session.grindSize) %></dd>
-
-                        <dt class="col-sm-4">Water Temp</dt>
-                        <dd class="col-sm-8">
-                            <% if (session.waterTemperatureC) { %>
-                                <%= session.waterTemperatureC %> °C
-                            <% } else { %>
-                                <span class="text-muted">-</span>
-                            <% } %>
-                        </dd>
-
-                        <dt class="col-sm-4">Total Yield</dt>
-                        <dd class="col-sm-8"><%= formatDisplayValue(session.totalYieldGrams) %> g</dd>
-
-                        <dt class="col-sm-4">Ratio</dt>
-                        <dd class="col-sm-8">
-                            <% if (session.brewRatio) { %>
-                                1:<%= session.brewRatio %>
-                            <% } else { %>
-                                <span class="text-muted">-</span>
-                            <% } %>
-                        </dd>
-
-                        <dt class="col-sm-4">Total Brew Time</dt>
-                        <dd class="col-sm-8"><%= formatDisplayValue(session.totalBrewTime) %></dd>
 
                         <dt class="col-sm-4">Overall Rating</dt>
                         <dd class="col-sm-8"><%- buildRatingStars(session.overallRating) %></dd>
