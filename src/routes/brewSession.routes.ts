@@ -652,9 +652,17 @@ router.get("/", async function (req: Request, res: Response) {
                 grinder: true,
                 brewer: true
             },
-            orderBy: {
-                brewDate: "desc"
-            }
+            orderBy: [
+                {
+                    brewDate: "desc"
+                },
+                {
+                    createdAt: "desc"
+                },
+                {
+                    id: "desc"
+                }
+            ]
         }),
         getFormOptions(userId, null)
     ]);
