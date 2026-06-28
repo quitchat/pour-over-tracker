@@ -945,7 +945,6 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
             grinderName: grinder.name,
             grinderBrand: grinder.brand || "",
             grinderType: grinder.grinderType || "",
-            defaultGrindSizeRange: grinder.defaultGrindSizeRange || "",
             brewerName: brewer.name,
             brewerBrand: brewer.brand || "",
             brewerType: brewer.brewerType || "",

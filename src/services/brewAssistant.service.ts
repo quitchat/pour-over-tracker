@@ -38,7 +38,6 @@ export type BrewAssistantInput = {
     grinderName: string;
     grinderBrand: string;
     grinderType: string;
-    defaultGrindSizeRange: string;
     brewerName: string;
     brewerBrand: string;
     brewerType: string;
@@ -75,7 +74,7 @@ export const DEFAULT_BREW_SUGGESTION_AI_PROMPT = [
     "Prefer practical home-brewing guidance over competition recipes.",
     "The recipe must be usable by a beginner.",
     "Do not include pricing.",
-    "If grinder setting cannot be known exactly, give a reasonable grind-size description or range using the grinder information provided.",
+    "If grinder setting cannot be known exactly, give a reasonable general pour-over grind-size description or range. Do not use the grinder's saved default grind size range.",
     "For waterTemperatureC, use Celsius.",
     "For totalYieldGrams, calculate a reasonable yield from the coffee dose, brewer, and coffee style.",
     "For brewRatio, return text like 1:15, 1:16, or 1:17.",
@@ -198,7 +197,6 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
         "",
         `Grinder: ${input.grinderBrand || ""} ${input.grinderName || "Unknown"}`.trim(),
         `Grinder type: ${input.grinderType || "Unknown"}`,
-        `Default grind size range: ${input.defaultGrindSizeRange || "Unknown"}`,
         "",
         `Brewer: ${input.brewerBrand || ""} ${input.brewerName || "Unknown"}`.trim(),
         `Brew method / brewer type: ${input.brewerType || "Unknown"}`,
