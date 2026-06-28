@@ -677,13 +677,18 @@ async function getBrewSessionForUser(userId: number, id: number) {
 
 router.get("/", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const requestedPage = Number(req.query.page || "1");
+    const pageSize = 10;
+    const currentPage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const skip = (currentPage - 1) * pageSize;
 
     const filters = {
         coffeeBeanId: String(req.query.coffeeBeanId || ""),
         grinderId: String(req.query.grinderId || ""),
         brewerId: String(req.query.brewerId || ""),
         dateFrom: String(req.query.dateFrom || ""),
-        dateTo: String(req.query.dateTo || "")
+        dateTo: String(req.query.dateTo || ""),
+        minRating: String(req.query.minRating || "")
     };
 
     const where: any = {
@@ -702,6 +707,16 @@ router.get("/", async function (req: Request, res: Response) {
         where.brewerId = Number(filters.brewerId);
     }
 
+    if (filters.minRating) {
+        const minRating = Number(filters.minRating);
+
+        if (!Number.isNaN(minRating)) {
+            where.overallRating = {
+                gte: new Prisma.Decimal(filters.minRating)
+            };
+        }
+    }
+
     if (filters.dateFrom || filters.dateTo) {
         where.brewDate = {};
 
@@ -714,7 +729,10 @@ router.get("/", async function (req: Request, res: Response) {
         }
     }
 
-    const [brewSessionsFromDatabase, formOptions] = await Promise.all([
+    const [totalBrewSessionCount, brewSessionsFromDatabase, formOptions] = await Promise.all([
+        prisma.brewSession.count({
+            where: where
+        }),
         prisma.brewSession.findMany({
             where: where,
             include: {
@@ -732,7 +750,9 @@ router.get("/", async function (req: Request, res: Response) {
                 {
                     id: "desc"
                 }
-            ]
+            ],
+            skip: skip,
+            take: pageSize
         }),
         getFormOptions(userId, null)
     ]);
@@ -740,6 +760,34 @@ router.get("/", async function (req: Request, res: Response) {
     const brewSessions = brewSessionsFromDatabase.map(function (session) {
         return mapBrewSessionForList(session);
     });
+    const totalPages = Math.max(1, Math.ceil(totalBrewSessionCount / pageSize));
+
+    const queryBase = new URLSearchParams();
+    Object.keys(filters).forEach(function (key) {
+        const value = filters[key as keyof typeof filters];
+
+        if (value) {
+            queryBase.set(key, value);
+        }
+    });
+
+    const pageLinks = Array.from({ length: totalPages }, function (_, index) {
+        const pageNumber = index + 1;
+        const pageQuery = new URLSearchParams(queryBase.toString());
+        pageQuery.set("page", String(pageNumber));
+
+        return {
+            pageNumber: pageNumber,
+            href: `/brew-sessions?${pageQuery.toString()}`
+        };
+    });
+
+    function buildPageUrl(pageNumber: number): string {
+        const pageQuery = new URLSearchParams(queryBase.toString());
+        pageQuery.set("page", String(pageNumber));
+
+        return `/brew-sessions?${pageQuery.toString()}`;
+    }
 
     res.render("brew-sessions/index", {
         title: "Brew Sessions",
@@ -747,7 +795,20 @@ router.get("/", async function (req: Request, res: Response) {
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,
         brewers: formOptions.brewers,
-        filters: filters
+        filters: filters,
+        pagination: {
+            currentPage: currentPage,
+            pageSize: pageSize,
+            totalItems: totalBrewSessionCount,
+            totalPages: totalPages,
+            hasPreviousPage: currentPage > 1,
+            hasNextPage: currentPage < totalPages,
+            previousPage: currentPage - 1,
+            nextPage: currentPage + 1,
+            previousPageHref: buildPageUrl(currentPage - 1),
+            nextPageHref: buildPageUrl(currentPage + 1),
+            pageLinks: pageLinks
+        }
     });
 });
 

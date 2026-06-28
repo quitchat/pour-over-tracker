@@ -275,6 +275,10 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
     const callType = String(req.query.callType || "").trim();
     const status = String(req.query.status || "").trim();
     const apiFeatureType = String(req.query.apiFeatureType || "").trim();
+    const requestedPage = Number(req.query.page || "1");
+    const pageSize = 25;
+    const currentPage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const skip = (currentPage - 1) * pageSize;
 
     const where: {
         callType?: string;
@@ -294,13 +298,17 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
         where.apiFeatureType = apiFeatureType;
     }
 
-    const [aiCallLogs, callTypes, statuses, apiFeatureTypes, filteredCostSummary] = await Promise.all([
+    const [totalLogCount, aiCallLogs, callTypes, statuses, apiFeatureTypes, filteredCostSummary] = await Promise.all([
+        prisma.aiCallLog.count({
+            where: where
+        }),
         prisma.aiCallLog.findMany({
             where: where,
             orderBy: {
                 startedAt: "desc"
             },
-            take: 200
+            skip: skip,
+            take: pageSize
         }),
         prisma.aiCallLog.findMany({
             distinct: ["callType"],
@@ -371,6 +379,39 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
         };
     });
 
+    const totalPages = Math.max(1, Math.ceil(totalLogCount / pageSize));
+    const queryBase = new URLSearchParams();
+
+    if (callType) {
+        queryBase.set("callType", callType);
+    }
+
+    if (status) {
+        queryBase.set("status", status);
+    }
+
+    if (apiFeatureType) {
+        queryBase.set("apiFeatureType", apiFeatureType);
+    }
+
+    const pageLinks = Array.from({ length: totalPages }, function (_, index) {
+        const pageNumber = index + 1;
+        const pageQuery = new URLSearchParams(queryBase.toString());
+        pageQuery.set("page", String(pageNumber));
+
+        return {
+            pageNumber: pageNumber,
+            href: `/admin/ai-call-logs?${pageQuery.toString()}`
+        };
+    });
+
+    function buildPageUrl(pageNumber: number): string {
+        const pageQuery = new URLSearchParams(queryBase.toString());
+        pageQuery.set("page", String(pageNumber));
+
+        return `/admin/ai-call-logs?${pageQuery.toString()}`;
+    }
+
     res.render("admin/ai-call-logs", {
         title: "Admin - AI Call Logs",
         logs: logs,
@@ -387,7 +428,20 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
         filteredWebSearchCallCount: filteredCostSummary._sum.webSearchCallCount || 0,
         filteredTokenEstimatedCost: formatEstimatedCost(filteredCostSummary._sum.tokenEstimatedCostUsd),
         filteredToolEstimatedCost: formatEstimatedCost(filteredCostSummary._sum.toolEstimatedCostUsd),
-        filteredEstimatedCost: formatEstimatedCost(filteredCostSummary._sum.estimatedCostUsd)
+        filteredEstimatedCost: formatEstimatedCost(filteredCostSummary._sum.estimatedCostUsd),
+        pagination: {
+            currentPage: currentPage,
+            pageSize: pageSize,
+            totalItems: totalLogCount,
+            totalPages: totalPages,
+            hasPreviousPage: currentPage > 1,
+            hasNextPage: currentPage < totalPages,
+            previousPage: currentPage - 1,
+            nextPage: currentPage + 1,
+            previousPageHref: buildPageUrl(currentPage - 1),
+            nextPageHref: buildPageUrl(currentPage + 1),
+            pageLinks: pageLinks
+        }
     });
 });
 

@@ -4,6 +4,7 @@
     const grinderOptions = typeof grinders !== "undefined" ? grinders : [];
     const brewerOptions = typeof brewers !== "undefined" ? brewers : [];
     const filterValues = typeof filters !== "undefined" ? filters : {};
+    const pageInfo = typeof pagination !== "undefined" ? pagination : { currentPage: 1, totalPages: 1, totalItems: sessions.length, hasPreviousPage: false, hasNextPage: false, previousPageHref: "#", nextPageHref: "#", pageLinks: [] };
 
     function getSessionBeanName(session) {
         return session.coffeeBeanName || session.beanName || "";
@@ -199,7 +200,7 @@
             Brew Session List
         </span>
 
-        <span class="text-muted small"><%= sessions.length %> result(s)</span>
+        <span class="text-muted small"><%= pageInfo.totalItems %> result(s)</span>
     </div>
 
     <div class="table-responsive">
@@ -320,6 +321,26 @@
         </table>
     </div>
 </div>
+
+<% if (pageInfo.totalPages > 1) { %>
+    <nav class="mt-3" aria-label="Brew session pagination">
+        <ul class="pagination justify-content-center mb-0 flex-wrap">
+            <li class="page-item <%= pageInfo.hasPreviousPage ? "" : "disabled" %>">
+                <a class="page-link" href="<%= pageInfo.previousPageHref %>">Previous</a>
+            </li>
+
+            <% pageInfo.pageLinks.forEach(function (pageLink) { %>
+                <li class="page-item <%= pageLink.pageNumber === pageInfo.currentPage ? "active" : "" %>">
+                    <a class="page-link" href="<%= pageLink.href %>"><%= pageLink.pageNumber %></a>
+                </li>
+            <% }); %>
+
+            <li class="page-item <%= pageInfo.hasNextPage ? "" : "disabled" %>">
+                <a class="page-link" href="<%= pageInfo.nextPageHref %>">Next</a>
+            </li>
+        </ul>
+    </nav>
+<% } %>
 
 
 <script>
