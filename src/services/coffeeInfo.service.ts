@@ -6,6 +6,8 @@ import { AiTokenUsage, extractAiTokenUsage } from "./aiCallLog.service";
 export type AiServiceResult<T> = {
     data: T;
     usage: AiTokenUsage;
+    promptText: string;
+    outputText: string;
 };
 
 export type CoffeeInformationResult = {
@@ -168,6 +170,19 @@ export async function getCoffeeInformationFromOpenAI(roasterName: string, beanNa
     const client = getOpenAIClient();
     const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const promptText = await getBeanDetailAiPromptText();
+    const userPromptText = [
+        `Roaster: ${roasterName}`,
+        `Coffee bean name: ${beanName}`,
+        "",
+        "Find the coffee information and return structured data only."
+    ].join("\n");
+    const loggedPromptText = [
+        "SYSTEM PROMPT:",
+        promptText,
+        "",
+        "USER PROMPT:",
+        userPromptText
+    ].join("\n");
 
     const response = await client.responses.create({
         model: model,
@@ -192,12 +207,7 @@ export async function getCoffeeInformationFromOpenAI(roasterName: string, beanNa
                 content: [
                     {
                         type: "input_text",
-                        text: [
-                            `Roaster: ${roasterName}`,
-                            `Coffee bean name: ${beanName}`,
-                            "",
-                            "Find the coffee information and return structured data only."
-                        ].join("\n")
+                        text: userPromptText
                     }
                 ]
             }
@@ -264,7 +274,9 @@ export async function getCoffeeInformationFromOpenAI(roasterName: string, beanNa
 
     return {
         data: parseCoffeeInformationJson(response.output_text),
-        usage: extractAiTokenUsage(response)
+        usage: extractAiTokenUsage(response),
+        promptText: loggedPromptText,
+        outputText: response.output_text
     };
 }
 
@@ -291,6 +303,17 @@ export async function getCoffeeBagImageIdentityFromOpenAI(imageFilePath: string,
     const imageBytes = await fs.promises.readFile(imageFilePath);
     const imageBase64 = imageBytes.toString("base64");
     const imageUrl = `data:${mimeType};base64,${imageBase64}`;
+    const userPromptText = "Read this coffee bag image and identify the roaster name and coffee bean/product name.";
+    const loggedPromptText = [
+        "SYSTEM PROMPT:",
+        promptText,
+        "",
+        "USER PROMPT:",
+        userPromptText,
+        "",
+        "IMAGE:",
+        `[Uploaded image omitted from log. MIME type: ${mimeType}]`
+    ].join("\n");
 
     const response = await client.responses.create({
         model: model,
@@ -310,7 +333,7 @@ export async function getCoffeeBagImageIdentityFromOpenAI(imageFilePath: string,
                 content: [
                     {
                         type: "input_text",
-                        text: "Read this coffee bag image and identify the roaster name and coffee bean/product name."
+                        text: userPromptText
                     },
                     {
                         type: "input_image",
@@ -363,6 +386,8 @@ export async function getCoffeeBagImageIdentityFromOpenAI(imageFilePath: string,
 
     return {
         data: parseCoffeeBagImageIdentityJson(response.output_text),
-        usage: extractAiTokenUsage(response)
+        usage: extractAiTokenUsage(response),
+        promptText: loggedPromptText,
+        outputText: response.output_text
     };
 }

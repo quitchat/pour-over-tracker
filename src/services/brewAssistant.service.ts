@@ -5,6 +5,8 @@ import { AiTokenUsage, extractAiTokenUsage } from "./aiCallLog.service";
 export type AiServiceResult<T> = {
     data: T;
     usage: AiTokenUsage;
+    promptText: string;
+    outputText: string;
 };
 
 export type RecentMatchingBrewForSuggestion = {
@@ -175,6 +177,50 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
     const client = getOpenAIClient();
     const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const promptText = await getBrewSuggestionAiPromptText();
+    const systemPromptText = [
+        promptText,
+        "",
+        "Technical output contract:",
+        "Return structured JSON only.",
+        "Match the JSON schema exactly.",
+        "Do not include markdown, comments, citations, or prose outside the JSON object."
+    ].join("\n");
+    const userPromptText = [
+        "Create a brewing recipe using this context:",
+        "",
+        `Roaster: ${input.roasterName || "Unknown"}`,
+        `Coffee bean: ${input.beanName || "Unknown"}`,
+        `Origin: ${input.origin || "Unknown"}`,
+        `Process: ${input.process || "Unknown"}`,
+        `Roast level: ${input.roastLevel || "Unknown"}`,
+        `Flavor notes: ${input.flavorNotes || "Unknown"}`,
+        `Bean notes: ${input.beanNotes || "Unknown"}`,
+        "",
+        `Grinder: ${input.grinderBrand || ""} ${input.grinderName || "Unknown"}`.trim(),
+        `Grinder type: ${input.grinderType || "Unknown"}`,
+        `Default grind size range: ${input.defaultGrindSizeRange || "Unknown"}`,
+        "",
+        `Brewer: ${input.brewerBrand || ""} ${input.brewerName || "Unknown"}`.trim(),
+        `Brew method / brewer type: ${input.brewerType || "Unknown"}`,
+        "",
+        `Coffee dose / bean weight: ${input.coffeeDoseGrams || "Unknown"} grams`,
+        "",
+        "Recent matching brew history with the same bean, grinder, brewer, and dose:",
+        formatRecentMatchingBrewHistory(input.recentMatchingBrews),
+        "",
+        "Use the recent matching brew history to improve the suggestion when it is available.",
+        "If the recent brews were highly rated, preserve the working parts of those recipes.",
+        "If the recent brews had lower ratings or low pentagon tasting scores, suggest practical adjustments to avoid those issues.",
+        "The user's tasting feedback is captured by the pentagon scores only: richness, sweetness, aftertaste, aroma, and acidity.",
+        "Suggest a balanced recipe that highlights the coffee bean characteristics."
+    ].join("\n");
+    const loggedPromptText = [
+        "SYSTEM PROMPT:",
+        systemPromptText,
+        "",
+        "USER PROMPT:",
+        userPromptText
+    ].join("\n");
 
     const response = await client.responses.create({
         model: model,
@@ -190,14 +236,7 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
                 content: [
                     {
                         type: "input_text",
-                        text: [
-                            promptText,
-                            "",
-                            "Technical output contract:",
-                            "Return structured JSON only.",
-                            "Match the JSON schema exactly.",
-                            "Do not include markdown, comments, citations, or prose outside the JSON object."
-                        ].join("\n")
+                        text: systemPromptText
                     }
                 ]
             },
@@ -206,35 +245,7 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
                 content: [
                     {
                         type: "input_text",
-                        text: [
-                            "Create a brewing recipe using this context:",
-                            "",
-                            `Roaster: ${input.roasterName || "Unknown"}`,
-                            `Coffee bean: ${input.beanName || "Unknown"}`,
-                            `Origin: ${input.origin || "Unknown"}`,
-                            `Process: ${input.process || "Unknown"}`,
-                            `Roast level: ${input.roastLevel || "Unknown"}`,
-                            `Flavor notes: ${input.flavorNotes || "Unknown"}`,
-                            `Bean notes: ${input.beanNotes || "Unknown"}`,
-                            "",
-                            `Grinder: ${input.grinderBrand || ""} ${input.grinderName || "Unknown"}`.trim(),
-                            `Grinder type: ${input.grinderType || "Unknown"}`,
-                            `Default grind size range: ${input.defaultGrindSizeRange || "Unknown"}`,
-                            "",
-                            `Brewer: ${input.brewerBrand || ""} ${input.brewerName || "Unknown"}`.trim(),
-                            `Brew method / brewer type: ${input.brewerType || "Unknown"}`,
-                            "",
-                            `Coffee dose / bean weight: ${input.coffeeDoseGrams || "Unknown"} grams`,
-                            "",
-                            "Recent matching brew history with the same bean, grinder, brewer, and dose:",
-                            formatRecentMatchingBrewHistory(input.recentMatchingBrews),
-                            "",
-                            "Use the recent matching brew history to improve the suggestion when it is available.",
-                            "If the recent brews were highly rated, preserve the working parts of those recipes.",
-                            "If the recent brews had lower ratings or low pentagon tasting scores, suggest practical adjustments to avoid those issues.",
-                            "The user's tasting feedback is captured by the pentagon scores only: richness, sweetness, aftertaste, aroma, and acidity.",
-                            "Suggest a balanced recipe that highlights the coffee bean characteristics."
-                        ].join("\n")
+                        text: userPromptText
                     }
                 ]
             }
@@ -326,6 +337,8 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
 
     return {
         data: parseBrewRecipeSuggestionJson(response.output_text),
-        usage: extractAiTokenUsage(response)
+        usage: extractAiTokenUsage(response),
+        promptText: loggedPromptText,
+        outputText: response.output_text
     };
 }

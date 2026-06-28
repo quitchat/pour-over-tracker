@@ -448,7 +448,9 @@ router.post("/get-info", async function (req: Request, res: Response) {
             handle: aiCallLog,
             status: "Succeeded",
             model: aiModel,
-            usage: coffeeInfoResult.usage
+            usage: coffeeInfoResult.usage,
+            promptText: coffeeInfoResult.promptText,
+            outputText: coffeeInfoResult.outputText
         });
 
         res.json({
@@ -517,7 +519,9 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
             status: "Succeeded",
             model: aiModel,
             usage: imageIdentityResult.usage,
-            imageCount: 1
+            imageCount: 1,
+            promptText: imageIdentityResult.promptText,
+            outputText: imageIdentityResult.outputText
         });
 
         res.json({

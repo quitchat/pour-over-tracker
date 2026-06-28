@@ -62,6 +62,20 @@ function normalizeErrorMessage(errorMessage: string | null | undefined): string 
     return `${trimmed.substring(0, 497)}...`;
 }
 
+function normalizeLogPayload(value: string | null | undefined): string | null {
+    if (!value) {
+        return null;
+    }
+
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+        return null;
+    }
+
+    return trimmed;
+}
+
 function getNumberValue(value: unknown): number | null {
     if (typeof value !== "number" || !Number.isFinite(value)) {
         return null;
@@ -176,6 +190,7 @@ export async function startAiCallLog(args: {
     callType: string;
     model: string | null | undefined;
     imageCount?: number | null;
+    promptText?: string | null;
 }): Promise<AiCallLogHandle> {
     const handle: AiCallLogHandle = {
         id: null,
@@ -190,7 +205,8 @@ export async function startAiCallLog(args: {
                 callType: args.callType,
                 model: args.model || null,
                 status: "Started",
-                imageCount: args.imageCount || 0
+                imageCount: args.imageCount || 0,
+                promptText: normalizeLogPayload(args.promptText)
             },
             select: {
                 id: true
@@ -212,6 +228,8 @@ export async function finishAiCallLog(args: {
     errorMessage?: string | null;
     usage?: AiTokenUsage | null;
     imageCount?: number | null;
+    promptText?: string | null;
+    outputText?: string | null;
 }): Promise<void> {
     if (!args.handle.id) {
         return;
@@ -243,6 +261,8 @@ export async function finishAiCallLog(args: {
                 totalTokens: totalTokens,
                 imageCount: args.imageCount === null || typeof args.imageCount === "undefined" ? undefined : args.imageCount,
                 estimatedCostUsd: estimatedCostUsd,
+                promptText: args.promptText === null || typeof args.promptText === "undefined" ? undefined : normalizeLogPayload(args.promptText),
+                outputText: args.outputText === null || typeof args.outputText === "undefined" ? undefined : normalizeLogPayload(args.outputText),
                 errorMessage: args.status === "Failed" ? normalizeErrorMessage(args.errorMessage) : null
             }
         });

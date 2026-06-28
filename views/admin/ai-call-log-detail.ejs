@@ -1,0 +1,103 @@
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h1 class="h3 mb-1">AI Call Log Detail</h1>
+        <p class="text-muted mb-0">
+            Review the stored prompt and output for one AI call. Uploaded image bytes are not stored here.
+        </p>
+    </div>
+
+    <a href="/admin/ai-call-logs" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>
+        AI Call Logs
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <i class="bi bi-info-circle me-1"></i>
+        Summary
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="text-muted small">Started</div>
+                <div class="fw-semibold"><%= log.startedAt %></div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">User</div>
+                <div class="fw-semibold"><%= log.userEmail || "Unknown" %></div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Call Type</div>
+                <div class="fw-semibold"><%= log.callType %></div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Model</div>
+                <div class="fw-semibold"><%= log.model || "" %></div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Status</div>
+                <div>
+                    <% if (log.status === "Succeeded") { %>
+                        <span class="badge text-bg-success">Succeeded</span>
+                    <% } else if (log.status === "Failed") { %>
+                        <span class="badge text-bg-danger">Failed</span>
+                    <% } else { %>
+                        <span class="badge text-bg-secondary"><%= log.status %></span>
+                    <% } %>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Duration</div>
+                <div class="fw-semibold">
+                    <% if (log.durationMs !== null && log.durationMs !== undefined) { %>
+                        <%= (log.durationMs / 1000).toFixed(2) %>s
+                    <% } %>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Tokens</div>
+                <div class="fw-semibold"><%= log.inputTokens || 0 %> / <%= log.outputTokens || 0 %> / <%= log.totalTokens || 0 %></div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Estimated Cost</div>
+                <div class="fw-semibold"><%= log.estimatedCost || "$0.000000" %></div>
+            </div>
+        </div>
+
+        <% if (log.errorMessage) { %>
+            <div class="alert alert-danger mt-3 mb-0">
+                <strong>Error:</strong>
+                <%= log.errorMessage %>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">
+        <i class="bi bi-chat-left-text me-1"></i>
+        Prompt Sent
+    </div>
+    <div class="card-body">
+        <% if (log.promptText) { %>
+            <pre class="bg-light border rounded p-3 mb-0 text-wrap" style="white-space: pre-wrap;"><%= log.promptText %></pre>
+        <% } else { %>
+            <div class="text-muted">No prompt text stored for this call.</div>
+        <% } %>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-robot me-1"></i>
+        Output Returned
+    </div>
+    <div class="card-body">
+        <% if (log.outputText) { %>
+            <pre class="bg-light border rounded p-3 mb-0 text-wrap" style="white-space: pre-wrap;"><%= log.outputText %></pre>
+        <% } else { %>
+            <div class="text-muted">No output text stored for this call.</div>
+        <% } %>
+    </div>
+</div>

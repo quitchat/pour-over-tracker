@@ -2,8 +2,8 @@
     <div>
         <h1 class="h3 mb-1">AI Call Logs</h1>
         <p class="text-muted mb-0">
-            Tracks who initiated each AI call, when it started, call type, status, token usage, image count, and estimated cost.
-            Prompts and responses are not stored.
+            Tracks who initiated each AI call, when it started, call type, status, token usage, image count, estimated cost, prompt text, and output text.
+            Uploaded image bytes are not stored in the prompt log.
         </p>
     </div>
 
@@ -123,6 +123,7 @@
                             <th class="text-end">Images</th>
                             <th class="text-end">Est. Cost</th>
                             <th>Error</th>
+                            <th class="text-end">Details</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -152,6 +153,12 @@
                                 <td class="text-end"><%= log.imageCount || "" %></td>
                                 <td class="text-end text-nowrap"><%= log.estimatedCost || "" %></td>
                                 <td class="text-break"><%= log.errorMessage %></td>
+                                <td class="text-end text-nowrap">
+                                    <a href="/admin/ai-call-logs/<%= log.id %>" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-card-text me-1"></i>
+                                        Details
+                                    </a>
+                                </td>
                             </tr>
                         <% }); %>
                     </tbody>

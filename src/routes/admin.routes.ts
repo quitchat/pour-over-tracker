@@ -162,7 +162,9 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
             totalTokens: log.totalTokens,
             imageCount: log.imageCount,
             estimatedCost: formatEstimatedCost(log.estimatedCostUsd),
-            errorMessage: log.errorMessage || ""
+            errorMessage: log.errorMessage || "",
+            hasPrompt: !!log.promptText,
+            hasOutput: !!log.outputText
         };
     });
 
@@ -178,6 +180,48 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
         filteredTotalTokens: filteredCostSummary._sum.totalTokens || 0,
         filteredImageCount: filteredCostSummary._sum.imageCount || 0,
         filteredEstimatedCost: formatEstimatedCost(filteredCostSummary._sum.estimatedCostUsd)
+    });
+});
+
+router.get("/ai-call-logs/:id", async function (req: Request, res: Response) {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+        res.redirect("/admin/ai-call-logs");
+        return;
+    }
+
+    const log = await prisma.aiCallLog.findUnique({
+        where: {
+            id: id
+        }
+    });
+
+    if (!log) {
+        res.redirect("/admin/ai-call-logs");
+        return;
+    }
+
+    res.render("admin/ai-call-log-detail", {
+        title: "Admin - AI Call Log Detail",
+        log: {
+            id: log.id,
+            userEmail: log.userEmail || "",
+            callType: log.callType,
+            model: log.model || "",
+            status: log.status,
+            startedAt: formatDateTime(log.startedAt),
+            completedAt: formatDateTime(log.completedAt),
+            durationMs: log.durationMs,
+            inputTokens: log.inputTokens,
+            outputTokens: log.outputTokens,
+            totalTokens: log.totalTokens,
+            imageCount: log.imageCount,
+            estimatedCost: formatEstimatedCost(log.estimatedCostUsd),
+            errorMessage: log.errorMessage || "",
+            promptText: log.promptText || "",
+            outputText: log.outputText || ""
+        }
     });
 });
 

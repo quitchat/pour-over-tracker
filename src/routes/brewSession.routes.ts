@@ -955,7 +955,9 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
             handle: aiCallLog,
             status: "Succeeded",
             model: aiModel,
-            usage: recipeResult.usage
+            usage: recipeResult.usage,
+            promptText: recipeResult.promptText,
+            outputText: recipeResult.outputText
         });
 
         res.json({
