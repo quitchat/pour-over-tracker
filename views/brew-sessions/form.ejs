@@ -84,6 +84,83 @@
         font-weight: 600;
     }
 
+    .radar-score-editor {
+        max-width: 420px;
+        margin: 0 auto;
+        touch-action: none;
+        user-select: none;
+    }
+
+    .radar-score-editor svg {
+        width: 100%;
+        height: auto;
+        display: block;
+        cursor: crosshair;
+    }
+
+    .radar-score-editor:focus-within svg,
+    .radar-score-editor svg:focus-visible {
+        outline: 2px solid var(--bs-primary);
+        outline-offset: 0.35rem;
+        border-radius: 0.75rem;
+    }
+
+    .radar-score-grid-line {
+        fill: none;
+        stroke: #dee2e6;
+        stroke-width: 1;
+    }
+
+    .radar-score-axis-line {
+        stroke: #adb5bd;
+        stroke-width: 1;
+    }
+
+    .radar-score-area {
+        fill: rgba(13, 110, 253, 0.22);
+        stroke: var(--bs-primary);
+        stroke-width: 3;
+    }
+
+    .radar-score-handle {
+        fill: var(--bs-primary);
+        stroke: #fff;
+        stroke-width: 3;
+        cursor: grab;
+    }
+
+    .radar-score-handle:active {
+        cursor: grabbing;
+    }
+
+    .radar-score-label {
+        font-size: 13px;
+        font-weight: 600;
+        fill: #212529;
+    }
+
+    .radar-score-number {
+        font-size: 12px;
+        fill: #6c757d;
+    }
+
+    .radar-score-value-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .radar-score-value-pill {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 999px;
+        padding: 0.4rem 0.7rem;
+        background: var(--bs-body-bg);
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+
 
     .brew-form-actions {
         background: var(--bs-body-bg);
@@ -369,103 +446,67 @@
         <div class="collapse show d-md-block" id="brewCharacteristicsCollapse">
             <div class="card-body">
                 <p class="text-muted">
-                    Score this specific brew from 1 to 5. The radar chart updates while you move the sliders.
+                    Score this specific brew from 1 to 5 by clicking or dragging directly on the pentagon radar chart.
                 </p>
 
-            <div class="row g-4 align-items-center">
-                <div class="col-lg-6">
-                    <div class="mb-3">
-                        <label for="richness" class="form-label d-flex justify-content-between">
-                            <span>Richness</span>
-                            <span><span id="richnessValue"><%= formData.richness || '3' %></span> / 5</span>
-                        </label>
-                        <input
-                            type="range"
-                            class="form-range tasting-score-range"
-                            id="richness"
-                            name="richness"
-                            min="1"
-                            max="5"
-                            step="1"
-                            data-output-id="richnessValue"
-                            value="<%= formData.richness || '3' %>">
+                <input type="hidden" class="tasting-score-input" id="richness" name="richness" value="<%= formData.richness || '3' %>">
+                <input type="hidden" class="tasting-score-input" id="sweetness" name="sweetness" value="<%= formData.sweetness || '3' %>">
+                <input type="hidden" class="tasting-score-input" id="aftertaste" name="aftertaste" value="<%= formData.aftertaste || '3' %>">
+                <input type="hidden" class="tasting-score-input" id="aroma" name="aroma" value="<%= formData.aroma || '3' %>">
+                <input type="hidden" class="tasting-score-input" id="acidity" name="acidity" value="<%= formData.acidity || '3' %>">
+
+                <div class="row g-4 align-items-center">
+                    <div class="col-lg-7">
+                        <div class="border rounded p-3 bg-light">
+                            <div class="radar-score-editor" id="brewCharacteristicsRadarEditor">
+                                <svg
+                                    id="brewCharacteristicsRadarSvg"
+                                    viewBox="0 0 320 320"
+                                    role="img"
+                                    tabindex="0"
+                                    aria-label="Interactive brew characteristics pentagon radar score editor">
+                                    <g id="radarScoreGrid"></g>
+                                    <polygon id="radarScoreArea" class="radar-score-area" points=""></polygon>
+                                    <g id="radarScoreHandles"></g>
+                                    <g id="radarScoreLabels"></g>
+                                </svg>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="sweetness" class="form-label d-flex justify-content-between">
-                            <span>Sweetness</span>
-                            <span><span id="sweetnessValue"><%= formData.sweetness || '3' %></span> / 5</span>
-                        </label>
-                        <input
-                            type="range"
-                            class="form-range tasting-score-range"
-                            id="sweetness"
-                            name="sweetness"
-                            min="1"
-                            max="5"
-                            step="1"
-                            data-output-id="sweetnessValue"
-                            value="<%= formData.sweetness || '3' %>">
-                    </div>
+                    <div class="col-lg-5">
+                        <div class="radar-score-value-grid">
+                            <div class="radar-score-value-pill">
+                                <span>Richness</span>
+                                <strong><span id="richnessValue"><%= formData.richness || '3' %></span> / 5</strong>
+                            </div>
 
-                    <div class="mb-3">
-                        <label for="aftertaste" class="form-label d-flex justify-content-between">
-                            <span>Aftertaste</span>
-                            <span><span id="aftertasteValue"><%= formData.aftertaste || '3' %></span> / 5</span>
-                        </label>
-                        <input
-                            type="range"
-                            class="form-range tasting-score-range"
-                            id="aftertaste"
-                            name="aftertaste"
-                            min="1"
-                            max="5"
-                            step="1"
-                            data-output-id="aftertasteValue"
-                            value="<%= formData.aftertaste || '3' %>">
-                    </div>
+                            <div class="radar-score-value-pill">
+                                <span>Sweetness</span>
+                                <strong><span id="sweetnessValue"><%= formData.sweetness || '3' %></span> / 5</strong>
+                            </div>
 
-                    <div class="mb-3">
-                        <label for="aroma" class="form-label d-flex justify-content-between">
-                            <span>Aroma</span>
-                            <span><span id="aromaValue"><%= formData.aroma || '3' %></span> / 5</span>
-                        </label>
-                        <input
-                            type="range"
-                            class="form-range tasting-score-range"
-                            id="aroma"
-                            name="aroma"
-                            min="1"
-                            max="5"
-                            step="1"
-                            data-output-id="aromaValue"
-                            value="<%= formData.aroma || '3' %>">
-                    </div>
+                            <div class="radar-score-value-pill">
+                                <span>Aftertaste</span>
+                                <strong><span id="aftertasteValue"><%= formData.aftertaste || '3' %></span> / 5</strong>
+                            </div>
 
-                    <div class="mb-0">
-                        <label for="acidity" class="form-label d-flex justify-content-between">
-                            <span>Acidity</span>
-                            <span><span id="acidityValue"><%= formData.acidity || '3' %></span> / 5</span>
-                        </label>
-                        <input
-                            type="range"
-                            class="form-range tasting-score-range"
-                            id="acidity"
-                            name="acidity"
-                            min="1"
-                            max="5"
-                            step="1"
-                            data-output-id="acidityValue"
-                            value="<%= formData.acidity || '3' %>">
+                            <div class="radar-score-value-pill">
+                                <span>Aroma</span>
+                                <strong><span id="aromaValue"><%= formData.aroma || '3' %></span> / 5</strong>
+                            </div>
+
+                            <div class="radar-score-value-pill">
+                                <span>Acidity</span>
+                                <strong><span id="acidityValue"><%= formData.acidity || '3' %></span> / 5</strong>
+                            </div>
+                        </div>
+
+                        <div class="form-text mt-3">
+                            Tip: tap near an axis to set that score. Drag a blue point to fine-tune it.
+                        </div>
                     </div>
                 </div>
-
-                <div class="col-lg-6">
-                    <div class="border rounded p-3 bg-light">
-                        <canvas id="brewCharacteristicsRadarChart" height="260"></canvas>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -614,92 +655,231 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const scoreRanges = document.querySelectorAll(".tasting-score-range");
-        const radarChartElement = document.getElementById("brewCharacteristicsRadarChart");
-        let brewCharacteristicsRadarChart = null;
+        const radarScoreFields = [
+            { id: "richness", label: "Richness", outputId: "richnessValue" },
+            { id: "sweetness", label: "Sweetness", outputId: "sweetnessValue" },
+            { id: "aftertaste", label: "Aftertaste", outputId: "aftertasteValue" },
+            { id: "aroma", label: "Aroma", outputId: "aromaValue" },
+            { id: "acidity", label: "Acidity", outputId: "acidityValue" }
+        ];
 
-        function getScoreRangeValue(id) {
-            const element = document.getElementById(id);
+        const radarSvg = document.getElementById("brewCharacteristicsRadarSvg");
+        const radarGrid = document.getElementById("radarScoreGrid");
+        const radarScoreArea = document.getElementById("radarScoreArea");
+        const radarHandles = document.getElementById("radarScoreHandles");
+        const radarLabels = document.getElementById("radarScoreLabels");
+        const radarCenter = { x: 160, y: 160 };
+        const radarRadius = 105;
+        const radarLabelRadius = 137;
+        let isDraggingRadarScore = false;
 
-            if (!element) {
-                return 3;
-            }
+        function createSvgElement(tagName) {
+            return document.createElementNS("http://www.w3.org/2000/svg", tagName);
+        }
 
-            const parsed = Number(element.value || "3");
+        function getRadarAxisAngle(index) {
+            return (-90 + index * 72) * Math.PI / 180;
+        }
+
+        function getRadarPoint(index, value, radiusOverride) {
+            const angle = getRadarAxisAngle(index);
+            const radius = typeof radiusOverride === "number" ? radiusOverride : radarRadius * value / 5;
+
+            return {
+                x: radarCenter.x + Math.cos(angle) * radius,
+                y: radarCenter.y + Math.sin(angle) * radius
+            };
+        }
+
+        function clampRadarScore(value) {
+            const parsed = Number(value);
 
             if (Number.isNaN(parsed)) {
                 return 3;
             }
 
-            return parsed;
+            return Math.min(5, Math.max(1, Math.round(parsed)));
         }
 
-        function getRadarScoreValues() {
-            return [
-                getScoreRangeValue("richness"),
-                getScoreRangeValue("sweetness"),
-                getScoreRangeValue("aftertaste"),
-                getScoreRangeValue("aroma"),
-                getScoreRangeValue("acidity")
-            ];
+        function getRadarScoreValue(fieldId) {
+            const input = document.getElementById(fieldId);
+
+            if (!input) {
+                return 3;
+            }
+
+            return clampRadarScore(input.value);
         }
 
-        function updateRadarChart() {
-            if (!brewCharacteristicsRadarChart) {
+        function setRadarScoreValue(fieldId, value) {
+            const input = document.getElementById(fieldId);
+            const score = clampRadarScore(value);
+
+            if (input) {
+                input.value = String(score);
+            }
+
+            updateRadarScoreEditor();
+        }
+
+        function buildRadarScoreGrid() {
+            if (!radarGrid || !radarLabels) {
                 return;
             }
 
-            brewCharacteristicsRadarChart.data.datasets[0].data = getRadarScoreValues();
-            brewCharacteristicsRadarChart.update();
-        }
+            radarGrid.innerHTML = "";
+            radarLabels.innerHTML = "";
 
-        if (window.Chart && radarChartElement) {
-            brewCharacteristicsRadarChart = new Chart(radarChartElement, {
-                type: "radar",
-                data: {
-                    labels: ["Richness", "Sweetness", "Aftertaste", "Aroma", "Acidity"],
-                    datasets: [
-                        {
-                            label: "This Brew",
-                            data: getRadarScoreValues()
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        r: {
-                            beginAtZero: true,
-                            min: 0,
-                            max: 5,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    }
-                }
+            for (let level = 1; level <= 5; level += 1) {
+                const gridPolygon = createSvgElement("polygon");
+                const points = radarScoreFields.map(function (field, index) {
+                    const point = getRadarPoint(index, level, radarRadius * level / 5);
+
+                    return point.x + "," + point.y;
+                }).join(" ");
+
+                gridPolygon.setAttribute("points", points);
+                gridPolygon.setAttribute("class", "radar-score-grid-line");
+                radarGrid.appendChild(gridPolygon);
+            }
+
+            radarScoreFields.forEach(function (field, index) {
+                const edgePoint = getRadarPoint(index, 5);
+                const labelPoint = getRadarPoint(index, 5, radarLabelRadius);
+                const axisLine = createSvgElement("line");
+
+                axisLine.setAttribute("x1", String(radarCenter.x));
+                axisLine.setAttribute("y1", String(radarCenter.y));
+                axisLine.setAttribute("x2", String(edgePoint.x));
+                axisLine.setAttribute("y2", String(edgePoint.y));
+                axisLine.setAttribute("class", "radar-score-axis-line");
+                radarGrid.appendChild(axisLine);
+
+                const label = createSvgElement("text");
+                label.setAttribute("x", String(labelPoint.x));
+                label.setAttribute("y", String(labelPoint.y));
+                label.setAttribute("text-anchor", labelPoint.x < radarCenter.x - 10 ? "end" : labelPoint.x > radarCenter.x + 10 ? "start" : "middle");
+                label.setAttribute("dominant-baseline", "middle");
+                label.setAttribute("class", "radar-score-label");
+                label.textContent = field.label;
+                radarLabels.appendChild(label);
             });
         }
 
-        scoreRanges.forEach(function (range) {
-            const outputId = range.getAttribute("data-output-id");
-            const output = document.getElementById(outputId);
-
-            function updateOutput() {
-                if (output) {
-                    output.textContent = range.value;
-                }
-
-                updateRadarChart();
+        function updateRadarScoreEditor() {
+            if (!radarScoreArea || !radarHandles) {
+                return;
             }
 
-            range.addEventListener("input", updateOutput);
-            updateOutput();
-        });
+            const points = radarScoreFields.map(function (field, index) {
+                const value = getRadarScoreValue(field.id);
+                const point = getRadarPoint(index, value);
+                const output = document.getElementById(field.outputId);
+
+                if (output) {
+                    output.textContent = String(value);
+                }
+
+                return point.x + "," + point.y;
+            }).join(" ");
+
+            radarScoreArea.setAttribute("points", points);
+            radarHandles.innerHTML = "";
+
+            radarScoreFields.forEach(function (field, index) {
+                const value = getRadarScoreValue(field.id);
+                const point = getRadarPoint(index, value);
+                const handle = createSvgElement("circle");
+
+                handle.setAttribute("cx", String(point.x));
+                handle.setAttribute("cy", String(point.y));
+                handle.setAttribute("r", "8");
+                handle.setAttribute("class", "radar-score-handle");
+                handle.setAttribute("data-field-id", field.id);
+                handle.setAttribute("aria-label", field.label + " score " + value + " out of 5");
+                radarHandles.appendChild(handle);
+
+                const number = createSvgElement("text");
+                number.setAttribute("x", String(point.x));
+                number.setAttribute("y", String(point.y - 14));
+                number.setAttribute("text-anchor", "middle");
+                number.setAttribute("class", "radar-score-number");
+                number.textContent = String(value);
+                radarHandles.appendChild(number);
+            });
+        }
+
+        function getSvgPointerPoint(event) {
+            const point = radarSvg.createSVGPoint();
+            point.x = event.clientX;
+            point.y = event.clientY;
+
+            return point.matrixTransform(radarSvg.getScreenCTM().inverse());
+        }
+
+        function getNearestRadarFieldIndex(point) {
+            const dx = point.x - radarCenter.x;
+            const dy = point.y - radarCenter.y;
+            let bestIndex = 0;
+            let bestDot = -Infinity;
+
+            radarScoreFields.forEach(function (field, index) {
+                const angle = getRadarAxisAngle(index);
+                const dot = dx * Math.cos(angle) + dy * Math.sin(angle);
+
+                if (dot > bestDot) {
+                    bestDot = dot;
+                    bestIndex = index;
+                }
+            });
+
+            return bestIndex;
+        }
+
+        function updateRadarScoreFromPointer(event) {
+            if (!radarSvg) {
+                return;
+            }
+
+            const point = getSvgPointerPoint(event);
+            const fieldIndex = getNearestRadarFieldIndex(point);
+            const angle = getRadarAxisAngle(fieldIndex);
+            const dx = point.x - radarCenter.x;
+            const dy = point.y - radarCenter.y;
+            const projectedDistance = dx * Math.cos(angle) + dy * Math.sin(angle);
+            const score = projectedDistance / radarRadius * 5;
+
+            setRadarScoreValue(radarScoreFields[fieldIndex].id, score);
+        }
+
+        if (radarSvg) {
+            buildRadarScoreGrid();
+            updateRadarScoreEditor();
+
+            radarSvg.addEventListener("pointerdown", function (event) {
+                isDraggingRadarScore = true;
+                radarSvg.setPointerCapture(event.pointerId);
+                updateRadarScoreFromPointer(event);
+            });
+
+            radarSvg.addEventListener("pointermove", function (event) {
+                if (isDraggingRadarScore) {
+                    updateRadarScoreFromPointer(event);
+                }
+            });
+
+            radarSvg.addEventListener("pointerup", function (event) {
+                isDraggingRadarScore = false;
+                radarSvg.releasePointerCapture(event.pointerId);
+            });
+
+            radarSvg.addEventListener("pointercancel", function () {
+                isDraggingRadarScore = false;
+            });
+        }
 
         const overallRatingInput = document.getElementById("overallRating");
         const overallRatingDisplay = document.getElementById("overallRatingDisplay");
