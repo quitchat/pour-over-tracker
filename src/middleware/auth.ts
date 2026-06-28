@@ -7,6 +7,7 @@ type CurrentUser = {
     displayName: string | null;
     role: string;
     isActive: boolean;
+    allowAi: boolean;
 };
 
 function isApiRequest(req: Request): boolean {
@@ -47,7 +48,8 @@ export async function loadCurrentUser(req: Request, res: Response, next: NextFun
                 email: true,
                 displayName: true,
                 role: true,
-                isActive: true
+                isActive: true,
+                allowAi: true
             }
         });
 
@@ -124,6 +126,30 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
     }
 
     next();
+}
+
+export function requireAiAccess(req: Request, res: Response, next: NextFunction): void {
+    const currentUser = res.locals.currentUser as CurrentUser | null | undefined;
+
+    if (currentUser && currentUser.isActive && currentUser.allowAi) {
+        next();
+        return;
+    }
+
+    if (isApiRequest(req)) {
+        res.status(403).json({
+            ok: false,
+            message: "AI access is not enabled for your account.",
+            errorMessage: "AI access is not enabled for your account."
+        });
+
+        return;
+    }
+
+    res.status(403).render("error", {
+        title: "AI Access Disabled",
+        message: "AI access is not enabled for your account."
+    });
 }
 
 export function getRequiredUserId(req: Request): number {

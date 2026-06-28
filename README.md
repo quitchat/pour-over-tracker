@@ -19,6 +19,8 @@
 - Administrative user management
 - User activation/deactivation controls
 - Deactivated-user access restriction
+- Per-user AI access permission
+- Admin-only AI access enablement
 
 ## Coffee Bean Management
 
@@ -68,9 +70,9 @@
 - Brew-session scoring separate from bean-level rating
 - Radar-chart tasting visualization
 - Brew session duplication workflow
+- Brew detail previous/next navigation with mobile swipe support
 - Brew comparison workflow
 - AI suggestion support through adjustment notes
-- Removed Would Repeat field from brew-session workflow
 
 ## Dashboard, Analytics, and Visualization
 
@@ -96,10 +98,8 @@
   - Confirmed factual bean notes
 - Official product page URL storage
 - Null/empty-value handling for unsupported fields
-- No AI-managed price updates
-- No coffee bag image lookup
-- No image URL extraction
 - Admin-managed Bean Detail AI prompt
+- Per-user AI feature availability controls
 
 ## AI Logging, Costing, and Administration
 
@@ -132,7 +132,6 @@
   - Coffee beans
   - Brew sessions
   - API/AI call logs
-- Simplified bean rating interface without explanatory helper text
 
 ## Deployment and Operations
 

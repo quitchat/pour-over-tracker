@@ -524,6 +524,7 @@ router.get("/users", async function (req: Request, res: Response) {
             displayName: user.displayName || "",
             role: user.role,
             isActive: user.isActive,
+            allowAi: user.allowAi,
             deactivatedAt: formatDateTime(user.deactivatedAt),
             createdAt: formatDateTime(user.createdAt),
             coffeeBeanCount: user._count.coffeeBeans,
@@ -540,6 +541,46 @@ router.get("/users", async function (req: Request, res: Response) {
         message: String(req.query.message || ""),
         error: String(req.query.error || "")
     });
+});
+
+router.post("/users/:id/enable-ai", async function (req: Request, res: Response) {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+        res.redirect("/admin/users?error=Invalid%20user.");
+        return;
+    }
+
+    await prisma.user.update({
+        where: {
+            id: id
+        },
+        data: {
+            allowAi: true
+        }
+    });
+
+    res.redirect("/admin/users?message=AI%20access%20enabled.");
+});
+
+router.post("/users/:id/disable-ai", async function (req: Request, res: Response) {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+        res.redirect("/admin/users?error=Invalid%20user.");
+        return;
+    }
+
+    await prisma.user.update({
+        where: {
+            id: id
+        },
+        data: {
+            allowAi: false
+        }
+    });
+
+    res.redirect("/admin/users?message=AI%20access%20disabled.");
 });
 
 router.post("/users/:id/deactivate", async function (req: Request, res: Response) {

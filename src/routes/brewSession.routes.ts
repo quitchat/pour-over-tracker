@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
-import { getRequiredUserId } from "../middleware/auth";
+import { getRequiredUserId, requireAiAccess } from "../middleware/auth";
 import { suggestBrewingRecipe } from "../services/brewAssistant.service";
 import { AI_API_FEATURE_TYPES, AI_CALL_TYPES, AI_TOOL_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
 import { formatDateUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
@@ -1242,7 +1242,7 @@ router.post("/equipment-location-suggestions", async function (req: Request, res
     });
 });
 
-router.post("/suggest-recipe", async function (req: Request, res: Response) {
+router.post("/suggest-recipe", requireAiAccess, async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
 
     const coffeeBeanId = parseRequiredInteger(String(req.body.coffeeBeanId || "").trim());

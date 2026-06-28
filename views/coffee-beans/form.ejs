@@ -1,8 +1,14 @@
+<% const userCanUseAi = !!(currentUser && currentUser.allowAi); %>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
         <h1 class="h3 mb-1"><%= pageHeading %></h1>
         <p class="text-muted mb-0">
-            Enter bean details manually or use AI to fill supported bean information.
+            <% if (userCanUseAi) { %>
+                Enter bean details manually or use AI to fill supported bean information.
+            <% } else { %>
+                Enter bean details manually.
+            <% } %>
         </p>
     </div>
 
@@ -93,16 +99,21 @@
                 Bean Info
             </span>
 
-            <button type="button" class="btn btn-sm btn-outline-success" id="getCoffeeInfoButton">
-                <i class="bi bi-stars me-1"></i>
-                Get Coffee Information
-            </button>
+            <% if (userCanUseAi) { %>
+                <button type="button" class="btn btn-sm btn-outline-success" id="getCoffeeInfoButton">
+                    <i class="bi bi-stars me-1"></i>
+                    Get Coffee Information
+                </button>
+            <% } %>
         </div>
 
         <div class="card-body">
             <p class="text-muted">
-                Upload a bean bag picture first to let AI read the roaster and coffee name, or enter them manually.
-                Price is always manual and will not be changed by AI.
+                <% if (userCanUseAi) { %>
+                    Upload a bean bag picture first to let AI read the roaster and coffee name, or enter them manually.
+                <% } else { %>
+                    Upload a bean bag picture or enter bean details manually.
+                <% } %>
             </p>
 
             <div class="row g-3">
@@ -153,27 +164,31 @@
 
                         <span class="text-muted small" id="bagImageFileName">No photo selected</span>
 
-                        <button
-                            type="button"
-                            class="btn btn-outline-primary"
-                            id="uploadBagImageButton">
-                            <i class="bi bi-upload me-1"></i>
-                            <% if (isEdit) { %>
-                                <span>Upload</span>
-                            <% } else { %>
-                                <span class="d-none d-sm-inline">Upload + Read Label + Get Info</span>
-                                <span class="d-inline d-sm-none">Read Bag + Get Info</span>
-                            <% } %>
-                        </button>
+                        <% if (isEdit || userCanUseAi) { %>
+                            <button
+                                type="button"
+                                class="btn btn-outline-primary"
+                                id="uploadBagImageButton">
+                                <i class="bi bi-upload me-1"></i>
+                                <% if (isEdit) { %>
+                                    <span>Upload</span>
+                                <% } else { %>
+                                    <span class="d-none d-sm-inline">Upload + Read Label + Get Info</span>
+                                    <span class="d-inline d-sm-none">Read Bag + Get Info</span>
+                                <% } %>
+                            </button>
+                        <% } %>
                     </div>
 
                     <div class="form-text">
                         Upload JPG, PNG, WEBP, or GIF. Maximum upload size: 12 MB. The server will resize and compress it automatically.
                         On a phone, you can choose from the photo library or take a new picture with the rear camera.
                         <% if (isEdit) { %>
-                            The Upload button saves the selected image only. It does not call AI, read the label, or get bean information.
-                        <% } else { %>
+                            The Upload button saves the selected image only.
+                        <% } else if (userCanUseAi) { %>
                             The upload button saves the image, reads Roaster and Coffee Name, then automatically gets bean information when both values are found.
+                        <% } else { %>
+                            The selected image will be saved when you save the coffee bean.
                         <% } %>
                     </div>
                 </div>

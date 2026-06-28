@@ -5,7 +5,7 @@ import path from "path";
 import multer from "multer";
 import sharp from "sharp";
 import { prisma } from "../lib/prisma";
-import { getRequiredUserId } from "../middleware/auth";
+import { getRequiredUserId, requireAiAccess } from "../middleware/auth";
 import { CoffeeInformationResult, getCoffeeBagImageIdentityFromOpenAI, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
 import { AI_API_FEATURE_TYPES, AI_CALL_TYPES, AI_TOOL_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
 import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
@@ -473,7 +473,7 @@ router.get("/new", async function (req: Request, res: Response) {
     });
 });
 
-router.post("/get-info", async function (req: Request, res: Response) {
+router.post("/get-info", requireAiAccess, async function (req: Request, res: Response) {
     const formValues = getCoffeeBeanFormValues(req);
 
     if (!formValues.roasterName || !formValues.beanName) {
@@ -537,7 +537,7 @@ router.post("/get-info", async function (req: Request, res: Response) {
     }
 });
 
-router.post("/upload-bag-image-identify", async function (req: Request, res: Response) {
+router.post("/upload-bag-image-identify", requireAiAccess, async function (req: Request, res: Response) {
     const uploadErrors = await runCoffeeBeanImageUpload(req, res);
     const resizeErrors = uploadErrors.length === 0 ? await resizeUploadedCoffeeBeanImage(req) : [];
     const allUploadErrors = uploadErrors.concat(resizeErrors);
