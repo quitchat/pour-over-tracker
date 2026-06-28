@@ -251,12 +251,14 @@
                 </div>
 
 
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="button" class="btn btn-success w-100" id="suggestRecipeButton">
-                        <i class="bi bi-magic me-1"></i>
-                        Suggest Brewing Recipe
-                    </button>
-                </div>
+                <% if (typeof showAiSuggestionButton === "undefined" || showAiSuggestionButton) { %>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" class="btn btn-success w-100" id="suggestRecipeButton">
+                            <i class="bi bi-magic me-1"></i>
+                            Suggest Brewing Recipe
+                        </button>
+                    </div>
+                <% } %>
             </div>
         </div>
     </div>
