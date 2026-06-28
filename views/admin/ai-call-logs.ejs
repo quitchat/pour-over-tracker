@@ -2,8 +2,8 @@
     <div>
         <h1 class="h3 mb-1">AI Call Logs</h1>
         <p class="text-muted mb-0">
-            Tracks who initiated each AI call, API feature type, tool usage, token usage, estimated cost, prompt text, and output text.
-            Uploaded image bytes are not stored in the prompt log.
+            Tracks who initiated each AI call, API feature type, tool usage, estimated total cost, prompt text, and output text.
+            Token details and cost breakdown are available on the detail page. Uploaded image bytes are not stored in the prompt log.
         </p>
     </div>
 
@@ -14,35 +14,17 @@
 </div>
 
 <div class="row g-3 mb-3">
-    <div class="col-md-3">
+    <div class="col-md-6">
         <div class="card h-100 shadow-sm">
             <div class="card-body">
                 <div class="text-muted small">Filtered Estimated Total Cost</div>
                 <div class="fs-5 fw-semibold"><%= filteredEstimatedCost || "$0.000000" %></div>
-                <div class="small text-muted">Tokens <%= filteredTokenEstimatedCost || "$0.000000" %> / Tools <%= filteredToolEstimatedCost || "$0.000000" %></div>
+                <div class="small text-muted">Token and tool cost breakdown is shown on each log detail page.</div>
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small">Filtered Tokens</div>
-                <div class="fs-5 fw-semibold"><%= filteredTotalTokens || 0 %></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="card h-100 shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small">Input / Output Tokens</div>
-                <div class="fs-6 fw-semibold"><%= filteredInputTokens || 0 %> / <%= filteredOutputTokens || 0 %></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
+    <div class="col-md-6">
         <div class="card h-100 shadow-sm">
             <div class="card-body">
                 <div class="text-muted small">Images / Web Searches</div>
@@ -101,10 +83,8 @@
 
 <div class="alert alert-info small">
     <strong>Cost is estimated.</strong>
-    Token counts come from the OpenAI API usage field when available. Token pricing uses built-in defaults for known models or your configured
-    <code>OPENAI_COST_INPUT_PER_1M</code> and <code>OPENAI_COST_OUTPUT_PER_1M</code> environment variables. Web search tool cost uses the value from
-    <a href="/admin/ai-cost-settings">Admin → AI Cost Settings</a>. If no database setting exists, it falls back to
-    <code>OPENAI_COST_WEB_SEARCH_PER_1K</code>, then 10.
+    This list shows the estimated total cost only. Token counts and token/tool cost breakdown are available from each row's Details page.
+    Web search tool cost uses the value from <a href="/admin/ai-cost-settings">Admin → AI Cost Settings</a>.
 </div>
 
 <div class="card">
@@ -131,14 +111,9 @@
                             <th>Model</th>
                             <th>Status</th>
                             <th class="text-end">Duration</th>
-                            <th class="text-end">Input</th>
-                            <th class="text-end">Output</th>
-                            <th class="text-end">Total</th>
                             <th class="text-end">Images</th>
                             <th class="text-end">Web</th>
-                            <th class="text-end">Token $</th>
-                            <th class="text-end">Tool $</th>
-                            <th class="text-end">Total $</th>
+                            <th class="text-end">Estimated $</th>
                             <th>Error</th>
                             <th class="text-end">Details</th>
                         </tr>
@@ -165,13 +140,8 @@
                                         <%= (log.durationMs / 1000).toFixed(2) %>s
                                     <% } %>
                                 </td>
-                                <td class="text-end"><%= log.inputTokens || "" %></td>
-                                <td class="text-end"><%= log.outputTokens || "" %></td>
-                                <td class="text-end"><%= log.totalTokens || "" %></td>
                                 <td class="text-end"><%= log.imageCount || "" %></td>
                                 <td class="text-end"><%= log.webSearchCallCount || "" %></td>
-                                <td class="text-end text-nowrap"><%= log.tokenEstimatedCost || "" %></td>
-                                <td class="text-end text-nowrap"><%= log.toolEstimatedCost || "" %></td>
                                 <td class="text-end text-nowrap"><%= log.estimatedCost || "" %></td>
                                 <td class="text-break"><%= log.errorMessage %></td>
                                 <td class="text-end text-nowrap">
