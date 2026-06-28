@@ -92,7 +92,8 @@
                             class="btn btn-outline-primary"
                             id="uploadBagImageButton">
                             <i class="bi bi-upload me-1"></i>
-                            Upload + Read Label + Get Info
+                            <span class="d-none d-sm-inline">Upload + Read Label + Get Info</span>
+                            <span class="d-inline d-sm-none">Read Bag + Get Info</span>
                         </button>
                     </div>
 
@@ -320,12 +321,13 @@
                 uploadBagImageButton.disabled = true;
                 uploadBagImageButton.innerHTML =
                     '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' +
-                    'Uploading + Reading...';
+                    'Reading bag...';
             } else {
                 uploadBagImageButton.disabled = false;
                 uploadBagImageButton.innerHTML =
                     '<i class="bi bi-upload me-1"></i>' +
-                    'Upload + Read Label + Get Info';
+                    '<span class="d-none d-sm-inline">Upload + Read Label + Get Info</span>' +
+                    '<span class="d-inline d-sm-none">Read Bag + Get Info</span>';
             }
         }
 
