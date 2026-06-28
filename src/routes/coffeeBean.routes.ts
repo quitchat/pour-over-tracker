@@ -468,7 +468,8 @@ router.get("/new", async function (req: Request, res: Response) {
         submitButtonText: "Save Coffee Bean",
         errors: [],
         formData: {},
-        roasterSuggestions: roasterSuggestions
+        roasterSuggestions: roasterSuggestions,
+        isEdit: false
     });
 });
 
@@ -646,7 +647,8 @@ router.post("/", async function (req: Request, res: Response) {
                 ...formValues,
                 bagImageUrl: existingUploadedBagImageUrl
             },
-            roasterSuggestions: roasterSuggestions
+            roasterSuggestions: roasterSuggestions,
+            isEdit: false
         });
 
         return;
@@ -714,7 +716,8 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
             beanNotes: coffeeBean.beanNotes || "",
             rating: coffeeBean.rating ? coffeeBean.rating.toString() : ""
         },
-        roasterSuggestions: roasterSuggestions
+        roasterSuggestions: roasterSuggestions,
+        isEdit: true
     });
 });
 
@@ -758,7 +761,8 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
                 ...formValues,
                 bagImageUrl: existingUploadedBagImageUrl || existingCoffeeBean.bagImageUrl || ""
             },
-            roasterSuggestions: roasterSuggestions
+            roasterSuggestions: roasterSuggestions,
+            isEdit: true
         });
 
         return;

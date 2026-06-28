@@ -158,15 +158,23 @@
                             class="btn btn-outline-primary"
                             id="uploadBagImageButton">
                             <i class="bi bi-upload me-1"></i>
-                            <span class="d-none d-sm-inline">Upload + Read Label + Get Info</span>
-                            <span class="d-inline d-sm-none">Read Bag + Get Info</span>
+                            <% if (isEdit) { %>
+                                <span>Upload</span>
+                            <% } else { %>
+                                <span class="d-none d-sm-inline">Upload + Read Label + Get Info</span>
+                                <span class="d-inline d-sm-none">Read Bag + Get Info</span>
+                            <% } %>
                         </button>
                     </div>
 
                     <div class="form-text">
                         Upload JPG, PNG, WEBP, or GIF. Maximum upload size: 12 MB. The server will resize and compress it automatically.
                         On a phone, you can choose from the photo library or take a new picture with the rear camera.
-                        The upload button saves the image, reads Roaster and Coffee Name, then automatically gets bean information when both values are found.
+                        <% if (isEdit) { %>
+                            The Upload button saves the selected image only. It does not call AI, read the label, or get bean information.
+                        <% } else { %>
+                            The upload button saves the image, reads Roaster and Coffee Name, then automatically gets bean information when both values are found.
+                        <% } %>
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -471,6 +479,8 @@
             setBeanRating(beanRatingInput.value);
         }
 
+        const isEditMode = <%= isEdit ? "true" : "false" %>;
+        const coffeeBeanForm = document.getElementById("coffeeBeanForm");
         const getCoffeeInfoButton = document.getElementById("getCoffeeInfoButton");
         const uploadBagImageButton = document.getElementById("uploadBagImageButton");
         const bagImageFileInput = document.getElementById("bagImageFile");
@@ -554,13 +564,20 @@
                 uploadBagImageButton.disabled = true;
                 uploadBagImageButton.innerHTML =
                     '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' +
-                    'Reading bag...';
+                    (isEditMode ? 'Uploading...' : 'Reading bag...');
             } else {
                 uploadBagImageButton.disabled = false;
-                uploadBagImageButton.innerHTML =
-                    '<i class="bi bi-upload me-1"></i>' +
-                    '<span class="d-none d-sm-inline">Upload + Read Label + Get Info</span>' +
-                    '<span class="d-inline d-sm-none">Read Bag + Get Info</span>';
+
+                if (isEditMode) {
+                    uploadBagImageButton.innerHTML =
+                        '<i class="bi bi-upload me-1"></i>' +
+                        '<span>Upload</span>';
+                } else {
+                    uploadBagImageButton.innerHTML =
+                        '<i class="bi bi-upload me-1"></i>' +
+                        '<span class="d-none d-sm-inline">Upload + Read Label + Get Info</span>' +
+                        '<span class="d-inline d-sm-none">Read Bag + Get Info</span>';
+                }
             }
         }
 
@@ -627,6 +644,28 @@
 
                 bagImageFileName.textContent = bagImageFileInput.files[0].name;
             });
+        }
+
+        function uploadBagImageOnly() {
+            clearMessage();
+
+            if (!bagImageFileInput || !bagImageFileInput.files || bagImageFileInput.files.length === 0) {
+                showMessage("warning", "Choose a bean bag picture first.");
+                return;
+            }
+
+            if (!coffeeBeanForm) {
+                showMessage("danger", "Could not find the coffee bean form.");
+                return;
+            }
+
+            setUploadBagImageButtonLoading(true);
+
+            if (typeof coffeeBeanForm.requestSubmit === "function") {
+                coffeeBeanForm.requestSubmit();
+            } else {
+                coffeeBeanForm.submit();
+            }
         }
 
         async function uploadBagImageAndIdentify() {
@@ -819,7 +858,14 @@
         }
 
         if (uploadBagImageButton) {
-            uploadBagImageButton.addEventListener("click", uploadBagImageAndIdentify);
+            uploadBagImageButton.addEventListener("click", function () {
+                if (isEditMode) {
+                    uploadBagImageOnly();
+                    return;
+                }
+
+                uploadBagImageAndIdentify();
+            });
         }
 
         if (getCoffeeInfoButton) {
