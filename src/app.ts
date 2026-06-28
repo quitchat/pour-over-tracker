@@ -7,6 +7,7 @@ import expressLayouts from "express-ejs-layouts";
 
 import { prisma } from "./lib/prisma";
 import { getRequiredUserId, loadCurrentUser, requireAuth } from "./middleware/auth";
+import { formatDateUs, formatDateTimeUs } from "./utils/dateFormat";
 
 import authRoutes from "./routes/auth.routes";
 import profileRoutes from "./routes/profile.routes";
@@ -52,6 +53,8 @@ app.use(function (req: Request, res: Response, next: NextFunction) {
     res.locals.currentPath = req.path;
     res.locals.successMessage = "";
     res.locals.errorMessage = "";
+    res.locals.formatDateUs = formatDateUs;
+    res.locals.formatDateTimeUs = formatDateTimeUs;
     next();
 });
 
@@ -165,7 +168,7 @@ app.get("/", async function (req: Request, res: Response, next: NextFunction) {
                 recentBrews: recentBrews.map(function (brew) {
                     return {
                         id: brew.id,
-                        brewDate: brew.brewDate.toLocaleDateString(),
+                        brewDate: formatDateUs(brew.brewDate),
                         beanName: brew.coffeeBean.beanName,
                         roasterName: brew.coffeeBean.roasterName || "",
                         grinderName: brew.grinder ? brew.grinder.name : "",
@@ -207,5 +210,5 @@ app.use(function (error: unknown, req: Request, res: Response, next: NextFunctio
 });
 
 app.listen(port, function () {
-    console.log(`Coffee Brew Tracker is running at http://localhost:${port}`);
+    console.log(`Track Ya Brew is running at http://localhost:${port}`);
 });

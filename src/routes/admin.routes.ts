@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { requireAdmin } from "../middleware/auth";
+import { formatDateTimeUs } from "../utils/dateFormat";
 import {
     BEAN_DETAIL_AI_PROMPT_NAME,
     DEFAULT_BEAN_DETAIL_AI_PROMPT
@@ -19,11 +20,7 @@ function getCurrentAdminFromLocals(res: Response) {
 }
 
 function formatDateTime(value: Date | null): string {
-    if (!value) {
-        return "";
-    }
-
-    return value.toLocaleString();
+    return formatDateTimeUs(value);
 }
 
 function getPromptStatusMessage(req: Request): string {

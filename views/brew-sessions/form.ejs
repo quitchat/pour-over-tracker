@@ -146,20 +146,6 @@
                         value="<%= formData.coffeeDoseGrams || "" %>">
                 </div>
 
-                <div class="col-md-8">
-                    <label for="targetFlavor" class="form-label">Target Flavor for AI Recipe</label>
-                    <select class="form-select" id="targetFlavor">
-                        <option value="Balanced">Balanced</option>
-                        <option value="Fruity">Fruity</option>
-                        <option value="Sweet">Sweet</option>
-                        <option value="Body">Body</option>
-                        <option value="Bright and acidic">Bright and acidic</option>
-                        <option value="Clean and tea-like">Clean and tea-like</option>
-                        <option value="Floral">Floral</option>
-                        <option value="Chocolatey">Chocolatey</option>
-                        <option value="Low bitterness">Low bitterness</option>
-                    </select>
-                </div>
 
                 <div class="col-md-4 d-flex align-items-end">
                     <button type="button" class="btn btn-success w-100" id="suggestRecipeButton">
@@ -190,6 +176,18 @@
                 </div>
 
                 <div class="col-md-4">
+                    <label for="waterTemperatureC" class="form-label">Water Temp °C</label>
+                    <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        class="form-control"
+                        id="waterTemperatureC"
+                        name="waterTemperatureC"
+                        value="<%= formData.waterTemperatureC || "" %>">
+                </div>
+
+                <div class="col-md-4">
                     <label for="totalYieldGrams" class="form-label">Total Yield</label>
                     <input
                         type="number"
@@ -200,18 +198,6 @@
                         name="totalYieldGrams"
                         value="<%= formData.totalYieldGrams || "" %>">
                     <div class="form-text">Ratio is calculated from dose and yield.</div>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="waterTemperatureC" class="form-label">Water Temp °C</label>
-                    <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        class="form-control"
-                        id="waterTemperatureC"
-                        name="waterTemperatureC"
-                        value="<%= formData.waterTemperatureC || "" %>">
                 </div>
 
                 <div class="col-md-6">
@@ -489,10 +475,6 @@
                                     <div class="fw-semibold" id="recipeBloomTime">-</div>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <div class="text-muted small">Target Flavor</div>
-                                    <div class="fw-semibold" id="recipeTargetFlavor">-</div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -918,7 +900,6 @@
             setText("recipeTime", formatSecondsForDisplay(recipe.totalBrewTimeSeconds));
             setText("recipeBloomWater", recipe.bloomWaterGrams ? recipe.bloomWaterGrams + " g" : "-");
             setText("recipeBloomTime", recipe.bloomSeconds ? recipe.bloomSeconds + " sec" : "-");
-            setText("recipeTargetFlavor", recipe.targetFlavor);
 
             appendListItems("recipePourStructure", recipe.pourStructure || []);
             appendListItems("recipeSteps", recipe.recipeSteps || []);
@@ -978,7 +959,6 @@
             body.set("grinderId", getElementValue("grinderId"));
             body.set("brewerId", getElementValue("brewerId"));
             body.set("coffeeDoseGrams", getElementValue("coffeeDoseGrams"));
-            body.set("targetFlavor", getElementValue("targetFlavor"));
 
             try {
                 const response = await fetch("/brew-sessions/suggest-recipe", {

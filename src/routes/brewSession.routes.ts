@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
 import { suggestBrewingRecipe } from "../services/brewAssistant.service";
+import { formatDateUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
 
 const router = Router();
 
@@ -11,19 +12,11 @@ const scoreFields = ["richness", "sweetness", "aftertaste", "aroma", "acidity"] 
 type ScoreField = typeof scoreFields[number];
 
 function formatDateForInput(date: Date | null): string {
-    if (!date) {
-        return "";
-    }
-
-    return date.toISOString().substring(0, 10);
+    return formatDateForInputValue(date);
 }
 
 function formatDateOnly(date: Date | null): string {
-    if (!date) {
-        return "";
-    }
-
-    return date.toLocaleDateString();
+    return formatDateUs(date);
 }
 
 function getTodayDateForInput(): string {
@@ -72,11 +65,11 @@ function getBrewSessionFormValues(req: Request) {
     };
 }
 
-function getDefaultFormData(preselectedCoffeeBeanId: string) {
+function getDefaultFormData(preselectedCoffeeBeanId: string, preselectedGrinderId: string, preselectedBrewerId: string) {
     return {
         coffeeBeanId: preselectedCoffeeBeanId,
-        grinderId: "",
-        brewerId: "",
+        grinderId: preselectedGrinderId,
+        brewerId: preselectedBrewerId,
         brewDate: getTodayDateForInput(),
         grindSize: "",
         coffeeDoseGrams: "",
@@ -662,13 +655,25 @@ router.get("/new", async function (req: Request, res: Response) {
 
     const formOptions = await getFormOptions(userId, includedCoffeeBeanId);
 
+    if (!preselectedCoffeeBeanId && formOptions.coffeeBeans.length === 1) {
+        preselectedCoffeeBeanId = String(formOptions.coffeeBeans[0].id);
+    }
+
+    const preselectedGrinderId = formOptions.grinders.length === 1
+        ? String(formOptions.grinders[0].id)
+        : "";
+
+    const preselectedBrewerId = formOptions.brewers.length === 1
+        ? String(formOptions.brewers[0].id)
+        : "";
+
     res.render("brew-sessions/form", {
         title: "Add Brew Session",
         pageHeading: "Add Brew Session",
         formAction: "/brew-sessions",
         submitButtonText: "Save Brew Session",
         errors: [],
-        formData: getDefaultFormData(preselectedCoffeeBeanId),
+        formData: getDefaultFormData(preselectedCoffeeBeanId, preselectedGrinderId, preselectedBrewerId),
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,
         brewers: formOptions.brewers
@@ -682,7 +687,6 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
     const grinderId = parseRequiredInteger(String(req.body.grinderId || "").trim());
     const brewerId = parseRequiredInteger(String(req.body.brewerId || "").trim());
     const coffeeDoseGrams = String(req.body.coffeeDoseGrams || "").trim();
-    const targetFlavor = String(req.body.targetFlavor || "Balanced").trim();
 
     if (coffeeBeanId === null) {
         res.status(400).json({
@@ -767,8 +771,7 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
             brewerName: brewer.name,
             brewerBrand: brewer.brand || "",
             brewerType: brewer.brewerType || "",
-            coffeeDoseGrams: coffeeDoseGrams,
-            targetFlavor: targetFlavor
+            coffeeDoseGrams: coffeeDoseGrams
         });
 
         res.json({

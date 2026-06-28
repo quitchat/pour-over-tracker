@@ -3,31 +3,20 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
 import { CoffeeInformationResult, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
+import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
 
 const router = Router();
 
 function formatDateForInput(date: Date | null): string {
-    if (!date) {
-        return "";
-    }
-
-    return date.toISOString().substring(0, 10);
+    return formatDateForInputValue(date);
 }
 
 function formatDateOnly(date: Date | null): string {
-    if (!date) {
-        return "";
-    }
-
-    return date.toLocaleDateString();
+    return formatDateUs(date);
 }
 
 function formatDateTime(date: Date | null): string {
-    if (!date) {
-        return "";
-    }
-
-    return date.toLocaleString();
+    return formatDateTimeUs(date);
 }
 
 function formatSeconds(seconds: number | null): string {

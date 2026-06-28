@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId, requireAuth } from "../middleware/auth";
+import { formatDateUs } from "../utils/dateFormat";
 
 const router = Router();
 
@@ -311,7 +312,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             .map(function (session) {
                 return {
                     id: session.id,
-                    brewDate: session.brewDate.toLocaleDateString(),
+                    brewDate: formatDateUs(session.brewDate),
                     coffeeName: session.coffeeBean.beanName,
                     roasterName: session.coffeeBean.roasterName || "",
                     grinderName: session.grinder ? session.grinder.name : "",

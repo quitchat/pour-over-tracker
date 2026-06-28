@@ -106,11 +106,20 @@
                         <dt class="col-sm-4">Brewer</dt>
                         <dd class="col-sm-8"><%= formatDisplayValue(session.brewerName) %></dd>
 
+                        <dt class="col-sm-4">Coffee Dose</dt>
+                        <dd class="col-sm-8"><%= formatDisplayValue(session.coffeeDoseGrams) %> g</dd>
+
                         <dt class="col-sm-4">Grind Size</dt>
                         <dd class="col-sm-8"><%= formatDisplayValue(session.grindSize) %></dd>
 
-                        <dt class="col-sm-4">Coffee Dose</dt>
-                        <dd class="col-sm-8"><%= formatDisplayValue(session.coffeeDoseGrams) %> g</dd>
+                        <dt class="col-sm-4">Water Temp</dt>
+                        <dd class="col-sm-8">
+                            <% if (session.waterTemperatureC) { %>
+                                <%= session.waterTemperatureC %> °C
+                            <% } else { %>
+                                <span class="text-muted">-</span>
+                            <% } %>
+                        </dd>
 
                         <dt class="col-sm-4">Total Yield</dt>
                         <dd class="col-sm-8"><%= formatDisplayValue(session.totalYieldGrams) %> g</dd>
@@ -119,15 +128,6 @@
                         <dd class="col-sm-8">
                             <% if (session.brewRatio) { %>
                                 1:<%= session.brewRatio %>
-                            <% } else { %>
-                                <span class="text-muted">-</span>
-                            <% } %>
-                        </dd>
-
-                        <dt class="col-sm-4">Water Temp</dt>
-                        <dd class="col-sm-8">
-                            <% if (session.waterTemperatureC) { %>
-                                <%= session.waterTemperatureC %> °C
                             <% } else { %>
                                 <span class="text-muted">-</span>
                             <% } %>

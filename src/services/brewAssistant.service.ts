@@ -17,12 +17,10 @@ export type BrewAssistantInput = {
     brewerBrand: string;
     brewerType: string;
     coffeeDoseGrams: string;
-    targetFlavor: string;
 };
 
 export type BrewRecipeSuggestion = {
     recipeName: string;
-    targetFlavor: string;
     grindSize: string | null;
     waterTemperatureC: number | null;
     coffeeDoseGrams: number | null;
@@ -41,7 +39,7 @@ export const BREW_SUGGESTION_AI_PROMPT_NAME = "default";
 
 export const DEFAULT_BREW_SUGGESTION_AI_PROMPT = [
     "You are an expert pour-over coffee brewing assistant.",
-    "Create a practical brewing recipe for the selected coffee bean, grinder, brewer, dose, and target flavor.",
+    "Create a practical brewing recipe for the selected coffee bean, grinder, brewer, and dose.",
     "Use web search when helpful to find brewing guidance for the brewer, coffee, roaster, or brew method.",
     "Do not invent exact roaster-specific instructions unless supported by search results or common brewing practice.",
     "Prefer practical home-brewing guidance over competition recipes.",
@@ -49,7 +47,7 @@ export const DEFAULT_BREW_SUGGESTION_AI_PROMPT = [
     "Do not include pricing.",
     "If grinder setting cannot be known exactly, give a reasonable grind-size description or range using the grinder information provided.",
     "For waterTemperatureC, use Celsius.",
-    "For totalYieldGrams, calculate a reasonable yield from the coffee dose and target flavor.",
+    "For totalYieldGrams, calculate a reasonable yield from the coffee dose, brewer, and coffee style.",
     "For brewRatio, return text like 1:15, 1:16, or 1:17.",
     "For totalBrewTimeSeconds, return the target total drawdown time in seconds.",
     "For pourStructure, include a short pour plan.",
@@ -95,7 +93,6 @@ function parseBrewRecipeSuggestionJson(outputText: string): BrewRecipeSuggestion
 
     return {
         recipeName: parsed.recipeName || "Suggested Brewing Recipe",
-        targetFlavor: parsed.targetFlavor || "",
         grindSize: parsed.grindSize || null,
         waterTemperatureC: typeof parsed.waterTemperatureC === "number" ? parsed.waterTemperatureC : null,
         coffeeDoseGrams: typeof parsed.coffeeDoseGrams === "number" ? parsed.coffeeDoseGrams : null,
@@ -165,9 +162,8 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<B
                             `Brew method / brewer type: ${input.brewerType || "Unknown"}`,
                             "",
                             `Coffee dose / bean weight: ${input.coffeeDoseGrams || "Unknown"} grams`,
-                            `Target flavor: ${input.targetFlavor || "Balanced"}`,
                             "",
-                            "Suggest a recipe that fits the selected target flavor."
+                            "Suggest a balanced recipe that highlights the coffee bean characteristics."
                         ].join("\n")
                     }
                 ]
@@ -183,9 +179,6 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<B
                     additionalProperties: false,
                     properties: {
                         recipeName: {
-                            type: "string"
-                        },
-                        targetFlavor: {
                             type: "string"
                         },
                         grindSize: {
@@ -239,7 +232,6 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<B
                     },
                     required: [
                         "recipeName",
-                        "targetFlavor",
                         "grindSize",
                         "waterTemperatureC",
                         "coffeeDoseGrams",

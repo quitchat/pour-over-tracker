@@ -20,8 +20,20 @@
 </div>
 
 <style>
+    .bean-list-card {
+        overflow: visible;
+    }
+
+    .bean-table-responsive {
+        overflow: visible !important;
+    }
+
     .bean-list-table td {
         vertical-align: middle;
+    }
+
+    .bean-list-table .dropdown {
+        position: static;
     }
 
     .bean-name-link {
@@ -38,8 +50,36 @@
         color: var(--bs-secondary-color);
     }
 
+    /*
+        Do not use opacity on the whole inactive row.
+        It also makes the dropdown menu transparent.
+    */
     .bean-muted-row {
-        opacity: 0.72;
+        background-color: rgba(108, 117, 125, 0.04);
+    }
+
+    .bean-muted-row .bean-name-link,
+    .bean-muted-row .bean-secondary-line,
+    .bean-muted-row td:not(.bean-actions-cell) {
+        color: var(--bs-secondary-color);
+    }
+
+    .bean-muted-row .dropdown-menu {
+        color: var(--bs-body-color);
+        opacity: 1;
+    }
+
+    .bean-muted-row .dropdown-item {
+        color: var(--bs-dropdown-link-color);
+        opacity: 1;
+    }
+
+    .bean-muted-row .dropdown-item.text-success {
+        color: var(--bs-success) !important;
+    }
+
+    .bean-muted-row .dropdown-item.text-danger {
+        color: var(--bs-danger) !important;
     }
 
     .bean-actions-cell {
@@ -62,6 +102,10 @@
     }
 
     @media (max-width: 767.98px) {
+        .bean-table-responsive {
+            overflow-x: auto !important;
+        }
+
         .bean-list-table thead {
             display: none;
         }
@@ -94,7 +138,7 @@
     }
 </style>
 
-<div class="card">
+<div class="card bean-list-card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>
             <i class="bi bi-list-ul me-1"></i>
@@ -104,7 +148,7 @@
         <span class="text-muted small"><%= beans.length %> bean(s)</span>
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive bean-table-responsive">
         <table class="table table-hover mb-0 align-middle bean-list-table">
             <thead>
                 <tr>
@@ -216,7 +260,7 @@
                                 <% } %>
 
                                 <div class="dropdown">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
                                         More
                                     </button>
 
