@@ -92,6 +92,15 @@
         vertical-align: middle;
     }
 
+    .bean-clickable-row {
+        cursor: pointer;
+    }
+
+    .bean-clickable-row:focus {
+        outline: 2px solid var(--bs-primary);
+        outline-offset: -2px;
+    }
+
     .bean-thumbnail {
         width: 56px;
         height: 56px;
@@ -192,7 +201,12 @@
                 <% } %>
 
                 <% beans.forEach(function (bean) { %>
-                    <tr class="<%= bean.isActive ? "" : "bean-muted-row" %>">
+                    <tr
+                        class="bean-clickable-row <%= bean.isActive ? "" : "bean-muted-row" %>"
+                        data-href="/coffee-beans/<%= bean.id %>"
+                        tabindex="0"
+                        role="link"
+                        aria-label="View details for <%= bean.beanName %>">
                         <td>
                             <div class="bean-mobile-label">Coffee</div>
 
@@ -349,3 +363,30 @@
         </table>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".bean-clickable-row[data-href]").forEach(function (row) {
+            row.addEventListener("click", function (event) {
+                if (event.target.closest("a, button, input, select, textarea, label, form, .dropdown, .dropdown-menu")) {
+                    return;
+                }
+
+                window.location.href = row.getAttribute("data-href");
+            });
+
+            row.addEventListener("keydown", function (event) {
+                if (event.key !== "Enter" && event.key !== " ") {
+                    return;
+                }
+
+                if (event.target.closest("a, button, input, select, textarea, label, form, .dropdown, .dropdown-menu")) {
+                    return;
+                }
+
+                event.preventDefault();
+                window.location.href = row.getAttribute("data-href");
+            });
+        });
+    });
+</script>
