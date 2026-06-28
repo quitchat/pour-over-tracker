@@ -4,7 +4,9 @@ import { requireAdmin } from "../middleware/auth";
 import { formatDateTimeUs } from "../utils/dateFormat";
 import {
     BEAN_DETAIL_AI_PROMPT_NAME,
-    DEFAULT_BEAN_DETAIL_AI_PROMPT
+    COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT_NAME,
+    DEFAULT_BEAN_DETAIL_AI_PROMPT,
+    DEFAULT_COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT
 } from "../services/coffeeInfo.service";
 import {
     BREW_SUGGESTION_AI_PROMPT_NAME,
@@ -382,6 +384,68 @@ router.post("/bean-detail-ai-prompt", async function (req: Request, res: Respons
     }
 
     res.redirect("/admin/bean-detail-ai-prompt?saved=1");
+});
+
+router.get("/coffee-bag-image-identity-ai-prompt", async function (req: Request, res: Response) {
+    let promptRecord = await prisma.coffeeBagImageIdentityAiPrompt.findUnique({
+        where: {
+            name: COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT_NAME
+        }
+    });
+
+    if (!promptRecord) {
+        promptRecord = await prisma.coffeeBagImageIdentityAiPrompt.create({
+            data: {
+                name: COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT_NAME,
+                promptText: DEFAULT_COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT
+            }
+        });
+    }
+
+    res.render("admin/coffee-bag-image-identity-ai-prompt", {
+        title: "Admin - Bean Bag Image Identity AI Prompt",
+        promptRecord: promptRecord,
+        defaultPromptText: DEFAULT_COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT,
+        message: getPromptStatusMessage(req),
+        error: String(req.query.error || "")
+    });
+});
+
+router.post("/coffee-bag-image-identity-ai-prompt", async function (req: Request, res: Response) {
+    const action = String(req.body.action || "save");
+    const currentAdmin = getCurrentAdminFromLocals(res);
+    const promptText = action === "reset"
+        ? DEFAULT_COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT
+        : String(req.body.promptText || "").trim();
+
+    if (!promptText) {
+        res.redirect("/admin/coffee-bag-image-identity-ai-prompt?error=Prompt%20text%20is%20required.");
+        return;
+    }
+
+    await prisma.coffeeBagImageIdentityAiPrompt.upsert({
+        where: {
+            name: COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT_NAME
+        },
+        create: {
+            name: COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT_NAME,
+            promptText: promptText,
+            updatedByUserId: currentAdmin ? currentAdmin.id : null,
+            updatedByEmail: currentAdmin ? currentAdmin.email : null
+        },
+        update: {
+            promptText: promptText,
+            updatedByUserId: currentAdmin ? currentAdmin.id : null,
+            updatedByEmail: currentAdmin ? currentAdmin.email : null
+        }
+    });
+
+    if (action === "reset") {
+        res.redirect("/admin/coffee-bag-image-identity-ai-prompt?reset=1");
+        return;
+    }
+
+    res.redirect("/admin/coffee-bag-image-identity-ai-prompt?saved=1");
 });
 
 router.get("/brew-suggestion-ai-prompt", async function (req: Request, res: Response) {

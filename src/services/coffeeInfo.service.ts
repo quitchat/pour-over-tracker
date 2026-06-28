@@ -27,6 +27,33 @@ export type CoffeeBagImageIdentityResult = {
 };
 
 export const BEAN_DETAIL_AI_PROMPT_NAME = "default";
+export const COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT_NAME = "default";
+
+export const DEFAULT_COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT = [
+    "You are helping a pour-over coffee tracking app read a coffee bag label from an uploaded image.",
+    "",
+    "Extract only the roaster name and the coffee bean name from the image.",
+    "",
+    "Rules:",
+    "",
+    "1. Return the roaster name only if it is clearly visible or strongly supported by the bag label.",
+    "2. Return the coffee bean name only if it is clearly visible or strongly supported by the bag label.",
+    "3. Do not guess.",
+    "4. Do not return origin, process, roast level, tasting notes, price, image URL, or marketing text.",
+    "5. If the bag shows multiple possible names, choose the one most likely to be the coffee product name.",
+    "6. If a value cannot be determined, return null.",
+    "7. Prefer the exact text printed on the bag, but clean obvious OCR mistakes.",
+    "8. Do not include explanations.",
+    "",
+    "Return JSON only in this shape:",
+    "",
+    "{",
+    "  \"roasterName\": \"string or null\",",
+    "  \"beanName\": \"string or null\",",
+    "  \"confidence\": \"high, medium, or low\",",
+    "  \"notes\": []",
+    "}"
+].join("\n");
 
 export const DEFAULT_BEAN_DETAIL_AI_PROMPT = [
     "You are helping a pour-over coffee tracking app fill in coffee bean information.",
@@ -101,6 +128,27 @@ async function getBeanDetailAiPromptText(): Promise<string> {
         data: {
             name: BEAN_DETAIL_AI_PROMPT_NAME,
             promptText: DEFAULT_BEAN_DETAIL_AI_PROMPT
+        }
+    });
+
+    return createdPrompt.promptText;
+}
+
+async function getCoffeeBagImageIdentityAiPromptText(): Promise<string> {
+    const existingPrompt = await prisma.coffeeBagImageIdentityAiPrompt.findUnique({
+        where: {
+            name: COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT_NAME
+        }
+    });
+
+    if (existingPrompt) {
+        return existingPrompt.promptText;
+    }
+
+    const createdPrompt = await prisma.coffeeBagImageIdentityAiPrompt.create({
+        data: {
+            name: COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT_NAME,
+            promptText: DEFAULT_COFFEE_BAG_IMAGE_IDENTITY_AI_PROMPT
         }
     });
 
@@ -244,6 +292,7 @@ function parseCoffeeBagImageIdentityJson(outputText: string): CoffeeBagImageIden
 export async function getCoffeeBagImageIdentityFromOpenAI(imageFilePath: string, mimeType: string): Promise<AiServiceResult<CoffeeBagImageIdentityResult>> {
     const client = getOpenAIClient();
     const model = process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-5.4-mini";
+    const promptText = await getCoffeeBagImageIdentityAiPromptText();
     const imageBytes = await fs.promises.readFile(imageFilePath);
     const imageBase64 = imageBytes.toString("base64");
     const imageUrl = `data:${mimeType};base64,${imageBase64}`;
@@ -257,14 +306,7 @@ export async function getCoffeeBagImageIdentityFromOpenAI(imageFilePath: string,
                 content: [
                     {
                         type: "input_text",
-                        text: [
-                            "You extract coffee bag label information for a pour-over coffee tracking app.",
-                            "Use OCR/vision on the provided coffee bag image.",
-                            "Return only the roaster name and coffee bean/product name when visible on the bag.",
-                            "Do not guess. If either value is not clearly visible, return null for that value.",
-                            "Do not return origin, process, roast level, price, or tasting notes from this step.",
-                            "The coffee bean/product name should not include the roaster name unless it is truly part of the product name."
-                        ].join("\n")
+                        text: promptText
                     }
                 ]
             },
