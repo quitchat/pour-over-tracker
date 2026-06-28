@@ -3,16 +3,39 @@ import { Prisma } from "@prisma/client";
 import fs from "fs";
 import path from "path";
 import multer from "multer";
+import sharp from "sharp";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
 import { CoffeeInformationResult, getCoffeeBagImageIdentityFromOpenAI, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
+import { AI_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
 import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
 
 const router = Router();
 
+type AiCallRouteUser = {
+    id: number;
+    email: string;
+};
+
+function getAiCallRouteUser(res: Response): AiCallRouteUser | null {
+    const currentUser = res.locals.currentUser as AiCallRouteUser | null | undefined;
+
+    if (!currentUser) {
+        return null;
+    }
+
+    return {
+        id: currentUser.id,
+        email: currentUser.email
+    };
+}
+
 const coffeeBeanImageRelativeDirectory = "/uploads/coffee-beans";
 const coffeeBeanImageAbsoluteDirectory = path.join(__dirname, "..", "..", "public", "uploads", "coffee-beans");
 const allowedCoffeeBeanImageMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const coffeeBeanImageMaxUploadSizeBytes = 12 * 1024 * 1024;
+const coffeeBeanImageMaxOutputDimensionPixels = 1200;
+const coffeeBeanImageJpegQuality = 82;
 
 const coffeeBeanImageStorage = multer.diskStorage({
     destination: function (req, file, callback) {
@@ -20,9 +43,7 @@ const coffeeBeanImageStorage = multer.diskStorage({
         callback(null, coffeeBeanImageAbsoluteDirectory);
     },
     filename: function (req, file, callback) {
-        const extension = path.extname(file.originalname || "").toLowerCase();
-        const safeExtension = extension || ".jpg";
-        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1000000000)}${safeExtension}`;
+        const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1000000000)}.jpg`;
 
         callback(null, uniqueName);
     }
@@ -31,7 +52,7 @@ const coffeeBeanImageStorage = multer.diskStorage({
 const uploadCoffeeBeanImage = multer({
     storage: coffeeBeanImageStorage,
     limits: {
-        fileSize: 5 * 1024 * 1024
+        fileSize: coffeeBeanImageMaxUploadSizeBytes
     },
     fileFilter: function (req, file, callback) {
         if (!allowedCoffeeBeanImageMimeTypes.includes(file.mimetype)) {
@@ -52,7 +73,7 @@ function runCoffeeBeanImageUpload(req: Request, res: Response): Promise<string[]
             }
 
             if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
-                resolve(["Bean picture must be 5 MB or smaller."]);
+                resolve(["Bean picture must be 12 MB or smaller."]);
                 return;
             }
 
@@ -64,6 +85,45 @@ function runCoffeeBeanImageUpload(req: Request, res: Response): Promise<string[]
             resolve(["Bean picture could not be uploaded."]);
         });
     });
+}
+
+async function resizeUploadedCoffeeBeanImage(req: Request): Promise<string[]> {
+    if (!req.file) {
+        return [];
+    }
+
+    const originalImagePath = req.file.path;
+    const resizedImagePath = `${originalImagePath}.resized`;
+
+    try {
+        await sharp(originalImagePath)
+            .rotate()
+            .resize({
+                width: coffeeBeanImageMaxOutputDimensionPixels,
+                height: coffeeBeanImageMaxOutputDimensionPixels,
+                fit: "inside",
+                withoutEnlargement: true
+            })
+            .jpeg({
+                quality: coffeeBeanImageJpegQuality,
+                mozjpeg: true
+            })
+            .toFile(resizedImagePath);
+
+        await fs.promises.rename(resizedImagePath, originalImagePath);
+
+        const resizedImageStats = await fs.promises.stat(originalImagePath);
+        req.file.size = resizedImageStats.size;
+        req.file.mimetype = "image/jpeg";
+
+        return [];
+    } catch (error) {
+        await fs.promises.unlink(resizedImagePath).catch(function () {
+            // Ignore cleanup errors for missing temporary files.
+        });
+
+        return ["Bean picture could not be resized. Please try a different image."];
+    }
 }
 
 function getUploadedCoffeeBeanImageUrl(req: Request): string {
@@ -363,9 +423,20 @@ router.post("/get-info", async function (req: Request, res: Response) {
         return;
     }
 
+    const aiCallLog = await startAiCallLog({
+        user: getAiCallRouteUser(res),
+        callType: AI_CALL_TYPES.beanDetailLookup,
+        model: process.env.OPENAI_MODEL || "gpt-5.4-mini"
+    });
+
     try {
         const coffeeInfo = await getCoffeeInformationFromOpenAI(formValues.roasterName, formValues.beanName);
         const formData = buildCoffeeInfoFormData(formValues, coffeeInfo);
+
+        await finishAiCallLog({
+            handle: aiCallLog,
+            status: "Succeeded"
+        });
 
         res.json({
             ok: true,
@@ -374,6 +445,12 @@ router.post("/get-info", async function (req: Request, res: Response) {
         });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Could not get coffee information.";
+
+        await finishAiCallLog({
+            handle: aiCallLog,
+            status: "Failed",
+            errorMessage: errorMessage
+        });
 
         res.status(500).json({
             ok: false,
@@ -384,14 +461,16 @@ router.post("/get-info", async function (req: Request, res: Response) {
 
 router.post("/upload-bag-image-identify", async function (req: Request, res: Response) {
     const uploadErrors = await runCoffeeBeanImageUpload(req, res);
+    const resizeErrors = uploadErrors.length === 0 ? await resizeUploadedCoffeeBeanImage(req) : [];
+    const allUploadErrors = uploadErrors.concat(resizeErrors);
     const uploadedBagImageUrl = getUploadedCoffeeBeanImageUrl(req);
 
-    if (uploadErrors.length > 0) {
+    if (allUploadErrors.length > 0) {
         deleteUploadedCoffeeBeanImage(req);
 
         res.status(400).json({
             ok: false,
-            errorMessage: uploadErrors.join(" ")
+            errorMessage: allUploadErrors.join(" ")
         });
 
         return;
@@ -406,9 +485,20 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
         return;
     }
 
+    const aiCallLog = await startAiCallLog({
+        user: getAiCallRouteUser(res),
+        callType: AI_CALL_TYPES.beanBagOcr,
+        model: process.env.OPENAI_VISION_MODEL || process.env.OPENAI_MODEL || "gpt-5.4-mini"
+    });
+
     try {
         const imageFilePath = getCoffeeBeanImageAbsolutePathFromUrl(uploadedBagImageUrl);
         const identity = await getCoffeeBagImageIdentityFromOpenAI(imageFilePath, req.file.mimetype);
+
+        await finishAiCallLog({
+            handle: aiCallLog,
+            status: "Succeeded"
+        });
 
         res.json({
             ok: true,
@@ -423,6 +513,12 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Could not read the coffee bag picture.";
 
+        await finishAiCallLog({
+            handle: aiCallLog,
+            status: "Failed",
+            errorMessage: errorMessage
+        });
+
         res.json({
             ok: false,
             bagImageUrl: uploadedBagImageUrl,
@@ -434,8 +530,10 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
 router.post("/", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
     const uploadErrors = await runCoffeeBeanImageUpload(req, res);
+    const resizeErrors = uploadErrors.length === 0 ? await resizeUploadedCoffeeBeanImage(req) : [];
+    const allUploadErrors = uploadErrors.concat(resizeErrors);
     const formValues = getCoffeeBeanFormValues(req);
-    const errors = validateCoffeeBeanForm(formValues).concat(uploadErrors);
+    const errors = validateCoffeeBeanForm(formValues).concat(allUploadErrors);
     const uploadedBagImageUrl = getUploadedCoffeeBeanImageUrl(req);
     const existingUploadedBagImageUrl = getExistingUploadedCoffeeBeanImageUrl(formValues.bagImageUrl);
 
@@ -524,6 +622,8 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
 router.post("/:id/edit", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
     const uploadErrors = await runCoffeeBeanImageUpload(req, res);
+    const resizeErrors = uploadErrors.length === 0 ? await resizeUploadedCoffeeBeanImage(req) : [];
+    const allUploadErrors = uploadErrors.concat(resizeErrors);
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id)) {
@@ -541,7 +641,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
     }
 
     const formValues = getCoffeeBeanFormValues(req);
-    const errors = validateCoffeeBeanForm(formValues).concat(uploadErrors);
+    const errors = validateCoffeeBeanForm(formValues).concat(allUploadErrors);
     const uploadedBagImageUrl = getUploadedCoffeeBeanImageUrl(req);
     const existingUploadedBagImageUrl = getExistingUploadedCoffeeBeanImageUrl(formValues.bagImageUrl);
 

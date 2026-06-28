@@ -196,16 +196,13 @@
                                     </li>
 
                                     <li>
-                                        <a class="dropdown-item <%= isActivePath("/admin/bean-detail-ai-prompt") %>" href="/admin/bean-detail-ai-prompt">
-                                            <i class="bi bi-magic me-2"></i>
-                                            Bean Detail Prompt
-                                        </a>
+                                        <hr class="dropdown-divider">
                                     </li>
 
                                     <li>
-                                        <a class="dropdown-item <%= isActivePath("/admin/brew-suggestion-ai-prompt") %>" href="/admin/brew-suggestion-ai-prompt">
-                                            <i class="bi bi-stars me-2"></i>
-                                            Brew Suggestion Prompt
+                                        <a class="dropdown-item <%= isActivePath("/admin/ai") || isActivePath("/admin/ai-call-logs") || isActivePath("/admin/bean-detail-ai-prompt") || isActivePath("/admin/brew-suggestion-ai-prompt") %>" href="/admin/ai">
+                                            <i class="bi bi-robot me-2"></i>
+                                            AI Administration
                                         </a>
                                     </li>
                                 </ul>

@@ -42,6 +42,101 @@ router.get("/", function (req: Request, res: Response) {
     res.redirect("/admin/users");
 });
 
+router.get("/ai", async function (req: Request, res: Response) {
+    const [totalAiCallCount, failedAiCallCount, latestAiCallLog] = await Promise.all([
+        prisma.aiCallLog.count(),
+        prisma.aiCallLog.count({
+            where: {
+                status: "Failed"
+            }
+        }),
+        prisma.aiCallLog.findFirst({
+            orderBy: {
+                startedAt: "desc"
+            },
+            select: {
+                startedAt: true
+            }
+        })
+    ]);
+
+    res.render("admin/ai", {
+        title: "Admin - AI Administration",
+        totalAiCallCount: totalAiCallCount,
+        failedAiCallCount: failedAiCallCount,
+        latestAiCallStartedAt: latestAiCallLog ? formatDateTime(latestAiCallLog.startedAt) : ""
+    });
+});
+
+router.get("/ai-call-logs", async function (req: Request, res: Response) {
+    const callType = String(req.query.callType || "").trim();
+    const status = String(req.query.status || "").trim();
+
+    const where: {
+        callType?: string;
+        status?: string;
+    } = {};
+
+    if (callType) {
+        where.callType = callType;
+    }
+
+    if (status) {
+        where.status = status;
+    }
+
+    const [aiCallLogs, callTypes, statuses] = await Promise.all([
+        prisma.aiCallLog.findMany({
+            where: where,
+            orderBy: {
+                startedAt: "desc"
+            },
+            take: 200
+        }),
+        prisma.aiCallLog.findMany({
+            distinct: ["callType"],
+            orderBy: {
+                callType: "asc"
+            },
+            select: {
+                callType: true
+            }
+        }),
+        prisma.aiCallLog.findMany({
+            distinct: ["status"],
+            orderBy: {
+                status: "asc"
+            },
+            select: {
+                status: true
+            }
+        })
+    ]);
+
+    const logs = aiCallLogs.map(function (log) {
+        return {
+            id: log.id,
+            userEmail: log.userEmail || "",
+            callType: log.callType,
+            model: log.model || "",
+            status: log.status,
+            startedAt: formatDateTime(log.startedAt),
+            completedAt: formatDateTime(log.completedAt),
+            durationMs: log.durationMs,
+            errorMessage: log.errorMessage || ""
+        };
+    });
+
+    res.render("admin/ai-call-logs", {
+        title: "Admin - AI Call Logs",
+        logs: logs,
+        callTypes: callTypes.map(function (item) { return item.callType; }),
+        statuses: statuses.map(function (item) { return item.status; }),
+        selectedCallType: callType,
+        selectedStatus: status
+    });
+});
+
 router.get("/users", async function (req: Request, res: Response) {
     const currentAdmin = getCurrentAdminFromLocals(res);
 

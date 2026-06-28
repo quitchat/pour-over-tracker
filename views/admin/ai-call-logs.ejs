@@ -1,0 +1,103 @@
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h1 class="h3 mb-1">AI Call Logs</h1>
+        <p class="text-muted mb-0">
+            Tracks who initiated each AI call, when it started, what kind of call it was, and whether it succeeded.
+            Prompts and responses are not stored.
+        </p>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" action="/admin/ai-call-logs" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label for="callType" class="form-label">Call Type</label>
+                <select id="callType" name="callType" class="form-select">
+                    <option value="">All call types</option>
+                    <% callTypes.forEach(function (callType) { %>
+                        <option value="<%= callType %>" <%= selectedCallType === callType ? "selected" : "" %>><%= callType %></option>
+                    <% }); %>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label for="status" class="form-label">Status</label>
+                <select id="status" name="status" class="form-select">
+                    <option value="">All statuses</option>
+                    <% statuses.forEach(function (status) { %>
+                        <option value="<%= status %>" <%= selectedStatus === status ? "selected" : "" %>><%= status %></option>
+                    <% }); %>
+                </select>
+            </div>
+
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="bi bi-funnel me-1"></i>
+                    Filter
+                </button>
+
+                <a href="/admin/ai-call-logs" class="btn btn-outline-secondary">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>
+            <i class="bi bi-robot me-1"></i>
+            Recent AI Calls
+        </span>
+        <span class="text-muted small">Showing latest 200</span>
+    </div>
+
+    <div class="card-body p-0">
+        <% if (!logs || logs.length === 0) { %>
+            <div class="p-4 text-muted">No AI call logs found.</div>
+        <% } else { %>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Started</th>
+                            <th>User</th>
+                            <th>Call Type</th>
+                            <th>Model</th>
+                            <th>Status</th>
+                            <th class="text-end">Duration</th>
+                            <th>Error</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% logs.forEach(function (log) { %>
+                            <tr>
+                                <td class="text-nowrap"><%= log.startedAt %></td>
+                                <td><%= log.userEmail || "Unknown" %></td>
+                                <td><%= log.callType %></td>
+                                <td><%= log.model || "" %></td>
+                                <td>
+                                    <% if (log.status === "Succeeded") { %>
+                                        <span class="badge text-bg-success">Succeeded</span>
+                                    <% } else if (log.status === "Failed") { %>
+                                        <span class="badge text-bg-danger">Failed</span>
+                                    <% } else { %>
+                                        <span class="badge text-bg-secondary"><%= log.status %></span>
+                                    <% } %>
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <% if (log.durationMs !== null && log.durationMs !== undefined) { %>
+                                        <%= (log.durationMs / 1000).toFixed(2) %>s
+                                    <% } %>
+                                </td>
+                                <td class="text-break"><%= log.errorMessage %></td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } %>
+    </div>
+</div>

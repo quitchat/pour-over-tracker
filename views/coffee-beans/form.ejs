@@ -84,8 +84,7 @@
                             class="form-control"
                             id="bagImageFile"
                             name="bagImageFile"
-                            accept="image/*"
-                            capture="environment">
+                            accept="image/jpeg,image/png,image/webp,image/gif">
 
                         <button
                             type="button"
@@ -97,12 +96,10 @@
                     </div>
 
                     <div class="form-text">
-                        Upload JPG, PNG, WEBP, or GIF. Maximum size: 5 MB.
-                        On a phone, you can choose from the photo album or take a new picture.
+                        Upload JPG, PNG, WEBP, or GIF. Maximum upload size: 12 MB. The server will resize and compress it automatically.
                         The upload button saves the image and uses AI/OCR to fill Roaster and Coffee Name.
                     </div>
                 </div>
-
                 <div class="col-md-6">
                     <label for="roasterName" class="form-label">Roaster</label>
                     <input
@@ -191,6 +188,7 @@
                         name="sourceUrl"
                         value="<%= formData.sourceUrl || "" %>">
                 </div>
+
 
                 <div class="col-12">
                     <label for="flavorNotes" class="form-label">Flavor Notes</label>

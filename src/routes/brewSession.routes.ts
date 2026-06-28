@@ -3,9 +3,28 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
 import { suggestBrewingRecipe } from "../services/brewAssistant.service";
+import { AI_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
 import { formatDateUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
 
 const router = Router();
+
+type AiCallRouteUser = {
+    id: number;
+    email: string;
+};
+
+function getAiCallRouteUser(res: Response): AiCallRouteUser | null {
+    const currentUser = res.locals.currentUser as AiCallRouteUser | null | undefined;
+
+    if (!currentUser) {
+        return null;
+    }
+
+    return {
+        id: currentUser.id,
+        email: currentUser.email
+    };
+}
 
 const scoreFields = ["richness", "sweetness", "aftertaste", "aroma", "acidity"] as const;
 
@@ -755,6 +774,12 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
         return;
     }
 
+    const aiCallLog = await startAiCallLog({
+        user: getAiCallRouteUser(res),
+        callType: AI_CALL_TYPES.brewRecipeSuggestion,
+        model: process.env.OPENAI_MODEL || "gpt-5.4-mini"
+    });
+
     try {
         const recipe = await suggestBrewingRecipe({
             roasterName: coffeeBean.roasterName || "",
@@ -774,12 +799,23 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
             coffeeDoseGrams: coffeeDoseGrams
         });
 
+        await finishAiCallLog({
+            handle: aiCallLog,
+            status: "Succeeded"
+        });
+
         res.json({
             ok: true,
             recipe: recipe
         });
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Could not suggest a brewing recipe.";
+
+        await finishAiCallLog({
+            handle: aiCallLog,
+            status: "Failed",
+            errorMessage: errorMessage
+        });
 
         res.status(500).json({
             ok: false,
