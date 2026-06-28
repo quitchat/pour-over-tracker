@@ -96,6 +96,10 @@
         touch-action: pan-y;
     }
 
+    .radar-score-editor.is-radar-dragging canvas {
+        touch-action: none;
+    }
+
     .radar-score-editor canvas:focus-visible {
         outline: 2px solid var(--bs-primary);
         outline-offset: 0.35rem;
@@ -739,8 +743,34 @@
             });
         }
 
-        function isPointInsideRadarPentagon(point, radialScale) {
+        function getExpandedRadarPolygonPoints(radialScale, edgeTolerancePixels) {
             const polygonPoints = getRadarMaxPolygonPoints(radialScale);
+
+            if (polygonPoints.length < 3) {
+                return [];
+            }
+
+            return polygonPoints.map(function (polygonPoint) {
+                const dx = polygonPoint.x - radialScale.xCenter;
+                const dy = polygonPoint.y - radialScale.yCenter;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance <= 0) {
+                    return polygonPoint;
+                }
+
+                const scale = (distance + edgeTolerancePixels) / distance;
+
+                return {
+                    x: radialScale.xCenter + dx * scale,
+                    y: radialScale.yCenter + dy * scale
+                };
+            });
+        }
+
+        function isPointInsideRadarPentagon(point, radialScale, event) {
+            const edgeTolerancePixels = event && event.pointerType === "touch" ? 24 : 16;
+            const polygonPoints = getExpandedRadarPolygonPoints(radialScale, edgeTolerancePixels);
 
             if (polygonPoints.length < 3) {
                 return false;
@@ -765,7 +795,7 @@
             const radialScale = brewCharacteristicsRadarChart.scales.r;
             const point = getRadarPointerPoint(event);
 
-            if (!radialScale || !point || !isPointInsideRadarPentagon(point, radialScale)) {
+            if (!radialScale || !point || !isPointInsideRadarPentagon(point, radialScale, event)) {
                 return false;
             }
 
@@ -809,20 +839,45 @@
                 }
             });
 
-            radarChartElement.addEventListener("pointerdown", function (event) {
+            function beginRadarScoreDrag(event) {
                 const didUpdate = updateRadarScoreFromPointer(event);
 
                 if (!didUpdate) {
-                    return;
+                    return false;
                 }
 
                 isDraggingRadarScore = true;
+
+                const radarEditor = radarChartElement.closest(".radar-score-editor");
+
+                if (radarEditor) {
+                    radarEditor.classList.add("is-radar-dragging");
+                }
 
                 if (radarChartElement.setPointerCapture) {
                     radarChartElement.setPointerCapture(event.pointerId);
                 }
 
                 event.preventDefault();
+                return true;
+            }
+
+            function endRadarScoreDrag(event) {
+                isDraggingRadarScore = false;
+
+                const radarEditor = radarChartElement.closest(".radar-score-editor");
+
+                if (radarEditor) {
+                    radarEditor.classList.remove("is-radar-dragging");
+                }
+
+                if (event && radarChartElement.hasPointerCapture && radarChartElement.hasPointerCapture(event.pointerId)) {
+                    radarChartElement.releasePointerCapture(event.pointerId);
+                }
+            }
+
+            radarChartElement.addEventListener("pointerdown", function (event) {
+                beginRadarScoreDrag(event);
             });
 
             radarChartElement.addEventListener("pointermove", function (event) {
@@ -833,15 +888,25 @@
             });
 
             radarChartElement.addEventListener("pointerup", function (event) {
-                isDraggingRadarScore = false;
-
-                if (radarChartElement.hasPointerCapture && radarChartElement.hasPointerCapture(event.pointerId)) {
-                    radarChartElement.releasePointerCapture(event.pointerId);
-                }
+                endRadarScoreDrag(event);
             });
 
-            radarChartElement.addEventListener("pointercancel", function () {
-                isDraggingRadarScore = false;
+            radarChartElement.addEventListener("pointercancel", function (event) {
+                endRadarScoreDrag(event);
+            });
+
+            radarChartElement.addEventListener("touchmove", function (event) {
+                if (isDraggingRadarScore) {
+                    event.preventDefault();
+                }
+            }, { passive: false });
+
+            radarChartElement.addEventListener("touchend", function () {
+                endRadarScoreDrag(null);
+            });
+
+            radarChartElement.addEventListener("touchcancel", function () {
+                endRadarScoreDrag(null);
             });
         }
 
