@@ -706,6 +706,48 @@
             return bestIndex;
         }
 
+        function isPointInsidePolygon(point, polygonPoints) {
+            let isInside = false;
+            let j = polygonPoints.length - 1;
+
+            for (let i = 0; i < polygonPoints.length; i += 1) {
+                const xi = polygonPoints[i].x;
+                const yi = polygonPoints[i].y;
+                const xj = polygonPoints[j].x;
+                const yj = polygonPoints[j].y;
+                const intersects = ((yi > point.y) !== (yj > point.y)) &&
+                    (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+
+                if (intersects) {
+                    isInside = !isInside;
+                }
+
+                j = i;
+            }
+
+            return isInside;
+        }
+
+        function getRadarMaxPolygonPoints(radialScale) {
+            if (!radialScale || typeof radialScale.getPointPositionForValue !== "function") {
+                return [];
+            }
+
+            return radarScoreFields.map(function (field, index) {
+                return radialScale.getPointPositionForValue(index, 5);
+            });
+        }
+
+        function isPointInsideRadarPentagon(point, radialScale) {
+            const polygonPoints = getRadarMaxPolygonPoints(radialScale);
+
+            if (polygonPoints.length < 3) {
+                return false;
+            }
+
+            return isPointInsidePolygon(point, polygonPoints);
+        }
+
         function getRadarPointerPoint(event) {
             if (!window.Chart || !window.Chart.helpers || !brewCharacteristicsRadarChart) {
                 return null;
@@ -716,14 +758,14 @@
 
         function updateRadarScoreFromPointer(event) {
             if (!brewCharacteristicsRadarChart) {
-                return;
+                return false;
             }
 
             const radialScale = brewCharacteristicsRadarChart.scales.r;
             const point = getRadarPointerPoint(event);
 
-            if (!radialScale || !point) {
-                return;
+            if (!radialScale || !point || !isPointInsideRadarPentagon(point, radialScale)) {
+                return false;
             }
 
             const fieldIndex = getNearestRadarFieldIndex(point, radialScale);
@@ -734,6 +776,7 @@
             const score = projectedDistance / radialScale.drawingArea * 5;
 
             setRadarScoreValue(radarScoreFields[fieldIndex].id, score);
+            return true;
         }
 
         if (window.Chart && radarChartElement) {
@@ -766,9 +809,14 @@
             });
 
             radarChartElement.addEventListener("pointerdown", function (event) {
+                const didUpdate = updateRadarScoreFromPointer(event);
+
+                if (!didUpdate) {
+                    return;
+                }
+
                 isDraggingRadarScore = true;
                 radarChartElement.setPointerCapture(event.pointerId);
-                updateRadarScoreFromPointer(event);
                 event.preventDefault();
             });
 
