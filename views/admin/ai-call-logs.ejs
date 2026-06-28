@@ -102,8 +102,9 @@
 <div class="alert alert-info small">
     <strong>Cost is estimated.</strong>
     Token counts come from the OpenAI API usage field when available. Token pricing uses built-in defaults for known models or your configured
-    <code>OPENAI_COST_INPUT_PER_1M</code> and <code>OPENAI_COST_OUTPUT_PER_1M</code> environment variables. Web search tool cost uses
-    <code>OPENAI_COST_WEB_SEARCH_PER_1K</code>, defaulting to 10 when not configured.
+    <code>OPENAI_COST_INPUT_PER_1M</code> and <code>OPENAI_COST_OUTPUT_PER_1M</code> environment variables. Web search tool cost uses the value from
+    <a href="/admin/ai-cost-settings">Admin → AI Cost Settings</a>. If no database setting exists, it falls back to
+    <code>OPENAI_COST_WEB_SEARCH_PER_1K</code>, then 10.
 </div>
 
 <div class="card">

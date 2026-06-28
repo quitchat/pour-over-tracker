@@ -36,6 +36,12 @@ export const AI_TOOL_CALL_TYPES = {
     imageInput: "image_input"
 } as const;
 
+export const AI_COST_SETTING_KEYS = {
+    webSearchPer1KCalls: "web_search_per_1k_calls"
+} as const;
+
+export const DEFAULT_WEB_SEARCH_COST_PER_1K_CALLS = 10;
+
 type AiModelPrice = {
     inputPerMillion: number;
     outputPerMillion: number;
@@ -112,6 +118,61 @@ function getEnvNumber(name: string): number | null {
     return parsed;
 }
 
+function getDefaultWebSearchCostPer1KCalls(): number {
+    return getEnvNumber("OPENAI_COST_WEB_SEARCH_PER_1K") ?? DEFAULT_WEB_SEARCH_COST_PER_1K_CALLS;
+}
+
+async function getAiCostSettingNumber(key: string, fallbackValue: number): Promise<number> {
+    try {
+        const setting = await prisma.aiCostSetting.findUnique({
+            where: {
+                key: key
+            },
+            select: {
+                valueDecimal: true
+            }
+        });
+
+        if (!setting) {
+            return fallbackValue;
+        }
+
+        const parsed = Number(setting.valueDecimal.toString());
+
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            return fallbackValue;
+        }
+
+        return parsed;
+    } catch (error) {
+        return fallbackValue;
+    }
+}
+
+export async function getWebSearchCostPer1KCalls(): Promise<number> {
+    return getAiCostSettingNumber(AI_COST_SETTING_KEYS.webSearchPer1KCalls, getDefaultWebSearchCostPer1KCalls());
+}
+
+export async function ensureAiCostSettings(): Promise<void> {
+    try {
+        await prisma.aiCostSetting.upsert({
+            where: {
+                key: AI_COST_SETTING_KEYS.webSearchPer1KCalls
+            },
+            create: {
+                key: AI_COST_SETTING_KEYS.webSearchPer1KCalls,
+                label: "Web search tool cost",
+                description: "Estimated base cost charged for OpenAI web search tool calls. Used to calculate AI log tool cost.",
+                valueDecimal: new Prisma.Decimal(getDefaultWebSearchCostPer1KCalls().toFixed(6)),
+                unit: "USD per 1,000 calls"
+            },
+            update: {}
+        });
+    } catch (error) {
+        // Cost settings should not block admin pages or AI features.
+    }
+}
+
 function getModelPrice(model: string | null | undefined): AiModelPrice | null {
     const configuredInputPrice = getEnvNumber("OPENAI_COST_INPUT_PER_1M");
     const configuredOutputPrice = getEnvNumber("OPENAI_COST_OUTPUT_PER_1M");
@@ -160,16 +221,16 @@ function estimateTokenCostUsd(args: {
 }
 
 
-function estimateToolCostUsd(args: {
+async function estimateToolCostUsd(args: {
     webSearchCallCount: number | null | undefined;
-}): Prisma.Decimal | null {
+}): Promise<Prisma.Decimal | null> {
     const webSearchCallCount = args.webSearchCallCount || 0;
 
     if (webSearchCallCount <= 0) {
         return null;
     }
 
-    const webSearchCostPerThousand = getEnvNumber("OPENAI_COST_WEB_SEARCH_PER_1K") ?? 10;
+    const webSearchCostPerThousand = await getWebSearchCostPer1KCalls();
     const estimatedCost = (webSearchCallCount / 1000) * webSearchCostPerThousand;
 
     return new Prisma.Decimal(estimatedCost.toFixed(6));
@@ -326,7 +387,7 @@ export async function finishAiCallLog(args: {
         outputTokens: outputTokens
     });
     const webSearchCallCount = args.webSearchCallCount === null || typeof args.webSearchCallCount === "undefined" ? null : Math.max(0, Math.round(args.webSearchCallCount));
-    const toolEstimatedCostUsd = estimateToolCostUsd({
+    const toolEstimatedCostUsd = await estimateToolCostUsd({
         webSearchCallCount: webSearchCallCount
     });
     const estimatedCostUsd = addCostsUsd(tokenEstimatedCostUsd, toolEstimatedCostUsd);

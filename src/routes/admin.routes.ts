@@ -12,7 +12,12 @@ import {
     BREW_SUGGESTION_AI_PROMPT_NAME,
     DEFAULT_BREW_SUGGESTION_AI_PROMPT
 } from "../services/brewAssistant.service";
-import { formatEstimatedCost } from "../services/aiCallLog.service";
+import {
+    AI_COST_SETTING_KEYS,
+    ensureAiCostSettings,
+    formatEstimatedCost,
+    getWebSearchCostPer1KCalls
+} from "../services/aiCallLog.service";
 
 const router = Router();
 
@@ -42,6 +47,30 @@ function formatApiFeatureType(value: string | null | undefined): string {
     return "Text only";
 }
 
+function formatCostNumber(value: unknown): string {
+    if (value === null || typeof value === "undefined") {
+        return "";
+    }
+
+    const numericValue = Number(value.toString());
+
+    if (!Number.isFinite(numericValue)) {
+        return "";
+    }
+
+    return numericValue.toFixed(6);
+}
+
+function parseNonNegativeDecimal(value: string): number | null {
+    const parsed = Number(value);
+
+    if (!Number.isFinite(parsed) || parsed < 0) {
+        return null;
+    }
+
+    return parsed;
+}
+
 function getPromptStatusMessage(req: Request): string {
     const saved = String(req.query.saved || "");
     const reset = String(req.query.reset || "");
@@ -66,7 +95,7 @@ router.get("/ai", async function (req: Request, res: Response) {
     currentMonthStart.setDate(1);
     currentMonthStart.setHours(0, 0, 0, 0);
 
-    const [totalAiCallCount, failedAiCallCount, latestAiCallLog, totalCostSummary, currentMonthCostSummary] = await Promise.all([
+    const [totalAiCallCount, failedAiCallCount, latestAiCallLog, totalCostSummary, currentMonthCostSummary, webSearchCostPer1KCalls] = await Promise.all([
         prisma.aiCallLog.count(),
         prisma.aiCallLog.count({
             where: {
@@ -95,7 +124,8 @@ router.get("/ai", async function (req: Request, res: Response) {
             _sum: {
                 estimatedCostUsd: true
             }
-        })
+        }),
+        getWebSearchCostPer1KCalls()
     ]);
 
     res.render("admin/ai", {
@@ -104,8 +134,66 @@ router.get("/ai", async function (req: Request, res: Response) {
         failedAiCallCount: failedAiCallCount,
         latestAiCallStartedAt: latestAiCallLog ? formatDateTime(latestAiCallLog.startedAt) : "",
         totalEstimatedCost: formatEstimatedCost(totalCostSummary._sum.estimatedCostUsd),
-        currentMonthEstimatedCost: formatEstimatedCost(currentMonthCostSummary._sum.estimatedCostUsd)
+        currentMonthEstimatedCost: formatEstimatedCost(currentMonthCostSummary._sum.estimatedCostUsd),
+        webSearchCostPer1KCalls: formatCostNumber(webSearchCostPer1KCalls)
     });
+});
+
+router.get("/ai-cost-settings", async function (req: Request, res: Response) {
+    await ensureAiCostSettings();
+
+    const webSearchSetting = await prisma.aiCostSetting.findUnique({
+        where: {
+            key: AI_COST_SETTING_KEYS.webSearchPer1KCalls
+        }
+    });
+
+    const effectiveWebSearchCost = webSearchSetting
+        ? Number(webSearchSetting.valueDecimal.toString())
+        : await getWebSearchCostPer1KCalls();
+
+    res.render("admin/ai-cost-settings", {
+        title: "Admin - AI Cost Settings",
+        webSearchCostPer1KCalls: formatCostNumber(effectiveWebSearchCost),
+        webSearchUnit: webSearchSetting ? webSearchSetting.unit || "USD per 1,000 calls" : "USD per 1,000 calls",
+        webSearchUpdatedByEmail: webSearchSetting ? webSearchSetting.updatedByEmail || "" : "",
+        webSearchUpdatedAt: webSearchSetting ? formatDateTime(webSearchSetting.updatedAt) : "",
+        message: String(req.query.message || ""),
+        error: String(req.query.error || "")
+    });
+});
+
+router.post("/ai-cost-settings", async function (req: Request, res: Response) {
+    const currentAdmin = getCurrentAdminFromLocals(res);
+    const webSearchCostRaw = String(req.body.webSearchCostPer1KCalls || "").trim();
+    const webSearchCost = parseNonNegativeDecimal(webSearchCostRaw);
+
+    if (webSearchCost === null) {
+        res.redirect("/admin/ai-cost-settings?error=Web%20search%20cost%20must%20be%20a%20number%20greater%20than%20or%20equal%20to%200.");
+        return;
+    }
+
+    await prisma.aiCostSetting.upsert({
+        where: {
+            key: AI_COST_SETTING_KEYS.webSearchPer1KCalls
+        },
+        create: {
+            key: AI_COST_SETTING_KEYS.webSearchPer1KCalls,
+            label: "Web search tool cost",
+            description: "Estimated base cost charged for OpenAI web search tool calls. Used to calculate AI log tool cost.",
+            valueDecimal: webSearchCost.toFixed(6),
+            unit: "USD per 1,000 calls",
+            updatedByUserId: currentAdmin ? currentAdmin.id : null,
+            updatedByEmail: currentAdmin ? currentAdmin.email : null
+        },
+        update: {
+            valueDecimal: webSearchCost.toFixed(6),
+            updatedByUserId: currentAdmin ? currentAdmin.id : null,
+            updatedByEmail: currentAdmin ? currentAdmin.email : null
+        }
+    });
+
+    res.redirect("/admin/ai-cost-settings?message=AI%20cost%20settings%20saved.");
 });
 
 router.get("/ai-call-logs", async function (req: Request, res: Response) {

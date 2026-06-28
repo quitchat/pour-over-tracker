@@ -65,6 +65,22 @@ model BrewSuggestionAiPrompt {
 }
 
 
+
+model AiCostSetting {
+  id              Int      @id @default(autoincrement())
+  key             String   @unique
+  label           String
+  description     String?
+  valueDecimal    Decimal  @db.Decimal(12, 6)
+  unit            String?
+  updatedByUserId Int?
+  updatedByEmail  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([key])
+}
+
 model AiCallLog {
   id            Int       @id @default(autoincrement())
   userId        Int?
