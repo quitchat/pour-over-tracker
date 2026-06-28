@@ -265,20 +265,54 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                 };
             });
 
+        const grinderUsageById = new Map<number, { brewCount: number; totalGroundGrams: number }>();
+
+        brewSessions.forEach(function (session) {
+            if (!session.grinderId) {
+                return;
+            }
+
+            const currentUsage = grinderUsageById.get(session.grinderId) || {
+                brewCount: 0,
+                totalGroundGrams: 0
+            };
+
+            currentUsage.brewCount += 1;
+            currentUsage.totalGroundGrams += Number(session.coffeeDoseGrams || 0);
+
+            grinderUsageById.set(session.grinderId, currentUsage);
+        });
+
         const topGrinders = allGrinders
-            .slice()
-            .sort(function (a, b) {
-                return b._count.brewSessions - a._count.brewSessions;
-            })
-            .slice(0, 5)
             .map(function (grinder) {
+                const usage = grinderUsageById.get(grinder.id) || {
+                    brewCount: 0,
+                    totalGroundGrams: 0
+                };
+
                 return {
                     id: grinder.id,
                     name: grinder.name,
                     brand: grinder.brand || "",
-                    brewCount: grinder._count.brewSessions
+                    brewCount: usage.brewCount,
+                    totalGroundGrams: round(usage.totalGroundGrams, 1)
                 };
-            });
+            })
+            .filter(function (grinder) {
+                return grinder.brewCount > 0;
+            })
+            .sort(function (a, b) {
+                if (b.totalGroundGrams !== a.totalGroundGrams) {
+                    return b.totalGroundGrams - a.totalGroundGrams;
+                }
+
+                if (b.brewCount !== a.brewCount) {
+                    return b.brewCount - a.brewCount;
+                }
+
+                return a.name.localeCompare(b.name);
+            })
+            .slice(0, 5);
 
         const topBrewers = allBrewers
             .slice()

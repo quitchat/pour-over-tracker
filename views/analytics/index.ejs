@@ -158,8 +158,9 @@
                             <% } %>
                         </div>
 
-                        <span class="badge text-bg-light border">
-                            <%= grinder.brewCount %>
+                        <span class="badge text-bg-light border text-end">
+                            <span class="d-block"><%= grinder.totalGroundGrams %>g</span>
+                            <span class="d-block fw-normal text-muted"><%= grinder.brewCount %> brews</span>
                         </span>
                     </a>
                 <% }); %>
