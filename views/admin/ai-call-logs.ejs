@@ -2,7 +2,7 @@
     <div>
         <h1 class="h3 mb-1">AI Call Logs</h1>
         <p class="text-muted mb-0">
-            Tracks who initiated each AI call, when it started, call type, status, token usage, image count, estimated cost, prompt text, and output text.
+            Tracks who initiated each AI call, API feature type, tool usage, token usage, estimated cost, prompt text, and output text.
             Uploaded image bytes are not stored in the prompt log.
         </p>
     </div>
@@ -17,8 +17,9 @@
     <div class="col-md-3">
         <div class="card h-100 shadow-sm">
             <div class="card-body">
-                <div class="text-muted small">Filtered Estimated Cost</div>
+                <div class="text-muted small">Filtered Estimated Total Cost</div>
                 <div class="fs-5 fw-semibold"><%= filteredEstimatedCost || "$0.000000" %></div>
+                <div class="small text-muted">Tokens <%= filteredTokenEstimatedCost || "$0.000000" %> / Tools <%= filteredToolEstimatedCost || "$0.000000" %></div>
             </div>
         </div>
     </div>
@@ -44,8 +45,8 @@
     <div class="col-md-3">
         <div class="card h-100 shadow-sm">
             <div class="card-body">
-                <div class="text-muted small">Images Sent</div>
-                <div class="fs-5 fw-semibold"><%= filteredImageCount || 0 %></div>
+                <div class="text-muted small">Images / Web Searches</div>
+                <div class="fs-5 fw-semibold"><%= filteredImageCount || 0 %> / <%= filteredWebSearchCallCount || 0 %></div>
             </div>
         </div>
     </div>
@@ -54,7 +55,7 @@
 <div class="card mb-3">
     <div class="card-body">
         <form method="get" action="/admin/ai-call-logs" class="row g-3 align-items-end">
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <label for="callType" class="form-label">Call Type</label>
                 <select id="callType" name="callType" class="form-select">
                     <option value="">All call types</option>
@@ -64,7 +65,17 @@
                 </select>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <label for="apiFeatureType" class="form-label">API Feature</label>
+                <select id="apiFeatureType" name="apiFeatureType" class="form-select">
+                    <option value="">All features</option>
+                    <% apiFeatureTypes.forEach(function (feature) { %>
+                        <option value="<%= feature.value %>" <%= selectedApiFeatureType === feature.value ? "selected" : "" %>><%= feature.label %></option>
+                    <% }); %>
+                </select>
+            </div>
+
+            <div class="col-md-3">
                 <label for="status" class="form-label">Status</label>
                 <select id="status" name="status" class="form-select">
                     <option value="">All statuses</option>
@@ -74,7 +85,7 @@
                 </select>
             </div>
 
-            <div class="col-md-3 d-flex gap-2">
+            <div class="col-md-2 d-flex gap-2">
                 <button type="submit" class="btn btn-primary flex-fill">
                     <i class="bi bi-funnel me-1"></i>
                     Filter
@@ -90,8 +101,9 @@
 
 <div class="alert alert-info small">
     <strong>Cost is estimated.</strong>
-    Token counts come from the OpenAI API usage field when available. Pricing uses built-in defaults for known models or your configured
-    <code>OPENAI_COST_INPUT_PER_1M</code> and <code>OPENAI_COST_OUTPUT_PER_1M</code> environment variables.
+    Token counts come from the OpenAI API usage field when available. Token pricing uses built-in defaults for known models or your configured
+    <code>OPENAI_COST_INPUT_PER_1M</code> and <code>OPENAI_COST_OUTPUT_PER_1M</code> environment variables. Web search tool cost uses
+    <code>OPENAI_COST_WEB_SEARCH_PER_1K</code>, defaulting to 10 when not configured.
 </div>
 
 <div class="card">
@@ -114,6 +126,7 @@
                             <th>Started</th>
                             <th>User</th>
                             <th>Call Type</th>
+                            <th>Feature</th>
                             <th>Model</th>
                             <th>Status</th>
                             <th class="text-end">Duration</th>
@@ -121,7 +134,10 @@
                             <th class="text-end">Output</th>
                             <th class="text-end">Total</th>
                             <th class="text-end">Images</th>
-                            <th class="text-end">Est. Cost</th>
+                            <th class="text-end">Web</th>
+                            <th class="text-end">Token $</th>
+                            <th class="text-end">Tool $</th>
+                            <th class="text-end">Total $</th>
                             <th>Error</th>
                             <th class="text-end">Details</th>
                         </tr>
@@ -132,6 +148,7 @@
                                 <td class="text-nowrap"><%= log.startedAt %></td>
                                 <td><%= log.userEmail || "Unknown" %></td>
                                 <td><%= log.callType %></td>
+                                <td class="text-nowrap"><%= log.apiFeatureLabel %></td>
                                 <td><%= log.model || "" %></td>
                                 <td>
                                     <% if (log.status === "Succeeded") { %>
@@ -151,6 +168,9 @@
                                 <td class="text-end"><%= log.outputTokens || "" %></td>
                                 <td class="text-end"><%= log.totalTokens || "" %></td>
                                 <td class="text-end"><%= log.imageCount || "" %></td>
+                                <td class="text-end"><%= log.webSearchCallCount || "" %></td>
+                                <td class="text-end text-nowrap"><%= log.tokenEstimatedCost || "" %></td>
+                                <td class="text-end text-nowrap"><%= log.toolEstimatedCost || "" %></td>
                                 <td class="text-end text-nowrap"><%= log.estimatedCost || "" %></td>
                                 <td class="text-break"><%= log.errorMessage %></td>
                                 <td class="text-end text-nowrap">

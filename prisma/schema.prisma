@@ -79,6 +79,11 @@ model AiCallLog {
   outputTokens  Int?
   totalTokens   Int?
   imageCount    Int       @default(0)
+  apiFeatureType String    @default("text_only")
+  toolCallTypes String?
+  webSearchCallCount Int   @default(0)
+  tokenEstimatedCostUsd Decimal? @db.Decimal(12, 6)
+  toolEstimatedCostUsd Decimal? @db.Decimal(12, 6)
   estimatedCostUsd Decimal? @db.Decimal(12, 6)
   promptText    String?
   outputText    String?
@@ -91,6 +96,7 @@ model AiCallLog {
   @@index([userId])
   @@index([userEmail])
   @@index([callType])
+  @@index([apiFeatureType])
   @@index([status])
   @@index([startedAt])
 }

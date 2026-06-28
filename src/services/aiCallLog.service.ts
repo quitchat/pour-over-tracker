@@ -24,6 +24,18 @@ export const AI_CALL_TYPES = {
     brewRecipeSuggestion: "Brew Recipe Suggestion"
 } as const;
 
+export const AI_API_FEATURE_TYPES = {
+    textOnly: "text_only",
+    imageInput: "image_input",
+    webSearch: "web_search",
+    imageInputAndWebSearch: "image_input_and_web_search"
+} as const;
+
+export const AI_TOOL_CALL_TYPES = {
+    webSearch: "web_search",
+    imageInput: "image_input"
+} as const;
+
 type AiModelPrice = {
     inputPerMillion: number;
     outputPerMillion: number;
@@ -124,7 +136,7 @@ function getModelPrice(model: string | null | undefined): AiModelPrice | null {
     return null;
 }
 
-function estimateAiCallCostUsd(args: {
+function estimateTokenCostUsd(args: {
     model: string | null | undefined;
     inputTokens: number | null;
     outputTokens: number | null;
@@ -145,6 +157,64 @@ function estimateAiCallCostUsd(args: {
     const estimatedCost = (inputTokens / 1000000) * price.inputPerMillion + (outputTokens / 1000000) * price.outputPerMillion;
 
     return new Prisma.Decimal(estimatedCost.toFixed(6));
+}
+
+
+function estimateToolCostUsd(args: {
+    webSearchCallCount: number | null | undefined;
+}): Prisma.Decimal | null {
+    const webSearchCallCount = args.webSearchCallCount || 0;
+
+    if (webSearchCallCount <= 0) {
+        return null;
+    }
+
+    const webSearchCostPerThousand = getEnvNumber("OPENAI_COST_WEB_SEARCH_PER_1K") ?? 10;
+    const estimatedCost = (webSearchCallCount / 1000) * webSearchCostPerThousand;
+
+    return new Prisma.Decimal(estimatedCost.toFixed(6));
+}
+
+function addCostsUsd(first: Prisma.Decimal | null, second: Prisma.Decimal | null): Prisma.Decimal | null {
+    if (!first && !second) {
+        return null;
+    }
+
+    const firstNumber = first ? Number(first.toString()) : 0;
+    const secondNumber = second ? Number(second.toString()) : 0;
+
+    return new Prisma.Decimal((firstNumber + secondNumber).toFixed(6));
+}
+
+function normalizeApiFeatureType(value: string | null | undefined): string {
+    if (!value) {
+        return AI_API_FEATURE_TYPES.textOnly;
+    }
+
+    const normalizedValue = value.trim();
+    const allowedValues = Object.values(AI_API_FEATURE_TYPES) as string[];
+
+    if (allowedValues.indexOf(normalizedValue) >= 0) {
+        return normalizedValue;
+    }
+
+    return AI_API_FEATURE_TYPES.textOnly;
+}
+
+function normalizeToolCallTypes(value: string | null | undefined): string | null {
+    if (!value) {
+        return null;
+    }
+
+    const normalizedTypes = value.split(",")
+        .map(function (item) { return item.trim(); })
+        .filter(function (item) { return item.length > 0; });
+
+    if (normalizedTypes.length === 0) {
+        return null;
+    }
+
+    return Array.from(new Set(normalizedTypes)).join(", ");
 }
 
 export function extractAiTokenUsage(response: unknown): AiTokenUsage {
@@ -190,6 +260,9 @@ export async function startAiCallLog(args: {
     callType: string;
     model: string | null | undefined;
     imageCount?: number | null;
+    apiFeatureType?: string | null;
+    toolCallTypes?: string | null;
+    webSearchCallCount?: number | null;
     promptText?: string | null;
 }): Promise<AiCallLogHandle> {
     const handle: AiCallLogHandle = {
@@ -206,6 +279,9 @@ export async function startAiCallLog(args: {
                 model: args.model || null,
                 status: "Started",
                 imageCount: args.imageCount || 0,
+                apiFeatureType: normalizeApiFeatureType(args.apiFeatureType),
+                toolCallTypes: normalizeToolCallTypes(args.toolCallTypes),
+                webSearchCallCount: args.webSearchCallCount || 0,
                 promptText: normalizeLogPayload(args.promptText)
             },
             select: {
@@ -228,6 +304,9 @@ export async function finishAiCallLog(args: {
     errorMessage?: string | null;
     usage?: AiTokenUsage | null;
     imageCount?: number | null;
+    apiFeatureType?: string | null;
+    toolCallTypes?: string | null;
+    webSearchCallCount?: number | null;
     promptText?: string | null;
     outputText?: string | null;
 }): Promise<void> {
@@ -241,11 +320,16 @@ export async function finishAiCallLog(args: {
     const inputTokens = usage ? usage.inputTokens : null;
     const outputTokens = usage ? usage.outputTokens : null;
     const totalTokens = usage ? usage.totalTokens : null;
-    const estimatedCostUsd = estimateAiCallCostUsd({
+    const tokenEstimatedCostUsd = estimateTokenCostUsd({
         model: args.model,
         inputTokens: inputTokens,
         outputTokens: outputTokens
     });
+    const webSearchCallCount = args.webSearchCallCount === null || typeof args.webSearchCallCount === "undefined" ? null : Math.max(0, Math.round(args.webSearchCallCount));
+    const toolEstimatedCostUsd = estimateToolCostUsd({
+        webSearchCallCount: webSearchCallCount
+    });
+    const estimatedCostUsd = addCostsUsd(tokenEstimatedCostUsd, toolEstimatedCostUsd);
 
     try {
         await prisma.aiCallLog.update({
@@ -260,6 +344,11 @@ export async function finishAiCallLog(args: {
                 outputTokens: outputTokens,
                 totalTokens: totalTokens,
                 imageCount: args.imageCount === null || typeof args.imageCount === "undefined" ? undefined : args.imageCount,
+                apiFeatureType: args.apiFeatureType === null || typeof args.apiFeatureType === "undefined" ? undefined : normalizeApiFeatureType(args.apiFeatureType),
+                toolCallTypes: args.toolCallTypes === null || typeof args.toolCallTypes === "undefined" ? undefined : normalizeToolCallTypes(args.toolCallTypes),
+                webSearchCallCount: webSearchCallCount === null ? undefined : webSearchCallCount,
+                tokenEstimatedCostUsd: tokenEstimatedCostUsd,
+                toolEstimatedCostUsd: toolEstimatedCostUsd,
                 estimatedCostUsd: estimatedCostUsd,
                 promptText: args.promptText === null || typeof args.promptText === "undefined" ? undefined : normalizeLogPayload(args.promptText),
                 outputText: args.outputText === null || typeof args.outputText === "undefined" ? undefined : normalizeLogPayload(args.outputText),

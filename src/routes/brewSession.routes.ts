@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
 import { suggestBrewingRecipe } from "../services/brewAssistant.service";
-import { AI_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
+import { AI_API_FEATURE_TYPES, AI_CALL_TYPES, AI_TOOL_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
 import { formatDateUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
 
 const router = Router();
@@ -919,7 +919,10 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
     const aiCallLog = await startAiCallLog({
         user: getAiCallRouteUser(res),
         callType: AI_CALL_TYPES.brewRecipeSuggestion,
-        model: aiModel
+        model: aiModel,
+        apiFeatureType: AI_API_FEATURE_TYPES.webSearch,
+        toolCallTypes: AI_TOOL_CALL_TYPES.webSearch,
+        webSearchCallCount: 1
     });
 
     try {
@@ -957,7 +960,10 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
             model: aiModel,
             usage: recipeResult.usage,
             promptText: recipeResult.promptText,
-            outputText: recipeResult.outputText
+            outputText: recipeResult.outputText,
+            apiFeatureType: AI_API_FEATURE_TYPES.webSearch,
+            toolCallTypes: AI_TOOL_CALL_TYPES.webSearch,
+            webSearchCallCount: 1
         });
 
         res.json({
@@ -972,7 +978,10 @@ router.post("/suggest-recipe", async function (req: Request, res: Response) {
             handle: aiCallLog,
             status: "Failed",
             model: aiModel,
-            errorMessage: errorMessage
+            errorMessage: errorMessage,
+            apiFeatureType: AI_API_FEATURE_TYPES.webSearch,
+            toolCallTypes: AI_TOOL_CALL_TYPES.webSearch,
+            webSearchCallCount: 1
         });
 
         res.status(500).json({

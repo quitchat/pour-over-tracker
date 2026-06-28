@@ -7,7 +7,7 @@ import sharp from "sharp";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
 import { CoffeeInformationResult, getCoffeeBagImageIdentityFromOpenAI, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
-import { AI_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
+import { AI_API_FEATURE_TYPES, AI_CALL_TYPES, AI_TOOL_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
 import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
 
 const router = Router();
@@ -436,7 +436,10 @@ router.post("/get-info", async function (req: Request, res: Response) {
     const aiCallLog = await startAiCallLog({
         user: getAiCallRouteUser(res),
         callType: AI_CALL_TYPES.beanDetailLookup,
-        model: aiModel
+        model: aiModel,
+        apiFeatureType: AI_API_FEATURE_TYPES.webSearch,
+        toolCallTypes: AI_TOOL_CALL_TYPES.webSearch,
+        webSearchCallCount: 1
     });
 
     try {
@@ -450,7 +453,10 @@ router.post("/get-info", async function (req: Request, res: Response) {
             model: aiModel,
             usage: coffeeInfoResult.usage,
             promptText: coffeeInfoResult.promptText,
-            outputText: coffeeInfoResult.outputText
+            outputText: coffeeInfoResult.outputText,
+            apiFeatureType: AI_API_FEATURE_TYPES.webSearch,
+            toolCallTypes: AI_TOOL_CALL_TYPES.webSearch,
+            webSearchCallCount: 1
         });
 
         res.json({
@@ -465,7 +471,10 @@ router.post("/get-info", async function (req: Request, res: Response) {
             handle: aiCallLog,
             status: "Failed",
             model: aiModel,
-            errorMessage: errorMessage
+            errorMessage: errorMessage,
+            apiFeatureType: AI_API_FEATURE_TYPES.webSearch,
+            toolCallTypes: AI_TOOL_CALL_TYPES.webSearch,
+            webSearchCallCount: 1
         });
 
         res.status(500).json({
@@ -506,7 +515,9 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
         user: getAiCallRouteUser(res),
         callType: AI_CALL_TYPES.beanBagOcr,
         model: aiModel,
-        imageCount: 1
+        imageCount: 1,
+        apiFeatureType: AI_API_FEATURE_TYPES.imageInput,
+        toolCallTypes: AI_TOOL_CALL_TYPES.imageInput
     });
 
     try {
@@ -521,7 +532,10 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
             usage: imageIdentityResult.usage,
             imageCount: 1,
             promptText: imageIdentityResult.promptText,
-            outputText: imageIdentityResult.outputText
+            outputText: imageIdentityResult.outputText,
+            apiFeatureType: AI_API_FEATURE_TYPES.imageInput,
+            toolCallTypes: AI_TOOL_CALL_TYPES.imageInput,
+            webSearchCallCount: 0
         });
 
         res.json({
@@ -542,7 +556,10 @@ router.post("/upload-bag-image-identify", async function (req: Request, res: Res
             status: "Failed",
             model: aiModel,
             errorMessage: errorMessage,
-            imageCount: 1
+            imageCount: 1,
+            apiFeatureType: AI_API_FEATURE_TYPES.imageInput,
+            toolCallTypes: AI_TOOL_CALL_TYPES.imageInput,
+            webSearchCallCount: 0
         });
 
         res.json({

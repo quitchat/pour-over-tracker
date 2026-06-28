@@ -36,6 +36,18 @@
                 <div class="fw-semibold"><%= log.model || "" %></div>
             </div>
             <div class="col-md-3">
+                <div class="text-muted small">API Feature</div>
+                <div class="fw-semibold"><%= log.apiFeatureLabel %></div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Tool Calls</div>
+                <div class="fw-semibold"><%= log.toolCallTypes || "None" %></div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Images / Web Searches</div>
+                <div class="fw-semibold"><%= log.imageCount || 0 %> / <%= log.webSearchCallCount || 0 %></div>
+            </div>
+            <div class="col-md-3">
                 <div class="text-muted small">Status</div>
                 <div>
                     <% if (log.status === "Succeeded") { %>
@@ -60,7 +72,15 @@
                 <div class="fw-semibold"><%= log.inputTokens || 0 %> / <%= log.outputTokens || 0 %> / <%= log.totalTokens || 0 %></div>
             </div>
             <div class="col-md-3">
-                <div class="text-muted small">Estimated Cost</div>
+                <div class="text-muted small">Estimated Token Cost</div>
+                <div class="fw-semibold"><%= log.tokenEstimatedCost || "$0.000000" %></div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Estimated Tool Cost</div>
+                <div class="fw-semibold"><%= log.toolEstimatedCost || "$0.000000" %></div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-muted small">Estimated Total Cost</div>
                 <div class="fw-semibold"><%= log.estimatedCost || "$0.000000" %></div>
             </div>
         </div>

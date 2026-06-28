@@ -26,6 +26,22 @@ function formatDateTime(value: Date | null): string {
     return formatDateTimeUs(value);
 }
 
+function formatApiFeatureType(value: string | null | undefined): string {
+    if (value === "web_search") {
+        return "Web search";
+    }
+
+    if (value === "image_input") {
+        return "Image input";
+    }
+
+    if (value === "image_input_and_web_search") {
+        return "Image + web search";
+    }
+
+    return "Text only";
+}
+
 function getPromptStatusMessage(req: Request): string {
     const saved = String(req.query.saved || "");
     const reset = String(req.query.reset || "");
@@ -95,10 +111,12 @@ router.get("/ai", async function (req: Request, res: Response) {
 router.get("/ai-call-logs", async function (req: Request, res: Response) {
     const callType = String(req.query.callType || "").trim();
     const status = String(req.query.status || "").trim();
+    const apiFeatureType = String(req.query.apiFeatureType || "").trim();
 
     const where: {
         callType?: string;
         status?: string;
+        apiFeatureType?: string;
     } = {};
 
     if (callType) {
@@ -109,7 +127,11 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
         where.status = status;
     }
 
-    const [aiCallLogs, callTypes, statuses, filteredCostSummary] = await Promise.all([
+    if (apiFeatureType) {
+        where.apiFeatureType = apiFeatureType;
+    }
+
+    const [aiCallLogs, callTypes, statuses, apiFeatureTypes, filteredCostSummary] = await Promise.all([
         prisma.aiCallLog.findMany({
             where: where,
             orderBy: {
@@ -135,14 +157,26 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
                 status: true
             }
         }),
+        prisma.aiCallLog.findMany({
+            distinct: ["apiFeatureType"],
+            orderBy: {
+                apiFeatureType: "asc"
+            },
+            select: {
+                apiFeatureType: true
+            }
+        }),
         prisma.aiCallLog.aggregate({
             where: where,
             _sum: {
                 estimatedCostUsd: true,
+                tokenEstimatedCostUsd: true,
+                toolEstimatedCostUsd: true,
                 inputTokens: true,
                 outputTokens: true,
                 totalTokens: true,
-                imageCount: true
+                imageCount: true,
+                webSearchCallCount: true
             }
         })
     ]);
@@ -161,6 +195,12 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
             outputTokens: log.outputTokens,
             totalTokens: log.totalTokens,
             imageCount: log.imageCount,
+            apiFeatureType: log.apiFeatureType,
+            apiFeatureLabel: formatApiFeatureType(log.apiFeatureType),
+            toolCallTypes: log.toolCallTypes || "",
+            webSearchCallCount: log.webSearchCallCount,
+            tokenEstimatedCost: formatEstimatedCost(log.tokenEstimatedCostUsd),
+            toolEstimatedCost: formatEstimatedCost(log.toolEstimatedCostUsd),
             estimatedCost: formatEstimatedCost(log.estimatedCostUsd),
             errorMessage: log.errorMessage || "",
             hasPrompt: !!log.promptText,
@@ -173,12 +213,17 @@ router.get("/ai-call-logs", async function (req: Request, res: Response) {
         logs: logs,
         callTypes: callTypes.map(function (item) { return item.callType; }),
         statuses: statuses.map(function (item) { return item.status; }),
+        apiFeatureTypes: apiFeatureTypes.map(function (item) { return { value: item.apiFeatureType, label: formatApiFeatureType(item.apiFeatureType) }; }),
         selectedCallType: callType,
         selectedStatus: status,
+        selectedApiFeatureType: apiFeatureType,
         filteredInputTokens: filteredCostSummary._sum.inputTokens || 0,
         filteredOutputTokens: filteredCostSummary._sum.outputTokens || 0,
         filteredTotalTokens: filteredCostSummary._sum.totalTokens || 0,
         filteredImageCount: filteredCostSummary._sum.imageCount || 0,
+        filteredWebSearchCallCount: filteredCostSummary._sum.webSearchCallCount || 0,
+        filteredTokenEstimatedCost: formatEstimatedCost(filteredCostSummary._sum.tokenEstimatedCostUsd),
+        filteredToolEstimatedCost: formatEstimatedCost(filteredCostSummary._sum.toolEstimatedCostUsd),
         filteredEstimatedCost: formatEstimatedCost(filteredCostSummary._sum.estimatedCostUsd)
     });
 });
@@ -217,6 +262,12 @@ router.get("/ai-call-logs/:id", async function (req: Request, res: Response) {
             outputTokens: log.outputTokens,
             totalTokens: log.totalTokens,
             imageCount: log.imageCount,
+            apiFeatureType: log.apiFeatureType,
+            apiFeatureLabel: formatApiFeatureType(log.apiFeatureType),
+            toolCallTypes: log.toolCallTypes || "",
+            webSearchCallCount: log.webSearchCallCount,
+            tokenEstimatedCost: formatEstimatedCost(log.tokenEstimatedCostUsd),
+            toolEstimatedCost: formatEstimatedCost(log.toolEstimatedCostUsd),
             estimatedCost: formatEstimatedCost(log.estimatedCostUsd),
             errorMessage: log.errorMessage || "",
             promptText: log.promptText || "",
