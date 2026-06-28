@@ -210,5 +210,5 @@ app.use(function (error: unknown, req: Request, res: Response, next: NextFunctio
 });
 
 app.listen(port, function () {
-    console.log(`Track Ya Brew is running at http://localhost:${port}`);
+    console.log(`Track My Brews is running at http://localhost:${port}`);
 });
