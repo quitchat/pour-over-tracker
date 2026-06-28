@@ -87,12 +87,13 @@
     .radar-score-editor {
         max-width: 460px;
         margin: 0 auto;
-        touch-action: none;
+        touch-action: pan-y;
         user-select: none;
     }
 
     .radar-score-editor canvas {
         cursor: crosshair;
+        touch-action: pan-y;
     }
 
     .radar-score-editor canvas:focus-visible {
@@ -816,7 +817,11 @@
                 }
 
                 isDraggingRadarScore = true;
-                radarChartElement.setPointerCapture(event.pointerId);
+
+                if (radarChartElement.setPointerCapture) {
+                    radarChartElement.setPointerCapture(event.pointerId);
+                }
+
                 event.preventDefault();
             });
 
@@ -829,7 +834,10 @@
 
             radarChartElement.addEventListener("pointerup", function (event) {
                 isDraggingRadarScore = false;
-                radarChartElement.releasePointerCapture(event.pointerId);
+
+                if (radarChartElement.hasPointerCapture && radarChartElement.hasPointerCapture(event.pointerId)) {
+                    radarChartElement.releasePointerCapture(event.pointerId);
+                }
             });
 
             radarChartElement.addEventListener("pointercancel", function () {
