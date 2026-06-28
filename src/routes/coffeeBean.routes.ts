@@ -309,7 +309,16 @@ function buildBeanStats(brewSessions: any[]) {
         repeatCount: brewSessions.filter(function (session) {
             return session.wouldRepeat;
         }).length,
-        bestBrewSessionId: bestSession ? bestSession.id : null
+        bestBrewSessionId: bestSession ? bestSession.id : null,
+        bestBrewDate: bestSession ? formatDateOnly(bestSession.brewDate) : "",
+        bestGrinderName: bestSession && bestSession.grinder ? bestSession.grinder.name : "",
+        bestBrewerName: bestSession && bestSession.brewer ? bestSession.brewer.name : "",
+        bestGrindSize: bestSession ? bestSession.grindSize || "" : "",
+        bestDoseGrams: bestSession && bestSession.coffeeDoseGrams ? bestSession.coffeeDoseGrams.toString() : "",
+        bestYieldGrams: bestSession && bestSession.totalYieldGrams ? bestSession.totalYieldGrams.toString() : "",
+        bestBrewRatio: bestSession && bestSession.brewRatio ? bestSession.brewRatio.toString() : "",
+        bestWaterTemperatureC: bestSession && bestSession.waterTemperatureC ? bestSession.waterTemperatureC.toString() : "",
+        bestBrewTime: bestSession ? formatSeconds(bestSession.totalBrewTimeSeconds) : ""
     };
 }
 

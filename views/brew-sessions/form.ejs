@@ -2,7 +2,7 @@
     const errorsValue = typeof errors !== "undefined" ? errors : [];
 %>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-start align-items-md-center mb-3 gap-3 flex-column flex-md-row brew-entry-header">
     <div>
         <h1 class="h3 mb-1"><%= pageHeading %></h1>
         <p class="text-muted mb-0">Track brew variables and bean characteristics.</p>
@@ -73,22 +73,93 @@
     .star-rating-button:hover .star-rating-empty {
         color: #ced4da;
     }
+
+    .brew-session-mobile-form .form-control,
+    .brew-session-mobile-form .form-select,
+    .brew-session-mobile-form .btn {
+        min-height: 2.75rem;
+    }
+
+    .brew-quick-field .form-label {
+        font-weight: 600;
+    }
+
+    .brew-mobile-help {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+        background: var(--bs-body-bg);
+    }
+
+    .brew-form-actions {
+        background: var(--bs-body-bg);
+        border-top: 1px solid transparent;
+    }
+
+    @media (max-width: 767.98px) {
+        .brew-entry-header .btn {
+            width: 100%;
+        }
+
+        .brew-session-mobile-form .card {
+            border-radius: 0.85rem;
+        }
+
+        .brew-session-mobile-form .card-body {
+            padding: 1rem;
+        }
+
+        .brew-session-mobile-form .form-control,
+        .brew-session-mobile-form .form-select,
+        .brew-session-mobile-form .btn {
+            font-size: 1rem;
+            min-height: 3rem;
+        }
+
+        .brew-form-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 1020;
+            margin-left: -0.75rem;
+            margin-right: -0.75rem;
+            padding: 0.75rem;
+            border-top-color: var(--bs-border-color);
+            box-shadow: 0 -0.25rem 1rem rgba(0, 0, 0, 0.08);
+        }
+
+        .brew-form-actions .btn {
+            flex: 1 1 0;
+        }
+
+        .star-rating-button {
+            width: 2.4rem;
+            height: 2.4rem;
+        }
+
+        .star-rating-empty,
+        .star-rating-filled {
+            font-size: 2.3rem;
+        }
+    }
 </style>
 
-<form method="post" action="<%= formAction %>" id="brewSessionForm">
+<form method="post" action="<%= formAction %>" id="brewSessionForm" class="brew-session-mobile-form">
     <div class="card mb-3">
         <div class="card-header">
             <i class="bi bi-stars me-1"></i>
-            AI Recipe Setup
+            Brew Setup / AI Recipe
         </div>
 
         <div class="card-body">
-            <p class="text-muted">
-                Fill these fields first if you want the AI Brew Assistant to suggest a recipe.
-            </p>
+            <div class="brew-mobile-help mb-3">
+                <div class="fw-semibold mb-1">Fast phone entry</div>
+                <div class="text-muted small">
+                    Select bean, grinder, brewer, and dose first. Then use AI recipe setup or fill the recipe values below.
+                </div>
+            </div>
 
-            <div class="row g-3">
-                <div class="col-md-6">
+            <div class="row g-3 brew-mobile-main-grid">
+                <div class="brew-quick-field col-md-6">
                     <label for="coffeeBeanId" class="form-label">Coffee Bean</label>
                     <select class="form-select" id="coffeeBeanId" name="coffeeBeanId">
                         <option value="">Select coffee bean</option>
@@ -100,7 +171,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-6">
+                <div class="brew-quick-field col-md-6">
                     <label for="brewDate" class="form-label">Brew Date</label>
                     <input
                         type="date"
@@ -110,7 +181,7 @@
                         value="<%= formData.brewDate || "" %>">
                 </div>
 
-                <div class="col-md-4">
+                <div class="brew-quick-field col-md-4">
                     <label for="grinderId" class="form-label">Grinder</label>
                     <select class="form-select" id="grinderId" name="grinderId">
                         <option value="">No grinder selected</option>
@@ -122,7 +193,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-4">
+                <div class="brew-quick-field col-md-4">
                     <label for="brewerId" class="form-label">Brewer / Brew Method</label>
                     <select class="form-select" id="brewerId" name="brewerId">
                         <option value="">No brewer selected</option>
@@ -134,7 +205,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-4">
+                <div class="brew-quick-field col-md-4">
                     <label for="coffeeDoseGrams" class="form-label">Bean Weight / Coffee Dose</label>
                     <input
                         type="number"
@@ -165,7 +236,7 @@
 
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="brew-quick-field col-md-4">
                     <label for="grindSize" class="form-label">Grind Size</label>
                     <input
                         type="text"
@@ -175,7 +246,7 @@
                         value="<%= formData.grindSize || "" %>">
                 </div>
 
-                <div class="col-md-4">
+                <div class="brew-quick-field col-md-4">
                     <label for="waterTemperatureC" class="form-label">Water Temp °C</label>
                     <input
                         type="number"
@@ -187,7 +258,7 @@
                         value="<%= formData.waterTemperatureC || "" %>">
                 </div>
 
-                <div class="col-md-4">
+                <div class="brew-quick-field col-md-4">
                     <label for="totalYieldGrams" class="form-label">Total Yield</label>
                     <input
                         type="number"
@@ -290,15 +361,28 @@
     </div>
 
     <div class="card mb-3">
-        <div class="card-header">
-            <i class="bi bi-activity me-1"></i>
-            Brew Characteristics
+        <div class="card-header d-flex justify-content-between align-items-center gap-2">
+            <span>
+                <i class="bi bi-activity me-1"></i>
+                Brew Characteristics
+            </span>
+
+            <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary d-md-none"
+                data-bs-toggle="collapse"
+                data-bs-target="#brewCharacteristicsCollapse"
+                aria-expanded="false"
+                aria-controls="brewCharacteristicsCollapse">
+                Show / Hide
+            </button>
         </div>
 
-        <div class="card-body">
-            <p class="text-muted">
-                Score this specific brew from 1 to 5. The radar chart updates while you move the sliders.
-            </p>
+        <div class="collapse d-md-block" id="brewCharacteristicsCollapse">
+            <div class="card-body">
+                <p class="text-muted">
+                    Score this specific brew from 1 to 5. The radar chart updates while you move the sliders.
+                </p>
 
             <div class="row g-4 align-items-center">
                 <div class="col-lg-6">
@@ -397,7 +481,9 @@
         </div>
     </div>
 
-    <div class="d-flex gap-2">
+    </div>
+
+    <div class="d-flex gap-2 brew-form-actions">
         <button type="submit" class="btn btn-primary">
             <i class="bi bi-save me-1"></i>
             <%= submitButtonText %>
