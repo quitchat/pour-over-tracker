@@ -428,6 +428,33 @@ function buildFormDataFromBrewSession(session: any) {
     };
 }
 
+function buildDuplicateFormDataFromBrewSession(session: any) {
+    const totalSeconds = session.totalBrewTimeSeconds;
+    const minutes = totalSeconds === null ? "" : String(Math.floor(totalSeconds / 60));
+    const seconds = totalSeconds === null ? "" : String(totalSeconds % 60);
+
+    return {
+        coffeeBeanId: String(session.coffeeBeanId),
+        grinderId: session.grinderId ? String(session.grinderId) : "",
+        brewerId: session.brewerId ? String(session.brewerId) : "",
+        brewDate: getTodayDateForInput(),
+        grindSize: session.grindSize || "",
+        coffeeDoseGrams: getDecimalText(session.coffeeDoseGrams),
+        totalYieldGrams: getDecimalText(session.totalYieldGrams),
+        waterTemperatureC: getDecimalText(session.waterTemperatureC),
+        totalBrewTimeMinutes: minutes,
+        totalBrewTimeSeconds: seconds,
+        overallRating: "",
+        wouldRepeat: false,
+        notes: "",
+        richness: "3",
+        sweetness: "3",
+        aftertaste: "3",
+        aroma: "3",
+        acidity: "3"
+    };
+}
+
 function mapCoffeeBeanForSelect(bean: any) {
     const statusSuffix = bean.isActive ? "" : " (Inactive)";
 
@@ -949,7 +976,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
     res.redirect(`/brew-sessions/${id}`);
 });
 
-router.post("/:id/duplicate", async function (req: Request, res: Response) {
+router.get("/:id/duplicate", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
     const id = Number(req.params.id);
 
@@ -970,38 +997,30 @@ router.post("/:id/duplicate", async function (req: Request, res: Response) {
         return;
     }
 
-    const duplicatedSession = await prisma.brewSession.create({
-        data: {
-            userId: userId,
-            coffeeBeanId: existingSession.coffeeBeanId,
-            grinderId: existingSession.grinderId,
-            brewerId: existingSession.brewerId,
-            brewDate: new Date(`${getTodayDateForInput()}T00:00:00`),
-            grindSize: existingSession.grindSize,
-            coffeeDoseGrams: existingSession.coffeeDoseGrams,
-            totalYieldGrams: existingSession.totalYieldGrams,
-            brewRatio: existingSession.brewRatio,
-            waterTemperatureC: existingSession.waterTemperatureC,
-            totalBrewTimeSeconds: existingSession.totalBrewTimeSeconds,
-            overallRating: existingSession.overallRating,
-            wouldRepeat: existingSession.wouldRepeat,
-            notes: existingSession.notes,
-            tastingScore: existingSession.tastingScore
-                ? {
-                    create: {
-                        richness: existingSession.tastingScore.richness,
-                        sweetness: existingSession.tastingScore.sweetness,
-                        aftertaste: existingSession.tastingScore.aftertaste,
-                        aroma: existingSession.tastingScore.aroma,
-                        acidity: existingSession.tastingScore.acidity,
-                        bitterness: null
-                    }
-                }
-                : undefined
-        }
-    });
+    const formOptions = await getFormOptions(userId, existingSession.coffeeBeanId);
 
-    res.redirect(`/brew-sessions/${duplicatedSession.id}/edit`);
+    res.render("brew-sessions/form", {
+        title: "Duplicate Brew Session",
+        pageHeading: "Duplicate Brew Session",
+        formAction: "/brew-sessions",
+        submitButtonText: "Save Duplicated Brew",
+        errors: [],
+        formData: buildDuplicateFormDataFromBrewSession(existingSession),
+        coffeeBeans: formOptions.coffeeBeans,
+        grinders: formOptions.grinders,
+        brewers: formOptions.brewers
+    });
+});
+
+router.post("/:id/duplicate", async function (req: Request, res: Response) {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid brew session ID.");
+        return;
+    }
+
+    res.redirect(`/brew-sessions/${id}/duplicate`);
 });
 
 router.post("/:id/delete", async function (req: Request, res: Response) {
