@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { prisma } from "../lib/prisma";
 import { sendPasswordResetEmail } from "../services/email.service";
 import { isValidTemperatureUnit, normalizeTemperatureUnit } from "../utils/temperature";
-import { getTimeZoneOptions, isValidTimeZone, normalizeTimeZone } from "../utils/timeZone";
+import { getTimeZoneGroups, getTimeZoneOptions, isValidTimeZone, normalizeTimeZone } from "../utils/timeZone";
 
 const router = Router();
 const passwordResetTokenExpirationMinutes = 60;
@@ -183,7 +183,8 @@ router.get("/register", function (req: Request, res: Response) {
         title: "Register",
         errors: [],
         formData: {},
-        timeZoneOptions: getTimeZoneOptions()
+        timeZoneOptions: getTimeZoneOptions(),
+        timeZoneGroups: getTimeZoneGroups()
     });
 });
 
@@ -196,7 +197,8 @@ router.post("/register", async function (req: Request, res: Response) {
             title: "Register",
             errors: errors,
             formData: formValues,
-            timeZoneOptions: getTimeZoneOptions()
+            timeZoneOptions: getTimeZoneOptions(),
+        timeZoneGroups: getTimeZoneGroups()
         });
 
         return;
@@ -213,7 +215,8 @@ router.post("/register", async function (req: Request, res: Response) {
             title: "Register",
             errors: ["An account with this email already exists."],
             formData: formValues,
-            timeZoneOptions: getTimeZoneOptions()
+            timeZoneOptions: getTimeZoneOptions(),
+        timeZoneGroups: getTimeZoneGroups()
         });
 
         return;

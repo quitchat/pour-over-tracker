@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
 import { formatTemperatureDecimalForInput, isValidTemperatureUnit, normalizeTemperatureUnit, parseTemperatureInputToCelsiusDecimal } from "../utils/temperature";
-import { getTimeZoneOptions, getTimeZoneLabel, isValidTimeZone, normalizeTimeZone } from "../utils/timeZone";
+import { getTimeZoneGroups, getTimeZoneOptions, getTimeZoneLabel, isValidTimeZone, normalizeTimeZone } from "../utils/timeZone";
 
 const router = Router();
 
@@ -168,6 +168,7 @@ async function renderProfilePage(res: Response, userId: number, options?: {
         brewers: brewDefaultOptions.brewers,
         user: user,
         timeZoneOptions: getTimeZoneOptions(),
+        timeZoneGroups: getTimeZoneGroups(),
         timeZoneLabel: getTimeZoneLabel(user.timeZone)
     });
 }
