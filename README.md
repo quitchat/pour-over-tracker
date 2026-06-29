@@ -58,7 +58,7 @@
 - Manual inventory adjustment history for corrections, discarded beans, and leftover handling
 - Editable and deletable inventory adjustment records
 - Inventory bag deletion that preserves brew sessions by unlinking them from the deleted bag
-- Responsive bean detail inventory layout with a desktop table and mobile cards for available, current, next, finished, and opening-balance records
+- Responsive bean detail inventory layout with polished two-column desktop cards, single-column mobile cards, and expandable adjustment history
 - Compact bean-list inventory indicator
 
 ## Grinder and Brewer Management
@@ -173,3 +173,5 @@
 - Runtime log inspection through PM2
 - Production environment configuration
 - Raspberry Pi reboot-safe application hosting
+
+- Bean detail pages include a collapsible inventory table with expandable adjustment history and inventory actions.
