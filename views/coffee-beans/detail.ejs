@@ -319,18 +319,6 @@
                         <div class="h3 mb-0"><%= stats.bestRating || "-" %></div>
                     </div>
 
-                    <div class="col-6">
-                        <div class="text-muted small">Average Ratio</div>
-                        <div class="h3 mb-0">
-                            <%= stats.averageRatio ? "1:" + stats.averageRatio : "-" %>
-                        </div>
-                    </div>
-
-
-                    <div class="col-6">
-                        <div class="text-muted small">Rated Brews</div>
-                        <div class="h3 mb-0"><%= stats.ratedSessionCount %></div>
-                    </div>
                 </div>
 
                 <% if (stats.bestBrewSessionId) { %>
