@@ -22,6 +22,7 @@
 - Per-user AI access permission
 - Admin-only AI access enablement
 - Per-user temperature unit preference during signup and profile editing
+- Password reset workflow with email-based reset links
 
 ## Coffee Bean Management
 
