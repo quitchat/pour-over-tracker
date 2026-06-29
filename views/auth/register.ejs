@@ -48,12 +48,15 @@
 
                     <div class="mb-3">
                         <label for="timeZone" class="form-label">Timezone</label>
-                        <select class="form-select" id="timeZone" name="timeZone">
-                            <% (timeZoneOptions || []).forEach(function (option) { %>
-                                <option value="<%= option.value %>" <%= (formData.timeZone || "America/Los_Angeles") === option.value ? "selected" : "" %>><%= option.label %></option>
-                            <% }); %>
-                        </select>
-                        <div class="form-text">Used to choose the default brew day for new brews.</div>
+                        <div class="input-group">
+                            <select class="form-select" id="timeZone" name="timeZone">
+                                <% (timeZoneOptions || []).forEach(function (option) { %>
+                                    <option value="<%= option.value %>" <%= (formData.timeZone || "America/Los_Angeles") === option.value ? "selected" : "" %>><%= option.label %></option>
+                                <% }); %>
+                            </select>
+                            <button class="btn btn-outline-secondary" type="button" id="useBrowserTimeZoneButton">Use Mine</button>
+                        </div>
+                        <div class="form-text">Shown with the current UTC offset. Stored as a standard IANA timezone.</div>
                     </div>
 
                     <div class="mb-3">
@@ -100,3 +103,34 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var button = document.getElementById("useBrowserTimeZoneButton");
+    var select = document.getElementById("timeZone");
+
+    if (!button || !select || !window.Intl) {
+        return;
+    }
+
+    button.addEventListener("click", function () {
+        var resolvedOptions = Intl.DateTimeFormat().resolvedOptions();
+        var browserTimeZone = resolvedOptions ? resolvedOptions.timeZone : "";
+
+        if (!browserTimeZone) {
+            return;
+        }
+
+        var existingOption = Array.prototype.find.call(select.options, function (option) {
+            return option.value === browserTimeZone;
+        });
+
+        if (!existingOption) {
+            existingOption = new Option(browserTimeZone, browserTimeZone, true, true);
+            select.add(existingOption, 0);
+        }
+
+        select.value = browserTimeZone;
+    });
+})();
+</script>
