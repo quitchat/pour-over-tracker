@@ -8,7 +8,7 @@ import { prisma } from "../lib/prisma";
 import { getRequiredUserId, requireAiAccess } from "../middleware/auth";
 import { CoffeeInformationResult, getCoffeeBagImageIdentityFromOpenAI, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
 import { AI_API_FEATURE_TYPES, AI_CALL_TYPES, AI_TOOL_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
-import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
+import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue, formatDateOnlyUs } from "../utils/dateFormat";
 import { TemperatureUnit, formatTemperatureDecimalForInput, normalizeTemperatureUnit } from "../utils/temperature";
 
 const router = Router();
@@ -192,6 +192,10 @@ function formatDateOnly(date: Date | null): string {
     return formatDateUs(date);
 }
 
+function formatBrewDateOnly(date: Date | null): string {
+    return formatDateOnlyUs(date);
+}
+
 function formatDateTime(date: Date | null): string {
     return formatDateTimeUs(date);
 }
@@ -281,7 +285,7 @@ function buildCoffeeInfoFormData(currentValues: any, coffeeInfo: CoffeeInformati
 function mapBrewSessionForBeanDetail(session: any, temperatureUnit: TemperatureUnit) {
     return {
         id: session.id,
-        brewDate: formatDateOnly(session.brewDate),
+        brewDate: formatBrewDateOnly(session.brewDate),
         grinderName: session.grinder ? session.grinder.name : "",
         brewerName: session.brewer ? session.brewer.name : "",
         grindSize: session.grindSize || "",
@@ -334,7 +338,7 @@ function buildBeanStats(brewSessions: any[], temperatureUnit: TemperatureUnit) {
         bestRating: bestSession ? bestSession.overallRating.toString() : "",
         averageRatio: ratioSessions.length > 0 ? (totalRatio / ratioSessions.length).toFixed(2) : "",
         bestBrewSessionId: bestSession ? bestSession.id : null,
-        bestBrewDate: bestSession ? formatDateOnly(bestSession.brewDate) : "",
+        bestBrewDate: bestSession ? formatBrewDateOnly(bestSession.brewDate) : "",
         bestGrinderName: bestSession && bestSession.grinder ? bestSession.grinder.name : "",
         bestBrewerName: bestSession && bestSession.brewer ? bestSession.brewer.name : "",
         bestGrindSize: bestSession ? bestSession.grindSize || "" : "",

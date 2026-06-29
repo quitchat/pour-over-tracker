@@ -8,7 +8,7 @@ import expressLayouts from "express-ejs-layouts";
 
 import { prisma } from "./lib/prisma";
 import { getRequiredUserId, loadCurrentUser, requireAuth } from "./middleware/auth";
-import { formatDateUs, formatDateTimeUs } from "./utils/dateFormat";
+import { formatDateUs, formatDateTimeUs, formatDateOnlyUs } from "./utils/dateFormat";
 
 import authRoutes from "./routes/auth.routes";
 import profileRoutes from "./routes/profile.routes";
@@ -180,7 +180,7 @@ app.get("/", async function (req: Request, res: Response, next: NextFunction) {
                 recentBrews: recentBrews.map(function (brew) {
                     return {
                         id: brew.id,
-                        brewDate: formatDateUs(brew.brewDate),
+                        brewDate: formatDateOnlyUs(brew.brewDate),
                         beanName: brew.coffeeBean.beanName,
                         roasterName: brew.coffeeBean.roasterName || "",
                         grinderName: brew.grinder ? brew.grinder.name : "",
