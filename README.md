@@ -21,6 +21,7 @@
 - Deactivated-user access restriction
 - Per-user AI access permission
 - Admin-only AI access enablement
+- Per-user temperature unit preference during signup and profile editing
 
 ## Coffee Bean Management
 
@@ -62,7 +63,7 @@
 - Bean, grinder, and brewer association per brew session
 - Grind size tracking
 - Coffee dose tracking
-- Water temperature tracking
+- Water temperature tracking with Celsius/Fahrenheit user preference
 - Output/yield tracking
 - Brew timing and recipe-related fields
 - Brew pour step tracking
@@ -73,6 +74,7 @@
 - Brew detail previous/next navigation with mobile swipe support
 - Brew comparison workflow
 - AI suggestion support through adjustment notes
+- Temperature-aware AI recipe prompts and structured recipe output
 
 ## Dashboard, Analytics, and Visualization
 

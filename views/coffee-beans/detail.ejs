@@ -362,7 +362,7 @@
                             <div class="col-6 text-end"><%= stats.bestBrewRatio ? "1:" + stats.bestBrewRatio : "-" %></div>
 
                             <div class="col-6 text-muted">Water Temp</div>
-                            <div class="col-6 text-end"><%= stats.bestWaterTemperatureC ? stats.bestWaterTemperatureC + " °C" : "-" %></div>
+                            <div class="col-6 text-end"><%= stats.bestWaterTemperatureC ? stats.bestWaterTemperatureC + " " + (stats.bestWaterTemperatureUnit || "°C") : "-" %></div>
 
                             <div class="col-6 text-muted">Time</div>
                             <div class="col-6 text-end"><%= stats.bestBrewTime || "-" %></div>
@@ -449,7 +449,7 @@
                         </td>
                         <td>
                             <span class="bean-history-mobile-label">Temp</span>
-                            <%= session.waterTemperatureC ? session.waterTemperatureC + " °C" : "-" %>
+                            <%= session.waterTemperatureC ? session.waterTemperatureC + " " + (session.waterTemperatureUnit || "°C") : "-" %>
                         </td>
                         <td>
                             <span class="bean-history-mobile-label">Time</span>

@@ -15,7 +15,8 @@ export type RecentMatchingBrewForSuggestion = {
     coffeeDoseGrams: string;
     totalYieldGrams: string;
     brewRatio: string;
-    waterTemperatureC: string;
+    waterTemperature: string;
+    temperatureUnit: string;
     totalBrewTimeSeconds: number | null;
     overallRating: string;
     pourStructure: string;
@@ -43,13 +44,14 @@ export type BrewAssistantInput = {
     brewerBrand: string;
     brewerType: string;
     coffeeDoseGrams: string;
+    temperatureUnit: string;
     recentMatchingBrews: RecentMatchingBrewForSuggestion[];
 };
 
 export type BrewRecipeSuggestion = {
     recipeName: string;
     grindSize: string | null;
-    waterTemperatureC: number | null;
+    waterTemperature: number | null;
     coffeeDoseGrams: number | null;
     totalYieldGrams: number | null;
     brewRatio: string | null;
@@ -76,7 +78,7 @@ export const DEFAULT_BREW_SUGGESTION_AI_PROMPT = [
     "The recipe must be usable by a beginner.",
     "Do not include pricing.",
     "If grinder setting cannot be known exactly, give a reasonable general pour-over grind-size description or range. Do not use the grinder's saved default grind size range.",
-    "For waterTemperatureC, use Celsius.",
+    "For waterTemperature, use the user temperature unit provided in the request context.",
     "For totalYieldGrams, calculate a reasonable yield from the coffee dose, brewer, and coffee style.",
     "For brewRatio, return text like 1:15, 1:16, or 1:17.",
     "For totalBrewTimeSeconds, return the target total drawdown time in seconds.",
@@ -143,7 +145,7 @@ function formatRecentMatchingBrewHistory(recentMatchingBrews: RecentMatchingBrew
             `Dose: ${brew.coffeeDoseGrams || "Unknown"} g`,
             `Yield: ${brew.totalYieldGrams || "Unknown"} g`,
             `Ratio: ${brew.brewRatio || "Unknown"}`,
-            `Water temp: ${brew.waterTemperatureC || "Unknown"} °C`,
+            `Water temp: ${brew.waterTemperature || "Unknown"} ${brew.temperatureUnit || ""}`.trim(),
             `Total brew time seconds: ${brew.totalBrewTimeSeconds === null ? "Unknown" : brew.totalBrewTimeSeconds}`,
             `Overall rating: ${brew.overallRating || "Unknown"}`,
             `Scores: ${scoreParts || "Unknown"}`,
@@ -159,7 +161,7 @@ function parseBrewRecipeSuggestionJson(outputText: string): BrewRecipeSuggestion
     return {
         recipeName: parsed.recipeName || "Suggested Brewing Recipe",
         grindSize: parsed.grindSize || null,
-        waterTemperatureC: typeof parsed.waterTemperatureC === "number" ? parsed.waterTemperatureC : null,
+        waterTemperature: typeof parsed.waterTemperature === "number" ? parsed.waterTemperature : null,
         coffeeDoseGrams: typeof parsed.coffeeDoseGrams === "number" ? parsed.coffeeDoseGrams : null,
         totalYieldGrams: typeof parsed.totalYieldGrams === "number" ? parsed.totalYieldGrams : null,
         brewRatio: parsed.brewRatio || null,
@@ -204,6 +206,7 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
         `Brew method / brewer type: ${input.brewerType || "Unknown"}`,
         "",
         `Coffee dose / bean weight: ${input.coffeeDoseGrams || "Unknown"} grams`,
+        `Temperature unit for all water temperature values: ${input.temperatureUnit || "°C"}`,
         "",
         "Recent matching brew history with the same bean, grinder, brewer, and dose:",
         formatRecentMatchingBrewHistory(input.recentMatchingBrews),
@@ -211,6 +214,7 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
         "Use the recent matching brew history to improve the suggestion when it is available.",
         "If the recent brews were highly rated, preserve the working parts of those recipes.",
         "If the recent brews had lower ratings or low pentagon tasting scores, suggest practical adjustments to avoid those issues.",
+        `Return waterTemperature as a number in ${input.temperatureUnit || "°C"}. Do not return the other temperature unit.`,
         "The user's tasting feedback is captured by the pentagon scores only: richness, sweetness, aftertaste, aroma, and acidity.",
         "Suggest a balanced recipe that highlights the coffee bean characteristics."
     ].join("\n");
@@ -265,7 +269,7 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
                         grindSize: {
                             type: ["string", "null"]
                         },
-                        waterTemperatureC: {
+                        waterTemperature: {
                             type: ["number", "null"]
                         },
                         coffeeDoseGrams: {
@@ -314,7 +318,7 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
                     required: [
                         "recipeName",
                         "grindSize",
-                        "waterTemperatureC",
+                        "waterTemperature",
                         "coffeeDoseGrams",
                         "totalYieldGrams",
                         "brewRatio",

@@ -45,6 +45,15 @@
                             value="<%= formData.email || "" %>">
                     </div>
 
+
+                    <div class="mb-3">
+                        <label for="temperatureUnit" class="form-label">Temperature Unit</label>
+                        <select class="form-select" id="temperatureUnit" name="temperatureUnit">
+                            <option value="C" <%= (formData.temperatureUnit || "C") === "C" ? "selected" : "" %>>Celsius (°C)</option>
+                            <option value="F" <%= formData.temperatureUnit === "F" ? "selected" : "" %>>Fahrenheit (°F)</option>
+                        </select>
+                    </div>
+
                     <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
                         <input

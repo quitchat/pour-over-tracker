@@ -5,6 +5,7 @@ import { getRequiredUserId, requireAiAccess } from "../middleware/auth";
 import { suggestBrewingRecipe } from "../services/brewAssistant.service";
 import { AI_API_FEATURE_TYPES, AI_CALL_TYPES, AI_TOOL_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
 import { formatDateUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
+import { TemperatureUnit, formatTemperatureDecimalForInput, normalizeTemperatureUnit, parseTemperatureInputToCelsiusDecimal } from "../utils/temperature";
 
 const router = Router();
 
@@ -27,6 +28,16 @@ function getAiCallRouteUser(res: Response): AiCallRouteUser | null {
 }
 
 const scoreFields = ["richness", "sweetness", "aftertaste", "aroma", "acidity"] as const;
+
+function getCurrentTemperatureUnit(res: Response): TemperatureUnit {
+    const currentUser = res.locals.currentUser as { temperatureUnit?: string } | null | undefined;
+
+    return normalizeTemperatureUnit(currentUser && currentUser.temperatureUnit ? currentUser.temperatureUnit : "C");
+}
+
+function getTemperatureUnitLabel(temperatureUnit: TemperatureUnit): string {
+    return temperatureUnit === "F" ? "°F" : "°C";
+}
 
 type ScoreField = typeof scoreFields[number];
 
@@ -283,7 +294,7 @@ function buildTotalBrewTimeSeconds(formValues: ReturnType<typeof getBrewSessionF
     return (minutes || 0) * 60 + (seconds || 0);
 }
 
-function validateBrewSessionForm(formValues: ReturnType<typeof getBrewSessionFormValues>): string[] {
+function validateBrewSessionForm(formValues: ReturnType<typeof getBrewSessionFormValues>, temperatureUnit: TemperatureUnit): string[] {
     const errors: string[] = [];
 
     const coffeeBeanId = parseRequiredInteger(formValues.coffeeBeanId);
@@ -291,7 +302,7 @@ function validateBrewSessionForm(formValues: ReturnType<typeof getBrewSessionFor
     const brewerId = parseOptionalInteger(formValues.brewerId);
     const coffeeDoseGrams = parseRequiredNumber(formValues.coffeeDoseGrams);
     const totalYieldGrams = parseRequiredNumber(formValues.totalYieldGrams);
-    const waterTemperatureC = parseOptionalNumber(formValues.waterTemperatureC);
+    const waterTemperatureInput = parseOptionalNumber(formValues.waterTemperatureC);
     const totalBrewTimeMinutes = parseOptionalInteger(formValues.totalBrewTimeMinutes);
     const totalBrewTimeSeconds = parseOptionalInteger(formValues.totalBrewTimeSeconds);
     const overallRating = parseOptionalNumber(formValues.overallRating);
@@ -320,8 +331,8 @@ function validateBrewSessionForm(formValues: ReturnType<typeof getBrewSessionFor
         errors.push("Total yield must be greater than 0.");
     }
 
-    if (waterTemperatureC !== null && waterTemperatureC < 0) {
-        errors.push("Water temperature must be 0 or greater.");
+    if (waterTemperatureInput !== null && waterTemperatureInput < 0) {
+        errors.push(`Water temperature must be 0 ${getTemperatureUnitLabel(temperatureUnit)} or greater.`);
     }
 
     if (totalBrewTimeMinutes !== null && totalBrewTimeMinutes < 0) {
@@ -424,7 +435,7 @@ function buildTastingScoreUpdateData(formValues: ReturnType<typeof getBrewSessio
     };
 }
 
-function buildBrewSessionCreateData(userId: number, formValues: ReturnType<typeof getBrewSessionFormValues>) {
+function buildBrewSessionCreateData(userId: number, formValues: ReturnType<typeof getBrewSessionFormValues>, temperatureUnit: TemperatureUnit) {
     const totalBrewTimeSeconds = buildTotalBrewTimeSeconds(formValues);
 
     return {
@@ -437,7 +448,7 @@ function buildBrewSessionCreateData(userId: number, formValues: ReturnType<typeo
         coffeeDoseGrams: parseRequiredDecimal(formValues.coffeeDoseGrams),
         totalYieldGrams: parseOptionalDecimal(formValues.totalYieldGrams),
         brewRatio: calculateBrewRatio(formValues.coffeeDoseGrams, formValues.totalYieldGrams),
-        waterTemperatureC: parseOptionalDecimal(formValues.waterTemperatureC),
+        waterTemperatureC: parseTemperatureInputToCelsiusDecimal(formValues.waterTemperatureC, temperatureUnit),
         totalBrewTimeSeconds: totalBrewTimeSeconds,
         overallRating: formValues.overallRating ? new Prisma.Decimal(formValues.overallRating) : null,
         notes: null as string | null,
@@ -450,7 +461,7 @@ function buildBrewSessionCreateData(userId: number, formValues: ReturnType<typeo
     };
 }
 
-function buildBrewSessionUpdateData(formValues: ReturnType<typeof getBrewSessionFormValues>) {
+function buildBrewSessionUpdateData(formValues: ReturnType<typeof getBrewSessionFormValues>, temperatureUnit: TemperatureUnit) {
     const totalBrewTimeSeconds = buildTotalBrewTimeSeconds(formValues);
 
     return {
@@ -462,7 +473,7 @@ function buildBrewSessionUpdateData(formValues: ReturnType<typeof getBrewSession
         coffeeDoseGrams: parseRequiredDecimal(formValues.coffeeDoseGrams),
         totalYieldGrams: parseOptionalDecimal(formValues.totalYieldGrams),
         brewRatio: calculateBrewRatio(formValues.coffeeDoseGrams, formValues.totalYieldGrams),
-        waterTemperatureC: parseOptionalDecimal(formValues.waterTemperatureC),
+        waterTemperatureC: parseTemperatureInputToCelsiusDecimal(formValues.waterTemperatureC, temperatureUnit),
         totalBrewTimeSeconds: totalBrewTimeSeconds,
         overallRating: formValues.overallRating ? new Prisma.Decimal(formValues.overallRating) : null,
         notes: null as string | null,
@@ -472,7 +483,7 @@ function buildBrewSessionUpdateData(formValues: ReturnType<typeof getBrewSession
     };
 }
 
-function buildFormDataFromBrewSession(session: any) {
+function buildFormDataFromBrewSession(session: any, temperatureUnit: TemperatureUnit) {
     const totalSeconds = session.totalBrewTimeSeconds;
     const minutes = totalSeconds === null ? "" : String(Math.floor(totalSeconds / 60));
     const seconds = totalSeconds === null ? "" : String(totalSeconds % 60);
@@ -486,7 +497,7 @@ function buildFormDataFromBrewSession(session: any) {
         grindSize: session.grindSize || "",
         coffeeDoseGrams: getDecimalText(session.coffeeDoseGrams),
         totalYieldGrams: getDecimalText(session.totalYieldGrams),
-        waterTemperatureC: getDecimalText(session.waterTemperatureC),
+        waterTemperatureC: formatTemperatureDecimalForInput(session.waterTemperatureC, temperatureUnit),
         totalBrewTimeMinutes: minutes,
         totalBrewTimeSeconds: seconds,
         overallRating: getDecimalText(session.overallRating),
@@ -501,7 +512,7 @@ function buildFormDataFromBrewSession(session: any) {
     };
 }
 
-function buildDuplicateFormDataFromBrewSession(session: any) {
+function buildDuplicateFormDataFromBrewSession(session: any, temperatureUnit: TemperatureUnit) {
     const totalSeconds = session.totalBrewTimeSeconds;
     const minutes = totalSeconds === null ? "" : String(Math.floor(totalSeconds / 60));
     const seconds = totalSeconds === null ? "" : String(totalSeconds % 60);
@@ -514,7 +525,7 @@ function buildDuplicateFormDataFromBrewSession(session: any) {
         grindSize: session.grindSize || "",
         coffeeDoseGrams: getDecimalText(session.coffeeDoseGrams),
         totalYieldGrams: getDecimalText(session.totalYieldGrams),
-        waterTemperatureC: getDecimalText(session.waterTemperatureC),
+        waterTemperatureC: formatTemperatureDecimalForInput(session.waterTemperatureC, temperatureUnit),
         totalBrewTimeMinutes: minutes,
         totalBrewTimeSeconds: seconds,
         overallRating: "",
@@ -540,7 +551,7 @@ function mapCoffeeBeanForSelect(bean: any) {
     };
 }
 
-function mapBrewSessionForList(session: any) {
+function mapBrewSessionForList(session: any, temperatureUnit: TemperatureUnit) {
     return {
         id: session.id,
         brewDate: formatDateOnly(session.brewDate),
@@ -553,13 +564,14 @@ function mapBrewSessionForList(session: any) {
         coffeeDoseGrams: getDecimalText(session.coffeeDoseGrams),
         totalYieldGrams: getDecimalText(session.totalYieldGrams),
         brewRatio: getDecimalText(session.brewRatio),
-        waterTemperatureC: getDecimalText(session.waterTemperatureC),
+        waterTemperatureC: formatTemperatureDecimalForInput(session.waterTemperatureC, temperatureUnit),
+        waterTemperatureUnit: getTemperatureUnitLabel(temperatureUnit),
         totalBrewTime: formatSeconds(session.totalBrewTimeSeconds),
         overallRating: getDecimalText(session.overallRating)
     };
 }
 
-function mapBrewSessionForDetail(session: any) {
+function mapBrewSessionForDetail(session: any, temperatureUnit: TemperatureUnit) {
     const tastingScore = session.tastingScore;
 
     return {
@@ -575,7 +587,8 @@ function mapBrewSessionForDetail(session: any) {
         coffeeDoseGrams: getDecimalText(session.coffeeDoseGrams),
         totalYieldGrams: getDecimalText(session.totalYieldGrams),
         brewRatio: getDecimalText(session.brewRatio),
-        waterTemperatureC: getDecimalText(session.waterTemperatureC),
+        waterTemperatureC: formatTemperatureDecimalForInput(session.waterTemperatureC, temperatureUnit),
+        waterTemperatureUnit: getTemperatureUnitLabel(temperatureUnit),
         totalBrewTime: formatSeconds(session.totalBrewTimeSeconds),
         overallRating: getDecimalText(session.overallRating),
         pourStructure: session.pourStructure || "",
@@ -679,7 +692,7 @@ async function getUserBrewDefaults(userId: number) {
 }
 
 
-async function getRecentMatchingBrewsForSuggestion(userId: number, coffeeBeanId: number, grinderId: number, brewerId: number, coffeeDoseGrams: string) {
+async function getRecentMatchingBrewsForSuggestion(userId: number, coffeeBeanId: number, grinderId: number, brewerId: number, coffeeDoseGrams: string, temperatureUnit: TemperatureUnit) {
     const recentBrews = await prisma.brewSession.findMany({
         where: {
             userId: userId,
@@ -712,7 +725,8 @@ async function getRecentMatchingBrewsForSuggestion(userId: number, coffeeBeanId:
             coffeeDoseGrams: getDecimalText(brew.coffeeDoseGrams),
             totalYieldGrams: getDecimalText(brew.totalYieldGrams),
             brewRatio: getDecimalText(brew.brewRatio),
-            waterTemperatureC: getDecimalText(brew.waterTemperatureC),
+            waterTemperature: formatTemperatureDecimalForInput(brew.waterTemperatureC, temperatureUnit),
+            temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
             totalBrewTimeSeconds: brew.totalBrewTimeSeconds,
             overallRating: getDecimalText(brew.overallRating),
             pourStructure: brew.pourStructure || "",
@@ -851,6 +865,7 @@ function mapAdjacentBrewSessionForNavigation(session: any) {
 
 router.get("/", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
     const requestedPage = Number(req.query.page || "1");
     const pageSize = 10;
     const currentPage = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -932,7 +947,7 @@ router.get("/", async function (req: Request, res: Response) {
     ]);
 
     const brewSessions = brewSessionsFromDatabase.map(function (session) {
-        return mapBrewSessionForList(session);
+        return mapBrewSessionForList(session, temperatureUnit);
     });
     const totalPages = Math.max(1, Math.ceil(totalBrewSessionCount / pageSize));
 
@@ -988,6 +1003,7 @@ router.get("/", async function (req: Request, res: Response) {
 
 router.get("/new", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
     const requestedCoffeeBeanId = String(req.query.coffeeBeanId || "").trim();
 
     let preselectedCoffeeBeanId = "";
@@ -1050,7 +1066,7 @@ router.get("/new", async function (req: Request, res: Response) {
         : "";
 
     const defaultWaterTemperatureC = userBrewDefaults
-        ? getDecimalText(userBrewDefaults.defaultWaterTemperatureC)
+        ? formatTemperatureDecimalForInput(userBrewDefaults.defaultWaterTemperatureC, temperatureUnit)
         : "";
 
     res.render("brew-sessions/form", {
@@ -1062,6 +1078,7 @@ router.get("/new", async function (req: Request, res: Response) {
         showAiSuggestionButton: true,
         enableLocationDefaults: true,
         formData: getDefaultFormData(preselectedCoffeeBeanId, preselectedGrinderId, preselectedBrewerId, defaultCoffeeDoseGrams, defaultWaterTemperatureC),
+        temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,
         brewers: formOptions.brewers
@@ -1244,6 +1261,7 @@ router.post("/equipment-location-suggestions", async function (req: Request, res
 
 router.post("/suggest-recipe", requireAiAccess, async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
 
     const coffeeBeanId = parseRequiredInteger(String(req.body.coffeeBeanId || "").trim());
     const grinderId = parseRequiredInteger(String(req.body.grinderId || "").trim());
@@ -1333,7 +1351,8 @@ router.post("/suggest-recipe", requireAiAccess, async function (req: Request, re
             coffeeBeanId,
             grinderId,
             brewerId,
-            coffeeDoseGrams
+            coffeeDoseGrams,
+            temperatureUnit
         );
 
         const recipeResult = await suggestBrewingRecipe({
@@ -1352,6 +1371,7 @@ router.post("/suggest-recipe", requireAiAccess, async function (req: Request, re
             brewerBrand: brewer.brand || "",
             brewerType: brewer.brewerType || "",
             coffeeDoseGrams: coffeeDoseGrams,
+            temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
             recentMatchingBrews: recentMatchingBrews
         });
         const recipe = recipeResult.data;
@@ -1395,8 +1415,9 @@ router.post("/suggest-recipe", requireAiAccess, async function (req: Request, re
 
 router.post("/", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
     const formValues = getBrewSessionFormValues(req);
-    const errors = validateBrewSessionForm(formValues);
+    const errors = validateBrewSessionForm(formValues, temperatureUnit);
     const ownershipErrors = await validateSelectedRecordsBelongToUser(userId, formValues, false);
     const allErrors = errors.concat(ownershipErrors);
 
@@ -1413,6 +1434,7 @@ router.post("/", async function (req: Request, res: Response) {
             showAiSuggestionButton: true,
             enableLocationDefaults: true,
             formData: formValues,
+            temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
             coffeeBeans: formOptions.coffeeBeans,
             grinders: formOptions.grinders,
             brewers: formOptions.brewers
@@ -1422,7 +1444,7 @@ router.post("/", async function (req: Request, res: Response) {
     }
 
     const createdSession = await prisma.brewSession.create({
-        data: buildBrewSessionCreateData(userId, formValues)
+        data: buildBrewSessionCreateData(userId, formValues, temperatureUnit)
     });
 
     res.redirect(`/brew-sessions/${createdSession.id}`);
@@ -1430,6 +1452,7 @@ router.post("/", async function (req: Request, res: Response) {
 
 router.get("/:id/edit", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id)) {
@@ -1454,7 +1477,8 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
         errors: [],
         showAiSuggestionButton: false,
         enableLocationDefaults: false,
-        formData: buildFormDataFromBrewSession(brewSession),
+        formData: buildFormDataFromBrewSession(brewSession, temperatureUnit),
+        temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,
         brewers: formOptions.brewers
@@ -1463,6 +1487,7 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
 
 router.post("/:id/edit", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id)) {
@@ -1478,7 +1503,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
     }
 
     const formValues = getBrewSessionFormValues(req);
-    const errors = validateBrewSessionForm(formValues);
+    const errors = validateBrewSessionForm(formValues, temperatureUnit);
     const ownershipErrors = await validateSelectedRecordsBelongToUser(userId, formValues, true);
     const allErrors = errors.concat(ownershipErrors);
 
@@ -1495,6 +1520,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             showAiSuggestionButton: false,
             enableLocationDefaults: false,
             formData: formValues,
+            temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
             coffeeBeans: formOptions.coffeeBeans,
             grinders: formOptions.grinders,
             brewers: formOptions.brewers
@@ -1507,7 +1533,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
         where: {
             id: id
         },
-        data: buildBrewSessionUpdateData(formValues)
+        data: buildBrewSessionUpdateData(formValues, temperatureUnit)
     });
 
     await prisma.tastingScore.upsert({
@@ -1526,6 +1552,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
 
 router.get("/:id/duplicate", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id)) {
@@ -1555,7 +1582,8 @@ router.get("/:id/duplicate", async function (req: Request, res: Response) {
         errors: [],
         showAiSuggestionButton: true,
         enableLocationDefaults: false,
-        formData: buildDuplicateFormDataFromBrewSession(existingSession),
+        formData: buildDuplicateFormDataFromBrewSession(existingSession, temperatureUnit),
+        temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,
         brewers: formOptions.brewers
@@ -1606,6 +1634,7 @@ router.post("/:id/delete", async function (req: Request, res: Response) {
 
 router.get("/:id", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id)) {
@@ -1624,7 +1653,7 @@ router.get("/:id", async function (req: Request, res: Response) {
 
     res.render("brew-sessions/detail", {
         title: "Brew Session Detail",
-        brewSession: mapBrewSessionForDetail(brewSession),
+        brewSession: mapBrewSessionForDetail(brewSession, temperatureUnit),
         previousBrewSession: mapAdjacentBrewSessionForNavigation(adjacentBrewSessions.previousBrewSession),
         nextBrewSession: mapAdjacentBrewSessionForNavigation(adjacentBrewSessions.nextBrewSession)
     });

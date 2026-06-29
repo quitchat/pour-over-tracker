@@ -23,7 +23,7 @@
     function getBrewSummaryText(session) {
         const dose = session.coffeeDoseGrams ? `${session.coffeeDoseGrams}g` : "-";
         const totalYield = session.totalYieldGrams ? `${session.totalYieldGrams}g` : "-";
-        const waterTemperature = session.waterTemperatureC ? ` @ ${session.waterTemperatureC}°C` : "";
+        const waterTemperature = session.waterTemperatureC ? ` @ ${session.waterTemperatureC}${session.waterTemperatureUnit || "°C"}` : "";
         const totalBrewTime = session.totalBrewTime ? ` over ${session.totalBrewTime}` : "";
 
         if (dose === "-" && totalYield === "-" && !waterTemperature && !totalBrewTime) {

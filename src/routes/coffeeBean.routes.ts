@@ -9,8 +9,19 @@ import { getRequiredUserId, requireAiAccess } from "../middleware/auth";
 import { CoffeeInformationResult, getCoffeeBagImageIdentityFromOpenAI, getCoffeeInformationFromOpenAI } from "../services/coffeeInfo.service";
 import { AI_API_FEATURE_TYPES, AI_CALL_TYPES, AI_TOOL_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
 import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
+import { TemperatureUnit, formatTemperatureDecimalForInput, normalizeTemperatureUnit } from "../utils/temperature";
 
 const router = Router();
+
+function getCurrentTemperatureUnit(res: Response): TemperatureUnit {
+    const currentUser = res.locals.currentUser as { temperatureUnit?: string } | null | undefined;
+
+    return normalizeTemperatureUnit(currentUser && currentUser.temperatureUnit ? currentUser.temperatureUnit : "C");
+}
+
+function getTemperatureUnitLabel(temperatureUnit: TemperatureUnit): string {
+    return temperatureUnit === "F" ? "°F" : "°C";
+}
 
 type AiCallRouteUser = {
     id: number;
@@ -267,7 +278,7 @@ function buildCoffeeInfoFormData(currentValues: any, coffeeInfo: CoffeeInformati
     };
 }
 
-function mapBrewSessionForBeanDetail(session: any) {
+function mapBrewSessionForBeanDetail(session: any, temperatureUnit: TemperatureUnit) {
     return {
         id: session.id,
         brewDate: formatDateOnly(session.brewDate),
@@ -277,13 +288,14 @@ function mapBrewSessionForBeanDetail(session: any) {
         coffeeDoseGrams: session.coffeeDoseGrams.toString(),
         totalYieldGrams: session.totalYieldGrams ? session.totalYieldGrams.toString() : "",
         brewRatio: session.brewRatio.toString(),
-        waterTemperatureC: session.waterTemperatureC ? session.waterTemperatureC.toString() : "",
+        waterTemperatureC: formatTemperatureDecimalForInput(session.waterTemperatureC, temperatureUnit),
+        waterTemperatureUnit: getTemperatureUnitLabel(temperatureUnit),
         totalBrewTime: formatSeconds(session.totalBrewTimeSeconds),
         overallRating: session.overallRating ? session.overallRating.toString() : ""
     };
 }
 
-function buildBeanStats(brewSessions: any[]) {
+function buildBeanStats(brewSessions: any[], temperatureUnit: TemperatureUnit) {
     const ratedSessions = brewSessions.filter(function (session) {
         return !!session.overallRating;
     });
@@ -329,7 +341,8 @@ function buildBeanStats(brewSessions: any[]) {
         bestDoseGrams: bestSession && bestSession.coffeeDoseGrams ? bestSession.coffeeDoseGrams.toString() : "",
         bestYieldGrams: bestSession && bestSession.totalYieldGrams ? bestSession.totalYieldGrams.toString() : "",
         bestBrewRatio: bestSession && bestSession.brewRatio ? bestSession.brewRatio.toString() : "",
-        bestWaterTemperatureC: bestSession && bestSession.waterTemperatureC ? bestSession.waterTemperatureC.toString() : "",
+        bestWaterTemperatureC: bestSession && bestSession.waterTemperatureC ? formatTemperatureDecimalForInput(bestSession.waterTemperatureC, temperatureUnit) : "",
+        bestWaterTemperatureUnit: getTemperatureUnitLabel(temperatureUnit),
         bestBrewTime: bestSession ? formatSeconds(bestSession.totalBrewTimeSeconds) : ""
     };
 }
@@ -944,11 +957,13 @@ router.get("/:id", async function (req: Request, res: Response) {
         return;
     }
 
+    const temperatureUnit = getCurrentTemperatureUnit(res);
+
     const brewSessions = coffeeBean.brewSessions.map(function (session) {
-        return mapBrewSessionForBeanDetail(session);
+        return mapBrewSessionForBeanDetail(session, temperatureUnit);
     });
 
-    const stats = buildBeanStats(coffeeBean.brewSessions);
+    const stats = buildBeanStats(coffeeBean.brewSessions, temperatureUnit);
 
     res.render("coffee-beans/detail", {
         title: "Coffee Bean Detail",

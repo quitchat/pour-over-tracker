@@ -284,7 +284,7 @@
                 </div>
 
                 <div class="brew-quick-field col-md-4">
-                    <label for="waterTemperatureC" class="form-label">Water Temp °C</label>
+                    <label for="waterTemperatureC" class="form-label">Water Temp <%= temperatureUnit || "°C" %></label>
                     <input
                         type="number"
                         step="1"
@@ -637,6 +637,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+            const temperatureUnitLabel = <%- JSON.stringify(typeof temperatureUnit !== "undefined" ? temperatureUnit : "°C") %>;
         const radarScoreFields = [
             { id: "richness", label: "Richness", outputId: "richnessValue" },
             { id: "sweetness", label: "Sweetness", outputId: "sweetnessValue" },
@@ -1361,7 +1362,7 @@
         function populateRecipe(recipe) {
             setText("recipeName", recipe.recipeName || "Suggested Brewing Recipe");
             setText("recipeGrindSize", recipe.grindSize);
-            setText("recipeWaterTemp", recipe.waterTemperatureC ? recipe.waterTemperatureC + " °C" : "-");
+            setText("recipeWaterTemp", recipe.waterTemperature ? recipe.waterTemperature + " " + temperatureUnitLabel : "-");
             setText("recipeDose", recipe.coffeeDoseGrams ? recipe.coffeeDoseGrams + " g" : "-");
             setText("recipeYield", recipe.totalYieldGrams ? recipe.totalYieldGrams + " g" : "-");
             setText("recipeRatio", recipe.brewRatio);
@@ -1375,7 +1376,7 @@
             appendListItems("recipeReasoningNotes", recipe.reasoningNotes || []);
 
             setElementValue("suggestedGrindSize", recipe.grindSize || "");
-            setElementValue("suggestedWaterTemperatureC", recipe.waterTemperatureC || "");
+            setElementValue("suggestedWaterTemperatureC", recipe.waterTemperature || "");
             setElementValue("suggestedCoffeeDoseGrams", recipe.coffeeDoseGrams || "");
             setElementValue("suggestedTotalYieldGrams", recipe.totalYieldGrams || "");
             setElementValue("suggestedTotalBrewTimeSeconds", recipe.totalBrewTimeSeconds || "");

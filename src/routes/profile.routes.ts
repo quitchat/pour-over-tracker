@@ -3,13 +3,15 @@ import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
+import { formatTemperatureDecimalForInput, isValidTemperatureUnit, normalizeTemperatureUnit, parseTemperatureInputToCelsiusDecimal } from "../utils/temperature";
 
 const router = Router();
 
 function getProfileFormValues(req: Request) {
     return {
         displayName: String(req.body.displayName || "").trim(),
-        email: String(req.body.email || "").trim().toLowerCase()
+        email: String(req.body.email || "").trim().toLowerCase(),
+        temperatureUnit: normalizeTemperatureUnit(String(req.body.temperatureUnit || "C"))
     };
 }
 
@@ -79,6 +81,7 @@ async function getProfileUser(userId: number) {
             defaultBrewerId: true,
             defaultCoffeeDoseGrams: true,
             defaultWaterTemperatureC: true,
+            temperatureUnit: true,
             createdAt: true
         }
     });
@@ -113,7 +116,8 @@ async function getBrewDefaultOptions(userId: number) {
 function buildProfileFormData(user: any) {
     return {
         displayName: user.displayName || "",
-        email: user.email
+        email: user.email,
+        temperatureUnit: normalizeTemperatureUnit(user.temperatureUnit)
     };
 }
 
@@ -122,7 +126,7 @@ function buildBrewDefaultsFormData(user: any) {
         defaultGrinderId: user.defaultGrinderId ? String(user.defaultGrinderId) : "",
         defaultBrewerId: user.defaultBrewerId ? String(user.defaultBrewerId) : "",
         defaultCoffeeDoseGrams: getDecimalText(user.defaultCoffeeDoseGrams),
-        defaultWaterTemperatureC: getDecimalText(user.defaultWaterTemperatureC)
+        defaultWaterTemperatureC: formatTemperatureDecimalForInput(user.defaultWaterTemperatureC, normalizeTemperatureUnit(user.temperatureUnit))
     };
 }
 
@@ -188,6 +192,10 @@ router.post("/", async function (req: Request, res: Response) {
         errors.push("Email is required.");
     }
 
+    if (!isValidTemperatureUnit(formValues.temperatureUnit)) {
+        errors.push("Temperature unit must be Celsius or Fahrenheit.");
+    }
+
     const existingEmailUser = formValues.email
         ? await prisma.user.findUnique({
             where: {
@@ -216,7 +224,8 @@ router.post("/", async function (req: Request, res: Response) {
         },
         data: {
             displayName: formValues.displayName,
-            email: formValues.email
+            email: formValues.email,
+            temperatureUnit: formValues.temperatureUnit
         }
     });
 
@@ -240,7 +249,8 @@ router.post("/brew-defaults", async function (req: Request, res: Response) {
     const defaultGrinderId = parseOptionalInteger(formValues.defaultGrinderId);
     const defaultBrewerId = parseOptionalInteger(formValues.defaultBrewerId);
     const defaultCoffeeDoseGrams = parseOptionalNumber(formValues.defaultCoffeeDoseGrams);
-    const defaultWaterTemperatureC = parseOptionalNumber(formValues.defaultWaterTemperatureC);
+    const defaultWaterTemperatureInput = parseOptionalNumber(formValues.defaultWaterTemperatureC);
+    const temperatureUnit = normalizeTemperatureUnit(user.temperatureUnit);
 
     if (formValues.defaultGrinderId && defaultGrinderId === null) {
         errors.push("Invalid default grinder.");
@@ -254,7 +264,7 @@ router.post("/brew-defaults", async function (req: Request, res: Response) {
         errors.push("Default coffee dose must be greater than 0.");
     }
 
-    if (defaultWaterTemperatureC !== null && defaultWaterTemperatureC < 0) {
+    if (defaultWaterTemperatureInput !== null && defaultWaterTemperatureInput < 0) {
         errors.push("Default water temperature must be 0 or greater.");
     }
 
@@ -304,9 +314,7 @@ router.post("/brew-defaults", async function (req: Request, res: Response) {
             defaultCoffeeDoseGrams: formValues.defaultCoffeeDoseGrams
                 ? new Prisma.Decimal(formValues.defaultCoffeeDoseGrams)
                 : null,
-            defaultWaterTemperatureC: formValues.defaultWaterTemperatureC
-                ? new Prisma.Decimal(formValues.defaultWaterTemperatureC)
-                : null
+            defaultWaterTemperatureC: parseTemperatureInputToCelsiusDecimal(formValues.defaultWaterTemperatureC, temperatureUnit)
         }
     });
 

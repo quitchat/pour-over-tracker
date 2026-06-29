@@ -70,6 +70,15 @@
                             value="<%= formData.email || "" %>">
                     </div>
 
+                    <div class="mb-3">
+                        <label for="temperatureUnit" class="form-label">Temperature Unit</label>
+                        <select class="form-select" id="temperatureUnit" name="temperatureUnit">
+                            <option value="C" <%= (formData.temperatureUnit || "C") === "C" ? "selected" : "" %>>Celsius (°C)</option>
+                            <option value="F" <%= formData.temperatureUnit === "F" ? "selected" : "" %>>Fahrenheit (°F)</option>
+                        </select>
+                        <div class="form-text">Brew temperatures are shown and entered with this unit. Existing structured brew temperatures are converted automatically.</div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-save me-1"></i>
                         Save Profile
@@ -146,7 +155,7 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for="defaultWaterTemperatureC" class="form-label">Default Water Temp °C</label>
+                            <label for="defaultWaterTemperatureC" class="form-label">Default Water Temp <%= formData.temperatureUnit === "F" ? "°F" : "°C" %></label>
                             <input
                                 type="number"
                                 step="1"
@@ -154,7 +163,7 @@
                                 class="form-control"
                                 id="defaultWaterTemperatureC"
                                 name="defaultWaterTemperatureC"
-                                placeholder="94"
+                                placeholder="<%= formData.temperatureUnit === "F" ? "201" : "94" %>"
                                 value="<%= brewDefaultsFormDataValue.defaultWaterTemperatureC || "" %>">
                         </div>
                     </div>
@@ -252,6 +261,9 @@
                     <dt class="col-sm-4">Email</dt>
                     <dd class="col-sm-8"><%= user.email %></dd>
 
+                    <dt class="col-sm-4">Temperature</dt>
+                    <dd class="col-sm-8"><%= formData.temperatureUnit === "F" ? "Fahrenheit (°F)" : "Celsius (°C)" %></dd>
+
                     <dt class="col-sm-4">Created</dt>
                     <dd class="col-sm-8"><%= typeof formatDateUs !== "undefined" ? formatDateUs(user.createdAt) : "" %></dd>
                 </dl>
@@ -284,7 +296,7 @@
                     <dd class="col-sm-7"><%= brewDefaultsFormDataValue.defaultCoffeeDoseGrams ? brewDefaultsFormDataValue.defaultCoffeeDoseGrams + " g" : "None" %></dd>
 
                     <dt class="col-sm-5">Water Temp</dt>
-                    <dd class="col-sm-7"><%= brewDefaultsFormDataValue.defaultWaterTemperatureC ? brewDefaultsFormDataValue.defaultWaterTemperatureC + " °C" : "None" %></dd>
+                    <dd class="col-sm-7"><%= brewDefaultsFormDataValue.defaultWaterTemperatureC ? brewDefaultsFormDataValue.defaultWaterTemperatureC + " " + (formData.temperatureUnit === "F" ? "°F" : "°C") : "None" %></dd>
                 </dl>
 
                 <hr>

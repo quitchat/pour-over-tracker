@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
+import { isValidTemperatureUnit, normalizeTemperatureUnit } from "../utils/temperature";
 
 const router = Router();
 
@@ -13,7 +14,8 @@ function getRegisterFormValues(req: Request) {
         displayName: String(req.body.displayName || "").trim(),
         email: normalizeEmail(String(req.body.email || "")),
         password: String(req.body.password || ""),
-        confirmPassword: String(req.body.confirmPassword || "")
+        confirmPassword: String(req.body.confirmPassword || ""),
+        temperatureUnit: normalizeTemperatureUnit(String(req.body.temperatureUnit || "C"))
     };
 }
 
@@ -46,6 +48,10 @@ function validateRegisterForm(formValues: ReturnType<typeof getRegisterFormValue
 
     if (formValues.password !== formValues.confirmPassword) {
         errors.push("Password and confirm password must match.");
+    }
+
+    if (!isValidTemperatureUnit(formValues.temperatureUnit)) {
+        errors.push("Temperature unit must be Celsius or Fahrenheit.");
     }
 
     return errors;
@@ -128,7 +134,8 @@ router.post("/register", async function (req: Request, res: Response) {
             displayName: formValues.displayName || null,
             passwordHash: passwordHash,
             role: userCount === 0 ? "Admin" : "User",
-            isActive: true
+            isActive: true,
+            temperatureUnit: formValues.temperatureUnit
         }
     });
 
