@@ -1,5 +1,6 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
+import { createPostgresBackup, getDatabaseBackupInfo } from "../services/databaseBackup.service";
 import { requireAdmin } from "../middleware/auth";
 import { formatDateTimeUs } from "../utils/dateFormat";
 import {
@@ -861,6 +862,38 @@ router.post("/brew-suggestion-ai-prompt", async function (req: Request, res: Res
     }
 
     res.redirect("/admin/brew-suggestion-ai-prompt?saved=1");
+});
+
+
+router.get("/database", function (req: Request, res: Response) {
+    const databaseInfo = getDatabaseBackupInfo();
+
+    res.render("admin/database", {
+        title: "Admin - Database",
+        databaseInfo: databaseInfo,
+        message: String(req.query.message || ""),
+        error: String(req.query.error || "")
+    });
+});
+
+router.post("/database/backup", async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        const backup = await createPostgresBackup();
+
+        res.download(backup.filePath, backup.fileName, async function (downloadError: Error | undefined) {
+            await backup.cleanup();
+
+            if (downloadError) {
+                next(downloadError);
+            }
+        });
+    } catch (error) {
+        const message = error instanceof Error && error.message
+            ? error.message
+            : "Database backup failed.";
+
+        res.redirect(`/admin/database?error=${encodeURIComponent(message)}`);
+    }
 });
 
 export default router;

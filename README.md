@@ -103,6 +103,13 @@
 - Admin-managed Bean Detail AI prompt
 - Per-user AI feature availability controls
 
+## Admin Database Backup
+
+- Admin Database section
+- Admin-only PostgreSQL backup creation
+- Downloadable database backup from the admin area
+- Backup-focused database administration without database editing tools
+
 ## AI Logging, Costing, and Administration
 
 - AI call logging

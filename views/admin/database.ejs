@@ -1,0 +1,94 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-1">Admin Database</h1>
+        <p class="text-muted mb-0">
+            Create and download PostgreSQL backups. This area is restricted to admin users.
+        </p>
+    </div>
+
+    <a href="/admin/users" class="btn btn-outline-secondary">
+        <i class="bi bi-people me-1"></i>
+        User Management
+    </a>
+</div>
+
+<% if (message) { %>
+    <div class="alert alert-success" role="alert">
+        <%= message %>
+    </div>
+<% } %>
+
+<% if (error) { %>
+    <div class="alert alert-danger" role="alert">
+        <%= error %>
+    </div>
+<% } %>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 3rem; height: 3rem;">
+                        <i class="bi bi-database-down fs-4"></i>
+                    </div>
+
+                    <div>
+                        <h2 class="h5 mb-1">PostgreSQL Backup</h2>
+                        <p class="text-muted mb-0">
+                            Generate a PostgreSQL custom-format backup and download it immediately.
+                        </p>
+                    </div>
+                </div>
+
+                <form method="post" action="/admin/database/backup">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-download me-1"></i>
+                        Create and Download Backup
+                    </button>
+                </form>
+
+                <div class="alert alert-warning mt-3 mb-0" role="alert">
+                    <div class="fw-semibold mb-1">Keep downloaded backups secure.</div>
+                    <div>
+                        Backups can contain user accounts, brew history, AI logs, and other application data.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h5 mb-3">Database Info</h2>
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Database</dt>
+                    <dd class="col-sm-7"><%= databaseInfo.databaseName || "" %></dd>
+
+                    <dt class="col-sm-5">Host</dt>
+                    <dd class="col-sm-7"><%= databaseInfo.host || "" %></dd>
+
+                    <dt class="col-sm-5">Port</dt>
+                    <dd class="col-sm-7"><%= databaseInfo.port || "" %></dd>
+
+                    <dt class="col-sm-5">Backup format</dt>
+                    <dd class="col-sm-7"><%= databaseInfo.backupFormat %></dd>
+
+                    <dt class="col-sm-5">Command</dt>
+                    <dd class="col-sm-7"><code><%= databaseInfo.pgDumpCommand %></code></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mt-3">
+    <div class="card-body">
+        <h2 class="h5 mb-2">Restore note</h2>
+        <p class="text-muted mb-0">
+            This screen only creates backups. Restore/import tools are intentionally not included here yet.
+        </p>
+    </div>
+</div>
