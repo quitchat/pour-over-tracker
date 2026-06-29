@@ -1,6 +1,124 @@
-<div class="d-flex justify-content-between align-items-center mb-3"><div><h1 class="h3 mb-1"><%= pageHeading %></h1><p class="text-muted mb-0">Remaining now: <%= remainingGrams %>g</p></div><a href="/coffee-beans/<%= coffeeBean.id %>" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back to Bean</a></div>
-<% if (errors && errors.length > 0) { %><div class="alert alert-danger"><strong>Please fix the following:</strong><ul class="mb-0"><% errors.forEach(function (error) { %><li><%= error %></li><% }); %></ul></div><% } %>
-<form method="post" action="/coffee-beans/<%= coffeeBean.id %>/inventory/<%= inventory.id %>/adjust">
-    <div class="card mb-3"><div class="card-header"><i class="bi bi-plus-slash-minus me-1"></i>Adjustment</div><div class="card-body"><div class="row g-3"><div class="col-md-6"><label for="adjustmentGrams" class="form-label">Adjustment Grams</label><input type="number" step="0.01" class="form-control" id="adjustmentGrams" name="adjustmentGrams" value="<%= formData.adjustmentGrams || "" %>"><div class="form-text">Use positive or negative grams, for example +20 or -8.</div></div><div class="col-md-6"><label for="reason" class="form-label">Reason</label><select class="form-select" id="reason" name="reason"><option value="CORRECTION" <%= formData.reason === "CORRECTION" ? "selected" : "" %>>Measurement correction</option><option value="DISCARDED" <%= formData.reason === "DISCARDED" ? "selected" : "" %>>Discarded</option><option value="FINISHED_LEFTOVER" <%= formData.reason === "FINISHED_LEFTOVER" ? "selected" : "" %>>Finished / mixed with another bean</option><option value="OTHER" <%= formData.reason === "OTHER" ? "selected" : "" %>>Other</option></select></div><div class="col-12"><label for="notes" class="form-label">Notes</label><textarea class="form-control" id="notes" name="notes" rows="3"><%= formData.notes || "" %></textarea></div></div></div></div>
-    <div class="d-flex gap-2"><button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save Adjustment</button><a href="/coffee-beans/<%= coffeeBean.id %>" class="btn btn-outline-secondary">Cancel</a></div>
-</form>
+<%
+    const actionUrl = typeof formAction !== "undefined" ? formAction : ("/coffee-beans/" + coffeeBean.id + "/inventory/" + inventory.id + "/adjust");
+    const submitText = typeof submitLabel !== "undefined" ? submitLabel : "Save Adjustment";
+    const adjustmentRows = typeof adjustmentHistory !== "undefined" && adjustmentHistory ? adjustmentHistory : (inventory.adjustments || []);
+    const currentEditingAdjustmentId = typeof editingAdjustmentId !== "undefined" ? editingAdjustmentId : null;
+    function displayAdjustmentGrams(value) {
+        const numberValue = Number(value || 0);
+        if (Math.abs(numberValue - Math.round(numberValue)) < 0.005) {
+            return String(Math.round(numberValue));
+        }
+        return numberValue.toFixed(1);
+    }
+%>
+
+<div class="d-flex justify-content-between align-items-start mb-3 gap-3 flex-column flex-lg-row">
+    <div>
+        <h1 class="h3 mb-1"><%= pageHeading %></h1>
+        <p class="text-muted mb-0">
+            <%= coffeeBean.roasterName ? coffeeBean.roasterName + " - " : "" %><%= coffeeBean.beanName %>
+            <span class="mx-1">·</span>
+            Remaining now: <%= displayAdjustmentGrams(remainingGrams) %>g
+        </p>
+    </div>
+    <a href="/coffee-beans/<%= coffeeBean.id %>" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Bean
+    </a>
+</div>
+
+<% if (errors && errors.length > 0) { %>
+    <div class="alert alert-danger">
+        <strong>Please fix the following:</strong>
+        <ul class="mb-0">
+            <% errors.forEach(function (error) { %>
+                <li><%= error %></li>
+            <% }); %>
+        </ul>
+    </div>
+<% } %>
+
+<div class="row g-3 align-items-start">
+    <div class="col-lg-5">
+        <form method="post" action="<%= actionUrl %>">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-plus-slash-minus me-1"></i><%= pageHeading %>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="adjustmentGrams" class="form-label">Adjustment Grams</label>
+                            <input type="number" step="0.01" class="form-control" id="adjustmentGrams" name="adjustmentGrams" value="<%= formData.adjustmentGrams || "" %>">
+                            <div class="form-text">Use positive or negative grams, for example +20 or -8.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="reason" class="form-label">Reason</label>
+                            <select class="form-select" id="reason" name="reason">
+                                <option value="CORRECTION" <%= formData.reason === "CORRECTION" ? "selected" : "" %>>Measurement correction</option>
+                                <option value="DISCARDED" <%= formData.reason === "DISCARDED" ? "selected" : "" %>>Discarded</option>
+                                <option value="FINISHED_LEFTOVER" <%= formData.reason === "FINISHED_LEFTOVER" ? "selected" : "" %>>Finished / mixed with another bean</option>
+                                <option value="OTHER" <%= formData.reason === "OTHER" ? "selected" : "" %>>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="4"><%= formData.notes || "" %></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i><%= submitText %>
+                </button>
+                <a href="/coffee-beans/<%= coffeeBean.id %>" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                <span><i class="bi bi-clock-history me-1"></i>Adjustment History</span>
+                <span class="badge text-bg-light border"><%= adjustmentRows.length %></span>
+            </div>
+            <div class="card-body">
+                <% if (adjustmentRows.length === 0) { %>
+                    <p class="text-muted mb-0">No adjustments have been recorded for this bag yet.</p>
+                <% } else { %>
+                    <div class="inventory-adjustment-list">
+                        <% adjustmentRows.forEach(function (adjustment) { %>
+                            <div class="inventory-adjustment-item <%= currentEditingAdjustmentId === adjustment.id ? "border-primary" : "" %>">
+                                <div class="inventory-adjustment-icon <%= Number(adjustment.adjustmentGrams) < 0 ? "inventory-adjustment-negative" : "inventory-adjustment-positive" %>">
+                                    <%= Number(adjustment.adjustmentGrams) < 0 ? "−" : "+" %>
+                                </div>
+                                <div class="inventory-adjustment-content">
+                                    <div class="d-flex justify-content-between gap-2 flex-wrap">
+                                        <div class="fw-semibold <%= Number(adjustment.adjustmentGrams) < 0 ? "text-danger" : "text-success" %>">
+                                            <%= Number(adjustment.adjustmentGrams) >= 0 ? "+" : "" %><%= displayAdjustmentGrams(adjustment.adjustmentGrams) %>g
+                                        </div>
+                                        <div class="small text-muted"><%= formatDateUs(adjustment.createdAt) %></div>
+                                    </div>
+                                    <div class="small text-muted"><%= adjustment.reason.replace(/_/g, " ") %></div>
+                                    <% if (adjustment.notes) { %>
+                                        <div class="small mt-1"><%= adjustment.notes %></div>
+                                    <% } %>
+                                    <% if (currentEditingAdjustmentId === adjustment.id) { %>
+                                        <div class="small text-primary mt-1">Currently editing this adjustment.</div>
+                                    <% } %>
+                                </div>
+                                <div class="inventory-adjustment-actions d-flex gap-2 flex-wrap justify-content-end">
+                                    <a class="btn btn-sm btn-outline-secondary" href="/coffee-beans/<%= coffeeBean.id %>/inventory/<%= inventory.id %>/adjustments/<%= adjustment.id %>/edit">Edit</a>
+                                    <form method="post" action="/coffee-beans/<%= coffeeBean.id %>/inventory/<%= inventory.id %>/adjustments/<%= adjustment.id %>/delete" onsubmit="return confirm('Delete this adjustment? This will recalculate the bag remaining amount.');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>

@@ -56,7 +56,9 @@
 - Automatic behind-the-scenes inventory bag association during brew creation
 - Finish Bag / Zero Out Remaining workflow using inventory adjustments
 - Manual inventory adjustment history for corrections, discarded beans, and leftover handling
-- Bean detail inventory section with available, current, next, finished, and opening-balance records
+- Editable and deletable inventory adjustment records
+- Inventory bag deletion that preserves brew sessions by unlinking them from the deleted bag
+- Responsive bean detail inventory layout with a desktop table and mobile cards for available, current, next, finished, and opening-balance records
 - Compact bean-list inventory indicator
 
 ## Grinder and Brewer Management

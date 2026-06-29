@@ -569,7 +569,27 @@ async function getInventoryForUser(userId: number, beanId: number, inventoryId: 
                     coffeeDoseGrams: true
                 }
             },
-            adjustments: true
+            adjustments: {
+                orderBy: {
+                    createdAt: "desc"
+                }
+            }
+        }
+    });
+}
+
+
+async function getAdjustmentForUser(userId: number, beanId: number, inventoryId: number, adjustmentId: number) {
+    return await prisma.beanInventoryAdjustment.findFirst({
+        where: {
+            id: adjustmentId,
+            beanInventoryId: inventoryId,
+            beanInventory: {
+                beanId: beanId,
+                bean: {
+                    userId: userId
+                }
+            }
         }
     });
 }
@@ -1341,6 +1361,7 @@ router.get("/:id/inventory/:inventoryId/adjust", async function (req: Request, r
         coffeeBean: coffeeBean,
         inventory: inventory,
         remainingGrams: usage.remainingGrams,
+        adjustmentHistory: inventory.adjustments,
         errors: [],
         formData: {
             adjustmentGrams: "",
@@ -1379,6 +1400,7 @@ router.post("/:id/inventory/:inventoryId/adjust", async function (req: Request, 
             coffeeBean: coffeeBean,
             inventory: inventory,
             remainingGrams: usage.remainingGrams,
+            adjustmentHistory: inventory.adjustments,
             errors: errors,
             formData: formValues
         });
@@ -1396,6 +1418,130 @@ router.post("/:id/inventory/:inventoryId/adjust", async function (req: Request, 
     });
 
     res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory adjusted.")}`);
+});
+
+
+router.get("/:id/inventory/:inventoryId/adjustments/:adjustmentId/edit", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const inventoryId = Number(req.params.inventoryId);
+    const adjustmentId = Number(req.params.adjustmentId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(inventoryId) || !Number.isInteger(adjustmentId)) {
+        res.status(400).send("Invalid adjustment ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+    const inventory = await getInventoryForUser(userId, id, inventoryId);
+    const adjustment = await getAdjustmentForUser(userId, id, inventoryId, adjustmentId);
+
+    if (!coffeeBean || !inventory || !adjustment) {
+        res.status(404).send("Adjustment not found.");
+        return;
+    }
+
+    const usage = getInventoryUsage(inventory);
+
+    res.render("coffee-beans/inventory-adjust-form", {
+        title: "Edit Adjustment",
+        pageHeading: "Edit Adjustment",
+        coffeeBean: coffeeBean,
+        inventory: inventory,
+        remainingGrams: usage.remainingGrams,
+        adjustmentHistory: inventory.adjustments,
+        editingAdjustmentId: adjustmentId,
+        errors: [],
+        formAction: `/coffee-beans/${id}/inventory/${inventoryId}/adjustments/${adjustmentId}/edit`,
+        submitLabel: "Update Adjustment",
+        formData: {
+            adjustmentGrams: adjustment.adjustmentGrams.toString(),
+            reason: adjustment.reason,
+            notes: adjustment.notes || ""
+        }
+    });
+});
+
+router.post("/:id/inventory/:inventoryId/adjustments/:adjustmentId/edit", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const inventoryId = Number(req.params.inventoryId);
+    const adjustmentId = Number(req.params.adjustmentId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(inventoryId) || !Number.isInteger(adjustmentId)) {
+        res.status(400).send("Invalid adjustment ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+    const inventory = await getInventoryForUser(userId, id, inventoryId);
+    const adjustment = await getAdjustmentForUser(userId, id, inventoryId, adjustmentId);
+
+    if (!coffeeBean || !inventory || !adjustment) {
+        res.status(404).send("Adjustment not found.");
+        return;
+    }
+
+    const formValues = getAdjustmentFormValues(req);
+    const errors = validateAdjustmentForm(formValues);
+    const usage = getInventoryUsage(inventory);
+
+    if (errors.length > 0) {
+        res.status(400).render("coffee-beans/inventory-adjust-form", {
+            title: "Edit Adjustment",
+            pageHeading: "Edit Adjustment",
+            coffeeBean: coffeeBean,
+            inventory: inventory,
+            remainingGrams: usage.remainingGrams,
+            adjustmentHistory: inventory.adjustments,
+            editingAdjustmentId: adjustmentId,
+            errors: errors,
+            formAction: `/coffee-beans/${id}/inventory/${inventoryId}/adjustments/${adjustmentId}/edit`,
+            submitLabel: "Update Adjustment",
+            formData: formValues
+        });
+        return;
+    }
+
+    await prisma.beanInventoryAdjustment.update({
+        where: {
+            id: adjustmentId
+        },
+        data: {
+            adjustmentGrams: new Prisma.Decimal(Number(formValues.adjustmentGrams).toFixed(2)),
+            reason: formValues.reason as any,
+            notes: formValues.notes || null
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory adjustment updated.")}`);
+});
+
+router.post("/:id/inventory/:inventoryId/adjustments/:adjustmentId/delete", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const inventoryId = Number(req.params.inventoryId);
+    const adjustmentId = Number(req.params.adjustmentId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(inventoryId) || !Number.isInteger(adjustmentId)) {
+        res.status(400).send("Invalid adjustment ID.");
+        return;
+    }
+
+    const adjustment = await getAdjustmentForUser(userId, id, inventoryId, adjustmentId);
+
+    if (!adjustment) {
+        res.status(404).send("Adjustment not found.");
+        return;
+    }
+
+    await prisma.beanInventoryAdjustment.delete({
+        where: {
+            id: adjustmentId
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory adjustment deleted.")}`);
 });
 
 router.get("/:id/inventory/:inventoryId/finish", async function (req: Request, res: Response) {
@@ -1503,18 +1649,32 @@ router.post("/:id/inventory/:inventoryId/delete", async function (req: Request, 
         return;
     }
 
-    if (inventory.brewSessions.length > 0 || inventory.adjustments.length > 0) {
-        res.redirect(`/coffee-beans/${id}?errorMessage=${encodeURIComponent("Cannot delete a bag that already has brews or adjustments. Use Finish Bag or Adjust Inventory instead.")}`);
-        return;
-    }
+    await prisma.$transaction(async function (tx) {
+        await tx.brewSession.updateMany({
+            where: {
+                beanInventoryId: inventoryId,
+                coffeeBeanId: id,
+                userId: userId
+            },
+            data: {
+                beanInventoryId: null
+            }
+        });
 
-    await prisma.beanInventory.delete({
-        where: {
-            id: inventoryId
-        }
+        await tx.beanInventoryAdjustment.deleteMany({
+            where: {
+                beanInventoryId: inventoryId
+            }
+        });
+
+        await tx.beanInventory.delete({
+            where: {
+                id: inventoryId
+            }
+        });
     });
 
-    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory bag deleted.")}`);
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory bag deleted. Any linked brew sessions were kept and unlinked from this bag.")}`);
 });
 
 router.get("/:id/edit", async function (req: Request, res: Response) {

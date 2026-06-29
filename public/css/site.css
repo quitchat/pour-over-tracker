@@ -263,3 +263,213 @@ main.container {
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12);
     transform: translateY(-2px);
 }
+
+.inventory-table {
+    min-width: 1040px;
+}
+
+.inventory-table th {
+    color: var(--bs-secondary-color);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+    background: var(--bs-tertiary-bg);
+}
+
+.inventory-table td {
+    vertical-align: middle;
+}
+
+.inventory-row-finished > td {
+    background: var(--bs-tertiary-bg);
+    color: var(--bs-secondary-color);
+}
+
+.inventory-row-detail > td {
+    padding-top: 0;
+    border-top: 0;
+    background: var(--bs-body-bg);
+}
+
+.inventory-action-group form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.inventory-action-group form .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.inventory-card-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.inventory-card {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.75rem;
+    background: var(--bs-body-bg);
+    box-shadow: 0 0.15rem 0.45rem rgba(0, 0, 0, 0.04);
+}
+
+.inventory-card-finished {
+    background: var(--bs-tertiary-bg);
+}
+
+.inventory-card-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.inventory-card-title-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.inventory-status-badges {
+    white-space: nowrap;
+}
+
+.inventory-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+.inventory-metric {
+    padding: 0.75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.65rem;
+    background: var(--bs-tertiary-bg);
+}
+
+.inventory-metric-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.inventory-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 1rem;
+    margin-top: 0.85rem;
+}
+
+.inventory-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: stretch;
+    min-width: 130px;
+}
+
+.inventory-card-actions .btn,
+.inventory-card-actions form,
+.inventory-card-actions form .btn {
+    width: 100%;
+}
+
+.inventory-adjustment-details summary {
+    cursor: pointer;
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+
+.inventory-adjustment-list {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.inventory-adjustment-list-desktop {
+    max-width: 900px;
+}
+
+.inventory-adjustment-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.65rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.65rem;
+    background: var(--bs-tertiary-bg);
+}
+
+.inventory-adjustment-item-compact {
+    grid-template-columns: 90px 150px minmax(0, 1fr) 95px 70px;
+    align-items: center;
+    padding: 0.5rem 0.65rem;
+    background: var(--bs-body-bg);
+}
+
+.inventory-adjustment-amount {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.inventory-adjustment-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.inventory-adjustment-positive {
+    color: #0f5132;
+    background: #d1e7dd;
+}
+
+.inventory-adjustment-negative {
+    color: #842029;
+    background: #f8d7da;
+}
+
+.inventory-adjustment-content {
+    min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+    .inventory-card {
+        flex-direction: column;
+        padding: 0.85rem;
+    }
+
+    .inventory-card-title-row {
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+
+    .inventory-metrics-grid,
+    .inventory-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .inventory-card-actions {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .inventory-adjustment-item {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .inventory-adjustment-actions {
+        grid-column: 1 / -1;
+    }
+
+    .inventory-adjustment-actions .btn {
+        width: 100%;
+    }
+}
