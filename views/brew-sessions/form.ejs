@@ -222,7 +222,7 @@
                         <option value="">No grinder selected</option>
                         <% grinders.forEach(function (grinder) { %>
                             <option value="<%= grinder.id %>" <%= String(formData.grinderId || "") === String(grinder.id) ? "selected" : "" %>>
-                                <%= grinder.name %>
+                                <%= grinder.label || grinder.name %>
                             </option>
                         <% }); %>
                     </select>
@@ -234,7 +234,7 @@
                         <option value="">No brewer selected</option>
                         <% brewers.forEach(function (brewer) { %>
                             <option value="<%= brewer.id %>" <%= String(formData.brewerId || "") === String(brewer.id) ? "selected" : "" %>>
-                                <%= brewer.name %>
+                                <%= brewer.label || brewer.name %>
                             </option>
                         <% }); %>
                     </select>

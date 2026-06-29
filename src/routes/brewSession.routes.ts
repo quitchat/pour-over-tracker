@@ -35,6 +35,44 @@ function getCurrentTemperatureUnit(res: Response): TemperatureUnit {
     return normalizeTemperatureUnit(currentUser && currentUser.temperatureUnit ? currentUser.temperatureUnit : "C");
 }
 
+function getEquipmentNameKey(name: string | null | undefined): string {
+    return String(name || "").trim().toLowerCase();
+}
+
+function getDuplicateEquipmentNameCounts<T extends { name: string | null | undefined }>(items: T[]): Map<string, number> {
+    const counts = new Map<string, number>();
+
+    items.forEach(function (item) {
+        const key = getEquipmentNameKey(item.name);
+
+        if (!key) {
+            return;
+        }
+
+        counts.set(key, (counts.get(key) || 0) + 1);
+    });
+
+    return counts;
+}
+
+function getEquipmentSelectLabel(item: { name: string | null | undefined; locationName?: string | null }, duplicateNameCounts: Map<string, number>): string {
+    const name = String(item.name || "").trim();
+    const key = getEquipmentNameKey(name);
+    const duplicateCount = duplicateNameCounts.get(key) || 0;
+
+    if (duplicateCount <= 1) {
+        return name;
+    }
+
+    const locationName = String(item.locationName || "").trim();
+
+    if (locationName) {
+        return `${name} (${locationName})`;
+    }
+
+    return `${name} (No location)`;
+}
+
 function getTemperatureUnitLabel(temperatureUnit: TemperatureUnit): string {
     return temperatureUnit === "F" ? "°F" : "°C";
 }
@@ -653,6 +691,9 @@ async function getFormOptions(userId: number, includedCoffeeBeanId: number | nul
         })
     ]);
 
+    const grinderNameCounts = getDuplicateEquipmentNameCounts(grindersFromDatabase);
+    const brewerNameCounts = getDuplicateEquipmentNameCounts(brewersFromDatabase);
+
     return {
         coffeeBeans: coffeeBeansFromDatabase.map(function (bean) {
             return mapCoffeeBeanForSelect(bean);
@@ -661,17 +702,21 @@ async function getFormOptions(userId: number, includedCoffeeBeanId: number | nul
             return {
                 id: grinder.id,
                 name: grinder.name,
+                label: getEquipmentSelectLabel(grinder, grinderNameCounts),
                 brand: grinder.brand || "",
                 grinderType: grinder.grinderType || "",
-                defaultGrindSizeRange: grinder.defaultGrindSizeRange || ""
+                defaultGrindSizeRange: grinder.defaultGrindSizeRange || "",
+                locationName: grinder.locationName || ""
             };
         }),
         brewers: brewersFromDatabase.map(function (brewer) {
             return {
                 id: brewer.id,
                 name: brewer.name,
+                label: getEquipmentSelectLabel(brewer, brewerNameCounts),
                 brand: brewer.brand || "",
-                brewerType: brewer.brewerType || ""
+                brewerType: brewer.brewerType || "",
+                locationName: brewer.locationName || ""
             };
         })
     };
