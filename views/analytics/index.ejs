@@ -185,15 +185,18 @@
                 <% topBrewerList.forEach(function (brewer) { %>
                     <a href="/brewers/<%= brewer.id %>/edit" class="list-group-item list-group-item-action d-flex justify-content-between align-items-start gap-3">
                         <div>
-                            <div class="fw-semibold"><%= brewer.name %></div>
+                            <div class="fw-semibold">
+                                <%= brewer.name %><% if (brewer.locationName) { %> (<%= brewer.locationName %>)<% } %>
+                            </div>
 
                             <% if (brewer.brand) { %>
                                 <div class="text-muted small"><%= brewer.brand %></div>
                             <% } %>
                         </div>
 
-                        <span class="badge text-bg-light border">
-                            <%= brewer.brewCount %>
+                        <span class="badge text-bg-light border text-end">
+                            <span class="d-block"><%= brewer.totalBrewedGrams %>g</span>
+                            <span class="d-block fw-normal text-muted"><%= brewer.brewCount %> brews</span>
                         </span>
                     </a>
                 <% }); %>

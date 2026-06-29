@@ -306,20 +306,55 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             })
             .slice(0, 5);
 
+        const brewerUsageById = new Map<number, { brewCount: number; totalBrewedGrams: number }>();
+
+        brewSessions.forEach(function (session) {
+            if (!session.brewerId) {
+                return;
+            }
+
+            const currentUsage = brewerUsageById.get(session.brewerId) || {
+                brewCount: 0,
+                totalBrewedGrams: 0
+            };
+
+            currentUsage.brewCount += 1;
+            currentUsage.totalBrewedGrams += Number(session.totalYieldGrams || 0);
+
+            brewerUsageById.set(session.brewerId, currentUsage);
+        });
+
         const topBrewers = allBrewers
-            .slice()
-            .sort(function (a, b) {
-                return b._count.brewSessions - a._count.brewSessions;
-            })
-            .slice(0, 5)
             .map(function (brewer) {
+                const usage = brewerUsageById.get(brewer.id) || {
+                    brewCount: 0,
+                    totalBrewedGrams: 0
+                };
+
                 return {
                     id: brewer.id,
                     name: brewer.name,
                     brand: brewer.brand || "",
-                    brewCount: brewer._count.brewSessions
+                    locationName: brewer.locationName || "",
+                    brewCount: usage.brewCount,
+                    totalBrewedGrams: round(usage.totalBrewedGrams, 1)
                 };
-            });
+            })
+            .filter(function (brewer) {
+                return brewer.brewCount > 0;
+            })
+            .sort(function (a, b) {
+                if (b.totalBrewedGrams !== a.totalBrewedGrams) {
+                    return b.totalBrewedGrams - a.totalBrewedGrams;
+                }
+
+                if (b.brewCount !== a.brewCount) {
+                    return b.brewCount - a.brewCount;
+                }
+
+                return a.name.localeCompare(b.name);
+            })
+            .slice(0, 5);
 
         const recentBrews = brewSessions
             .slice()

@@ -65,9 +65,51 @@ router.get("/", async function (req: Request, res: Response) {
         }
     });
 
+    const brewerUsageRows = await prisma.brewSession.groupBy({
+        by: ["brewerId"],
+        where: {
+            userId: userId,
+            brewerId: {
+                not: null
+            }
+        },
+        _count: {
+            _all: true
+        },
+        _sum: {
+            totalYieldGrams: true
+        }
+    });
+
+    const brewerUsageById = new Map<number, { brewCount: number; totalBrewedGrams: string }>();
+
+    brewerUsageRows.forEach(function (row) {
+        if (row.brewerId === null) {
+            return;
+        }
+
+        brewerUsageById.set(row.brewerId, {
+            brewCount: row._count._all,
+            totalBrewedGrams: row._sum.totalYieldGrams ? row._sum.totalYieldGrams.toFixed(1) : "0.0"
+        });
+    });
+
+    const brewersWithUsage = brewers.map(function (brewer) {
+        const usage = brewerUsageById.get(brewer.id) || {
+            brewCount: 0,
+            totalBrewedGrams: "0.0"
+        };
+
+        return {
+            ...brewer,
+            brewCount: usage.brewCount,
+            totalBrewedGrams: usage.totalBrewedGrams
+        };
+    });
+
     res.render("brewers/index", {
         title: "Brewers",
-        brewers: brewers
+        brewers: brewersWithUsage
     });
 });
 
