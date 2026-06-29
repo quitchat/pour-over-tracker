@@ -47,6 +47,16 @@
 
 
                     <div class="mb-3">
+                        <label for="timeZone" class="form-label">Timezone</label>
+                        <select class="form-select" id="timeZone" name="timeZone">
+                            <% (timeZoneOptions || []).forEach(function (option) { %>
+                                <option value="<%= option.value %>" <%= (formData.timeZone || "America/Los_Angeles") === option.value ? "selected" : "" %>><%= option.label %></option>
+                            <% }); %>
+                        </select>
+                        <div class="form-text">Used to choose the default brew day for new brews.</div>
+                    </div>
+
+                    <div class="mb-3">
                         <label for="temperatureUnit" class="form-label">Temperature Unit</label>
                         <select class="form-select" id="temperatureUnit" name="temperatureUnit">
                             <option value="C" <%= (formData.temperatureUnit || "C") === "C" ? "selected" : "" %>>Celsius (°C)</option>

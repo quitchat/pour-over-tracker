@@ -16,6 +16,7 @@ model User {
   isActive      Boolean       @default(true)
   allowAi       Boolean       @default(false)
   temperatureUnit String       @default("C")
+  timeZone      String        @default("America/Los_Angeles")
   deactivatedAt DateTime?
   defaultGrinderId Int?
   defaultBrewerId Int?
@@ -35,6 +36,7 @@ model User {
   @@index([isActive])
   @@index([allowAi])
   @@index([temperatureUnit])
+  @@index([timeZone])
 }
 
 

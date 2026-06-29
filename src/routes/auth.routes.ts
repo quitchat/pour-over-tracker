@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { prisma } from "../lib/prisma";
 import { sendPasswordResetEmail } from "../services/email.service";
 import { isValidTemperatureUnit, normalizeTemperatureUnit } from "../utils/temperature";
+import { getTimeZoneOptions, isValidTimeZone, normalizeTimeZone } from "../utils/timeZone";
 
 const router = Router();
 const passwordResetTokenExpirationMinutes = 60;
@@ -18,7 +19,8 @@ function getRegisterFormValues(req: Request) {
         email: normalizeEmail(String(req.body.email || "")),
         password: String(req.body.password || ""),
         confirmPassword: String(req.body.confirmPassword || ""),
-        temperatureUnit: normalizeTemperatureUnit(String(req.body.temperatureUnit || "C"))
+        temperatureUnit: normalizeTemperatureUnit(String(req.body.temperatureUnit || "C")),
+        timeZone: normalizeTimeZone(String(req.body.timeZone || "America/Los_Angeles"))
     };
 }
 
@@ -69,6 +71,10 @@ function validateRegisterForm(formValues: ReturnType<typeof getRegisterFormValue
 
     if (!isValidTemperatureUnit(formValues.temperatureUnit)) {
         errors.push("Temperature unit must be Celsius or Fahrenheit.");
+    }
+
+    if (!isValidTimeZone(formValues.timeZone)) {
+        errors.push("Timezone must be valid.");
     }
 
     return errors;
@@ -176,7 +182,8 @@ router.get("/register", function (req: Request, res: Response) {
     res.render("auth/register", {
         title: "Register",
         errors: [],
-        formData: {}
+        formData: {},
+        timeZoneOptions: getTimeZoneOptions()
     });
 });
 
@@ -188,7 +195,8 @@ router.post("/register", async function (req: Request, res: Response) {
         res.status(400).render("auth/register", {
             title: "Register",
             errors: errors,
-            formData: formValues
+            formData: formValues,
+            timeZoneOptions: getTimeZoneOptions()
         });
 
         return;
@@ -204,7 +212,8 @@ router.post("/register", async function (req: Request, res: Response) {
         res.status(400).render("auth/register", {
             title: "Register",
             errors: ["An account with this email already exists."],
-            formData: formValues
+            formData: formValues,
+            timeZoneOptions: getTimeZoneOptions()
         });
 
         return;
@@ -220,7 +229,8 @@ router.post("/register", async function (req: Request, res: Response) {
             passwordHash: passwordHash,
             role: userCount === 0 ? "Admin" : "User",
             isActive: true,
-            temperatureUnit: formValues.temperatureUnit
+            temperatureUnit: formValues.temperatureUnit,
+            timeZone: formValues.timeZone
         }
     });
 

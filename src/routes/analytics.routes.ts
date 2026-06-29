@@ -1,11 +1,19 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId, requireAuth } from "../middleware/auth";
-import { formatDateUs } from "../utils/dateFormat";
+import { buildLastMonthKeys, formatDateOnlyUs, formatMonthKeyFromDateOnly } from "../utils/dateFormat";
+import { normalizeTimeZone } from "../utils/timeZone";
 
 const router = Router();
 
 router.use(requireAuth);
+
+function getCurrentTimeZone(res: Response): string {
+    const currentUser = res.locals.currentUser as { timeZone?: string } | null | undefined;
+
+    return normalizeTimeZone(currentUser && currentUser.timeZone ? currentUser.timeZone : "America/Los_Angeles");
+}
+
 
 function toNumber(value: unknown): number {
     if (value === null || typeof value === "undefined") {
@@ -24,40 +32,24 @@ function round(value: number, decimals: number): number {
     return Math.round(value * multiplier) / multiplier;
 }
 
-function formatMonthKey(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-
-    return `${year}-${month}`;
-}
-
 function formatMonthLabel(monthKey: string): string {
     const parts = monthKey.split("-");
     const year = Number(parts[0]);
     const monthIndex = Number(parts[1]) - 1;
-    const date = new Date(year, monthIndex, 1);
+    const date = new Date(Date.UTC(year, monthIndex, 1));
 
     return date.toLocaleString("default", {
         month: "short",
-        year: "numeric"
+        year: "numeric",
+        timeZone: "UTC"
     });
 }
 
-function buildLastMonthKeys(count: number): string[] {
-    const result: string[] = [];
-    const today = new Date();
-
-    for (let index = count - 1; index >= 0; index--) {
-        const date = new Date(today.getFullYear(), today.getMonth() - index, 1);
-        result.push(formatMonthKey(date));
-    }
-
-    return result;
-}
 
 router.get("/", async function (req: Request, res: Response, next: NextFunction) {
     try {
         const userId = getRequiredUserId(req);
+        const timeZone = getCurrentTimeZone(res);
 
         const [
             totalBeans,
@@ -155,7 +147,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             )
             : 0;
 
-        const lastSixMonthKeys = buildLastMonthKeys(6);
+        const lastSixMonthKeys = buildLastMonthKeys(6, timeZone);
 
         const brewCountByMonthMap = new Map<string, number>();
         const ratingByMonthMap = new Map<string, { total: number; count: number }>();
@@ -169,7 +161,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
         });
 
         brewSessions.forEach(function (session) {
-            const monthKey = formatMonthKey(session.brewDate);
+            const monthKey = formatMonthKeyFromDateOnly(session.brewDate);
 
             if (brewCountByMonthMap.has(monthKey)) {
                 brewCountByMonthMap.set(monthKey, (brewCountByMonthMap.get(monthKey) || 0) + 1);
@@ -338,7 +330,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             .map(function (session) {
                 return {
                     id: session.id,
-                    brewDate: formatDateUs(session.brewDate),
+                    brewDate: formatDateOnlyUs(session.brewDate),
                     coffeeName: session.coffeeBean.beanName,
                     roasterName: session.coffeeBean.roasterName || "",
                     grinderName: session.grinder ? session.grinder.name : "",

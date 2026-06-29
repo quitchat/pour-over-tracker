@@ -4,6 +4,7 @@
     const brewDefaultsFormDataValue = typeof brewDefaultsFormData !== "undefined" ? brewDefaultsFormData : {};
     const grindersValue = typeof grinders !== "undefined" ? grinders : [];
     const brewersValue = typeof brewers !== "undefined" ? brewers : [];
+    const timeZoneOptionsValue = typeof timeZoneOptions !== "undefined" ? timeZoneOptions : [];
 %>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -68,6 +69,16 @@
                             id="email"
                             name="email"
                             value="<%= formData.email || "" %>">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="timeZone" class="form-label">Timezone</label>
+                        <select class="form-select" id="timeZone" name="timeZone">
+                            <% timeZoneOptionsValue.forEach(function (option) { %>
+                                <option value="<%= option.value %>" <%= (formData.timeZone || "America/Los_Angeles") === option.value ? "selected" : "" %>><%= option.label %></option>
+                            <% }); %>
+                        </select>
+                        <div class="form-text">Used for the default date on new brew sessions. Changing this does not change existing brew dates.</div>
                     </div>
 
                     <div class="mb-3">
@@ -263,6 +274,9 @@
 
                     <dt class="col-sm-4">Temperature</dt>
                     <dd class="col-sm-8"><%= formData.temperatureUnit === "F" ? "Fahrenheit (°F)" : "Celsius (°C)" %></dd>
+
+                    <dt class="col-sm-4">Timezone</dt>
+                    <dd class="col-sm-8"><%= typeof timeZoneLabel !== "undefined" ? timeZoneLabel : (formData.timeZone || "America/Los_Angeles") %></dd>
 
                     <dt class="col-sm-4">Created</dt>
                     <dd class="col-sm-8"><%= typeof formatDateUs !== "undefined" ? formatDateUs(user.createdAt) : "" %></dd>

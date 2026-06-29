@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { getRequiredUserId } from "../middleware/auth";
 import { formatTemperatureDecimalForInput, isValidTemperatureUnit, normalizeTemperatureUnit, parseTemperatureInputToCelsiusDecimal } from "../utils/temperature";
+import { getTimeZoneOptions, getTimeZoneLabel, isValidTimeZone, normalizeTimeZone } from "../utils/timeZone";
 
 const router = Router();
 
@@ -11,7 +12,8 @@ function getProfileFormValues(req: Request) {
     return {
         displayName: String(req.body.displayName || "").trim(),
         email: String(req.body.email || "").trim().toLowerCase(),
-        temperatureUnit: normalizeTemperatureUnit(String(req.body.temperatureUnit || "C"))
+        temperatureUnit: normalizeTemperatureUnit(String(req.body.temperatureUnit || "C")),
+        timeZone: normalizeTimeZone(String(req.body.timeZone || "America/Los_Angeles"))
     };
 }
 
@@ -82,6 +84,7 @@ async function getProfileUser(userId: number) {
             defaultCoffeeDoseGrams: true,
             defaultWaterTemperatureC: true,
             temperatureUnit: true,
+            timeZone: true,
             createdAt: true
         }
     });
@@ -117,7 +120,8 @@ function buildProfileFormData(user: any) {
     return {
         displayName: user.displayName || "",
         email: user.email,
-        temperatureUnit: normalizeTemperatureUnit(user.temperatureUnit)
+        temperatureUnit: normalizeTemperatureUnit(user.temperatureUnit),
+        timeZone: normalizeTimeZone(user.timeZone)
     };
 }
 
@@ -162,7 +166,9 @@ async function renderProfilePage(res: Response, userId: number, options?: {
         brewDefaultsFormData: options?.brewDefaultsFormData || buildBrewDefaultsFormData(user),
         grinders: brewDefaultOptions.grinders,
         brewers: brewDefaultOptions.brewers,
-        user: user
+        user: user,
+        timeZoneOptions: getTimeZoneOptions(),
+        timeZoneLabel: getTimeZoneLabel(user.timeZone)
     });
 }
 
@@ -196,6 +202,10 @@ router.post("/", async function (req: Request, res: Response) {
         errors.push("Temperature unit must be Celsius or Fahrenheit.");
     }
 
+    if (!isValidTimeZone(formValues.timeZone)) {
+        errors.push("Timezone must be valid.");
+    }
+
     const existingEmailUser = formValues.email
         ? await prisma.user.findUnique({
             where: {
@@ -225,7 +235,8 @@ router.post("/", async function (req: Request, res: Response) {
         data: {
             displayName: formValues.displayName,
             email: formValues.email,
-            temperatureUnit: formValues.temperatureUnit
+            temperatureUnit: formValues.temperatureUnit,
+            timeZone: formValues.timeZone
         }
     });
 

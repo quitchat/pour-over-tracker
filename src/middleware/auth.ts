@@ -9,6 +9,7 @@ type CurrentUser = {
     isActive: boolean;
     allowAi: boolean;
     temperatureUnit: string;
+    timeZone: string;
 };
 
 function isApiRequest(req: Request): boolean {
@@ -51,7 +52,8 @@ export async function loadCurrentUser(req: Request, res: Response, next: NextFun
                 role: true,
                 isActive: true,
                 allowAi: true,
-                temperatureUnit: true
+                temperatureUnit: true,
+                timeZone: true
             }
         });
 

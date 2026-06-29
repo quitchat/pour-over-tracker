@@ -4,8 +4,9 @@ import { prisma } from "../lib/prisma";
 import { getRequiredUserId, requireAiAccess } from "../middleware/auth";
 import { suggestBrewingRecipe } from "../services/brewAssistant.service";
 import { AI_API_FEATURE_TYPES, AI_CALL_TYPES, AI_TOOL_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
-import { formatDateUs, formatDateForInput as formatDateForInputValue } from "../utils/dateFormat";
+import { formatDateOnlyForInput, formatDateOnlyUs, getTodayDateForInput as getTodayDateForInputByTimeZone, parseDateOnlyToUtcDate, parseDateOnlyToUtcEndOfDay } from "../utils/dateFormat";
 import { TemperatureUnit, formatTemperatureDecimalForInput, normalizeTemperatureUnit, parseTemperatureInputToCelsiusDecimal } from "../utils/temperature";
+import { normalizeTimeZone } from "../utils/timeZone";
 
 const router = Router();
 
@@ -33,6 +34,12 @@ function getCurrentTemperatureUnit(res: Response): TemperatureUnit {
     const currentUser = res.locals.currentUser as { temperatureUnit?: string } | null | undefined;
 
     return normalizeTemperatureUnit(currentUser && currentUser.temperatureUnit ? currentUser.temperatureUnit : "C");
+}
+
+function getCurrentTimeZone(res: Response): string {
+    const currentUser = res.locals.currentUser as { timeZone?: string } | null | undefined;
+
+    return normalizeTimeZone(currentUser && currentUser.timeZone ? currentUser.timeZone : "America/Los_Angeles");
 }
 
 function getEquipmentNameKey(name: string | null | undefined): string {
@@ -80,15 +87,15 @@ function getTemperatureUnitLabel(temperatureUnit: TemperatureUnit): string {
 type ScoreField = typeof scoreFields[number];
 
 function formatDateForInput(date: Date | null): string {
-    return formatDateForInputValue(date);
+    return formatDateOnlyForInput(date);
 }
 
 function formatDateOnly(date: Date | null): string {
-    return formatDateUs(date);
+    return formatDateOnlyUs(date);
 }
 
-function getTodayDateForInput(): string {
-    return new Date().toISOString().substring(0, 10);
+function getTodayDateForInput(timeZone: string): string {
+    return getTodayDateForInputByTimeZone(timeZone);
 }
 
 function formatSeconds(seconds: number | null): string {
@@ -134,12 +141,12 @@ function getBrewSessionFormValues(req: Request) {
     };
 }
 
-function getDefaultFormData(preselectedCoffeeBeanId: string, preselectedGrinderId: string, preselectedBrewerId: string, defaultCoffeeDoseGrams: string, defaultWaterTemperatureC: string) {
+function getDefaultFormData(preselectedCoffeeBeanId: string, preselectedGrinderId: string, preselectedBrewerId: string, defaultCoffeeDoseGrams: string, defaultWaterTemperatureC: string, timeZone: string) {
     return {
         coffeeBeanId: preselectedCoffeeBeanId,
         grinderId: preselectedGrinderId,
         brewerId: preselectedBrewerId,
-        brewDate: getTodayDateForInput(),
+        brewDate: getTodayDateForInput(timeZone),
         grindSize: "",
         coffeeDoseGrams: defaultCoffeeDoseGrams,
         totalYieldGrams: "",
@@ -481,7 +488,7 @@ function buildBrewSessionCreateData(userId: number, formValues: ReturnType<typeo
         coffeeBeanId: Number(formValues.coffeeBeanId),
         grinderId: formValues.grinderId ? Number(formValues.grinderId) : null,
         brewerId: formValues.brewerId ? Number(formValues.brewerId) : null,
-        brewDate: new Date(`${formValues.brewDate}T00:00:00`),
+        brewDate: parseDateOnlyToUtcDate(formValues.brewDate),
         grindSize: formValues.grindSize || null,
         coffeeDoseGrams: parseRequiredDecimal(formValues.coffeeDoseGrams),
         totalYieldGrams: parseOptionalDecimal(formValues.totalYieldGrams),
@@ -506,7 +513,7 @@ function buildBrewSessionUpdateData(formValues: ReturnType<typeof getBrewSession
         coffeeBeanId: Number(formValues.coffeeBeanId),
         grinderId: formValues.grinderId ? Number(formValues.grinderId) : null,
         brewerId: formValues.brewerId ? Number(formValues.brewerId) : null,
-        brewDate: new Date(`${formValues.brewDate}T00:00:00`),
+        brewDate: parseDateOnlyToUtcDate(formValues.brewDate),
         grindSize: formValues.grindSize || null,
         coffeeDoseGrams: parseRequiredDecimal(formValues.coffeeDoseGrams),
         totalYieldGrams: parseOptionalDecimal(formValues.totalYieldGrams),
@@ -550,7 +557,7 @@ function buildFormDataFromBrewSession(session: any, temperatureUnit: Temperature
     };
 }
 
-function buildDuplicateFormDataFromBrewSession(session: any, temperatureUnit: TemperatureUnit) {
+function buildDuplicateFormDataFromBrewSession(session: any, temperatureUnit: TemperatureUnit, timeZone: string) {
     const totalSeconds = session.totalBrewTimeSeconds;
     const minutes = totalSeconds === null ? "" : String(Math.floor(totalSeconds / 60));
     const seconds = totalSeconds === null ? "" : String(totalSeconds % 60);
@@ -559,7 +566,7 @@ function buildDuplicateFormDataFromBrewSession(session: any, temperatureUnit: Te
         coffeeBeanId: String(session.coffeeBeanId),
         grinderId: session.grinderId ? String(session.grinderId) : "",
         brewerId: session.brewerId ? String(session.brewerId) : "",
-        brewDate: getTodayDateForInput(),
+        brewDate: getTodayDateForInput(timeZone),
         grindSize: session.grindSize || "",
         coffeeDoseGrams: getDecimalText(session.coffeeDoseGrams),
         totalYieldGrams: getDecimalText(session.totalYieldGrams),
@@ -955,11 +962,11 @@ router.get("/", async function (req: Request, res: Response) {
         where.brewDate = {};
 
         if (filters.dateFrom) {
-            where.brewDate.gte = new Date(`${filters.dateFrom}T00:00:00`);
+            where.brewDate.gte = parseDateOnlyToUtcDate(filters.dateFrom);
         }
 
         if (filters.dateTo) {
-            where.brewDate.lte = new Date(`${filters.dateTo}T23:59:59`);
+            where.brewDate.lte = parseDateOnlyToUtcEndOfDay(filters.dateTo);
         }
     }
 
@@ -1049,6 +1056,7 @@ router.get("/", async function (req: Request, res: Response) {
 router.get("/new", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
     const temperatureUnit = getCurrentTemperatureUnit(res);
+    const timeZone = getCurrentTimeZone(res);
     const requestedCoffeeBeanId = String(req.query.coffeeBeanId || "").trim();
 
     let preselectedCoffeeBeanId = "";
@@ -1122,7 +1130,7 @@ router.get("/new", async function (req: Request, res: Response) {
         errors: [],
         showAiSuggestionButton: true,
         enableLocationDefaults: true,
-        formData: getDefaultFormData(preselectedCoffeeBeanId, preselectedGrinderId, preselectedBrewerId, defaultCoffeeDoseGrams, defaultWaterTemperatureC),
+        formData: getDefaultFormData(preselectedCoffeeBeanId, preselectedGrinderId, preselectedBrewerId, defaultCoffeeDoseGrams, defaultWaterTemperatureC, timeZone),
         temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,
@@ -1598,6 +1606,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
 router.get("/:id/duplicate", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
     const temperatureUnit = getCurrentTemperatureUnit(res);
+    const timeZone = getCurrentTimeZone(res);
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id)) {
@@ -1627,7 +1636,7 @@ router.get("/:id/duplicate", async function (req: Request, res: Response) {
         errors: [],
         showAiSuggestionButton: true,
         enableLocationDefaults: false,
-        formData: buildDuplicateFormDataFromBrewSession(existingSession, temperatureUnit),
+        formData: buildDuplicateFormDataFromBrewSession(existingSession, temperatureUnit, timeZone),
         temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
         coffeeBeans: formOptions.coffeeBeans,
         grinders: formOptions.grinders,
