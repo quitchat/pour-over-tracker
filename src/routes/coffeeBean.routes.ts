@@ -688,20 +688,6 @@ router.get("/", async function (req: Request, res: Response) {
                         id: true,
                         coffeeDoseGrams: true
                     }
-                },
-                beanInventories: {
-                    include: {
-                        brewSessions: {
-                            select: {
-                                coffeeDoseGrams: true
-                            }
-                        },
-                        adjustments: {
-                            select: {
-                                adjustmentGrams: true
-                            }
-                        }
-                    }
                 }
             }
         })
@@ -716,22 +702,6 @@ router.get("/", async function (req: Request, res: Response) {
             return sum + Number(session.coffeeDoseGrams.toString());
         }, 0);
 
-        const totalInventoryGrams = bean.beanInventories.reduce(function (sum, inventory) {
-            const usage = getInventoryUsage(inventory);
-
-            return sum + usage.remainingGrams;
-        }, 0);
-        const availableInventories = bean.beanInventories
-            .map(function (inventory) {
-                return getInventoryUsage(inventory);
-            })
-            .filter(function (usage) {
-                return usage.remainingGrams > 0;
-            });
-        const currentInventoryGrams = availableInventories.length > 0 ? availableInventories[0].remainingGrams : 0;
-        const nextInventoryGrams = availableInventories.slice(1).reduce(function (sum, usage) {
-            return sum + usage.remainingGrams;
-        }, 0);
 
         return {
             id: bean.id,
@@ -749,11 +719,7 @@ router.get("/", async function (req: Request, res: Response) {
             isActive: bean.isActive,
             deactivatedAt: formatDateTime(bean.deactivatedAt),
             brewSessionCount: bean.brewSessions.length,
-            totalGramsBrewed: totalGramsBrewed.toFixed(1),
-            totalInventoryGrams: formatGrams(totalInventoryGrams),
-            currentInventoryGrams: formatGrams(currentInventoryGrams),
-            nextInventoryGrams: formatGrams(nextInventoryGrams),
-            hasInventory: bean.beanInventories.length > 0
+            totalGramsBrewed: totalGramsBrewed.toFixed(1)
         };
     });
 
