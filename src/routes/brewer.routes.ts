@@ -77,11 +77,11 @@ router.get("/", async function (req: Request, res: Response) {
             _all: true
         },
         _sum: {
-            totalYieldGrams: true
+            coffeeDoseGrams: true
         }
     });
 
-    const brewerUsageById = new Map<number, { brewCount: number; totalBrewedGrams: string }>();
+    const brewerUsageById = new Map<number, { brewCount: number; totalBeanGrams: string }>();
 
     brewerUsageRows.forEach(function (row) {
         if (row.brewerId === null) {
@@ -90,20 +90,20 @@ router.get("/", async function (req: Request, res: Response) {
 
         brewerUsageById.set(row.brewerId, {
             brewCount: row._count._all,
-            totalBrewedGrams: row._sum.totalYieldGrams ? row._sum.totalYieldGrams.toFixed(1) : "0.0"
+            totalBeanGrams: row._sum.coffeeDoseGrams ? row._sum.coffeeDoseGrams.toFixed(1) : "0.0"
         });
     });
 
     const brewersWithUsage = brewers.map(function (brewer) {
         const usage = brewerUsageById.get(brewer.id) || {
             brewCount: 0,
-            totalBrewedGrams: "0.0"
+            totalBeanGrams: "0.0"
         };
 
         return {
             ...brewer,
             brewCount: usage.brewCount,
-            totalBrewedGrams: usage.totalBrewedGrams
+            totalBeanGrams: usage.totalBeanGrams
         };
     });
 

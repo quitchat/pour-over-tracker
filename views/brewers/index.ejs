@@ -22,7 +22,7 @@
                     <th>Brand</th>
                     <th>Type</th>
                     <th class="text-end">Brews</th>
-                    <th class="text-end">Total Brewed</th>
+                    <th class="text-end">Total Bean Weight</th>
                     <th>Location</th>
                     <th>Notes</th>
                     <th style="width: 180px;">Actions</th>
@@ -46,7 +46,7 @@
                             <span class="badge text-bg-secondary"><%= brewer.brewCount || 0 %></span>
                         </td>
                         <td class="text-end">
-                            <%= brewer.totalBrewedGrams || "0.0" %> g
+                            <%= brewer.totalBeanGrams || "0.0" %> g
                         </td>
                         <td>
                             <% if (brewer.locationName || (brewer.latitude !== null && brewer.longitude !== null)) { %>
