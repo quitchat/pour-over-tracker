@@ -369,6 +369,114 @@
     </div>
 </div>
 
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span>
+            <i class="bi bi-box-seam me-1"></i>
+            Inventory
+        </span>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="/coffee-beans/<%= coffeeBean.id %>/replenishments/new" class="btn btn-sm btn-outline-primary"><i class="bi bi-bag-plus me-1"></i>Add Replenishment</a>
+            <a href="/coffee-beans/<%= coffeeBean.id %>/opening-balance/new" class="btn btn-sm btn-outline-secondary"><i class="bi bi-speedometer me-1"></i>Set Current Inventory</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-3">
+            <div class="col-md-4">
+                <div class="text-muted small">Available</div>
+                <div class="h3 mb-0"><%= formatInventoryGrams(inventorySummary.totalAvailableGrams) %>g</div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted small">Current Bag</div>
+                <div class="fw-semibold"><%= inventorySummary.currentItem ? formatInventoryGrams(inventorySummary.currentItem.remainingGrams) + "g remaining" : "None" %></div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-muted small">Inventory Records</div>
+                <div class="fw-semibold"><%= inventorySummary.items.length %></div>
+            </div>
+        </div>
+
+        <% if (inventorySummary.items.length === 0) { %>
+            <div class="text-muted border rounded p-3 bg-body-tertiary">No inventory records yet. Add a replenishment or set a current opening balance when you want inventory estimates.</div>
+        <% } else { %>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Bag</th>
+                            <th>Dates</th>
+                            <th class="text-end">Starting</th>
+                            <th class="text-end">Used</th>
+                            <th class="text-end">Remaining</th>
+                            <th>Cost</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% inventorySummary.availableItems.concat(inventorySummary.finishedItems).forEach(function (bag) { %>
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">
+                                        <% if (bag.inventoryType === "OPENING_BALANCE") { %>
+                                            Opening balance
+                                        <% } else { %>
+                                            <%= bag.bagSizeLabel %>
+                                        <% } %>
+                                    </div>
+                                    <% if (bag.inventoryType === "OPENING_BALANCE") { %>
+                                        <div class="small text-muted">Estimated starting amount: <%= formatInventoryGrams(bag.startingGrams) %>g</div>
+                                    <% } %>
+                                    <% if (bag.notes) { %><div class="small text-muted"><%= bag.notes %></div><% } %>
+                                    <% if (bag.isFinished) { %><span class="badge text-bg-secondary">Finished</span><% } else if (inventorySummary.currentItem && inventorySummary.currentItem.id === bag.id) { %><span class="badge text-bg-success">Current</span><% } else { %><span class="badge text-bg-light border">Next</span><% } %>
+                                </td>
+                                <td>
+                                    <div class="small">Roasted: <%= bag.roastDate ? formatDateUs(bag.roastDate) : "-" %></div>
+                                    <div class="small text-muted">Purchased: <%= bag.purchaseDate ? formatDateUs(bag.purchaseDate) : "-" %></div>
+                                </td>
+                                <td class="text-end"><%= formatInventoryGrams(bag.startingGrams) %>g</td>
+                                <td class="text-end"><%= formatInventoryGrams(bag.brewedGrams) %>g</td>
+                                <td class="text-end fw-semibold"><%= formatInventoryGrams(bag.remainingGrams) %>g</td>
+                                <td>
+                                    <% if (bag.purchase && bag.purchase.effectiveCostPerBag !== null) { %>
+                                        <div class="small"><%= formatInventoryMoney(bag.purchase.effectiveCostPerBag, bag.purchase.currencyCode) %> / bag</div>
+                                        <div class="small text-muted"><%= formatInventoryMoney(bag.purchase.effectiveCostPerGram, bag.purchase.currencyCode) %> / g</div>
+                                    <% } else { %>
+                                        <span class="text-muted small">No cost</span>
+                                    <% } %>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <% if (!bag.isFinished) { %>
+                                            <a class="btn btn-outline-success" href="/coffee-beans/<%= coffeeBean.id %>/inventory/<%= bag.id %>/finish">Finish Bag</a>
+                                        <% } %>
+                                        <a class="btn btn-outline-primary" href="/coffee-beans/<%= coffeeBean.id %>/inventory/<%= bag.id %>/adjust">Adjust</a>
+                                        <a class="btn btn-outline-secondary" href="/coffee-beans/<%= coffeeBean.id %>/inventory/<%= bag.id %>/edit">Edit</a>
+                                    </div>
+                                    <% if (bag.brewedGrams === 0 && bag.adjustmentGrams === 0) { %>
+                                        <form method="post" action="/coffee-beans/<%= coffeeBean.id %>/inventory/<%= bag.id %>/delete" class="d-inline" onsubmit="return confirm('Delete this inventory bag?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger mt-1">Delete</button>
+                                        </form>
+                                    <% } %>
+                                    <% if (bag.adjustments && bag.adjustments.length > 0) { %>
+                                        <details class="text-start mt-2 small">
+                                            <summary>Adjustments</summary>
+                                            <ul class="mb-0 ps-3">
+                                                <% bag.adjustments.forEach(function (adjustment) { %>
+                                                    <li><%= formatDateUs(adjustment.createdAt) %>: <%= adjustment.adjustmentGrams %>g · <%= adjustment.reason %><% if (adjustment.notes) { %> · <%= adjustment.notes %><% } %></li>
+                                                <% }); %>
+                                            </ul>
+                                        </details>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } %>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>

@@ -10,6 +10,8 @@ type CurrentUser = {
     allowAi: boolean;
     temperatureUnit: string;
     timeZone: string;
+    preferredCurrencyCode: string;
+    preferredWeightUnit: string;
 };
 
 function isApiRequest(req: Request): boolean {
@@ -53,7 +55,9 @@ export async function loadCurrentUser(req: Request, res: Response, next: NextFun
                 isActive: true,
                 allowAi: true,
                 temperatureUnit: true,
-                timeZone: true
+                timeZone: true,
+                preferredCurrencyCode: true,
+                preferredWeightUnit: true
             }
         });
 

@@ -210,6 +210,7 @@
                     <th>Bean Rating</th>
                     <th class="text-center">Brews</th>
                     <th class="text-center">Grams Brewed</th>
+                    <th class="text-center">Inventory</th>
                     <th class="text-end bean-actions-cell">Actions</th>
                 </tr>
             </thead>
@@ -217,7 +218,7 @@
             <tbody>
                 <% if (beans.length === 0) { %>
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">
+                        <td colspan="8" class="text-center text-muted py-4">
                             No coffee beans yet.
                         </td>
                     </tr>
@@ -345,6 +346,18 @@
                         <td class="text-md-center">
                             <div class="bean-mobile-label">Grams Brewed</div>
                             <%= bean.totalGramsBrewed || "0.0" %> g
+                        </td>
+
+                        <td class="text-md-center">
+                            <div class="bean-mobile-label">Inventory</div>
+                            <% if (bean.hasInventory) { %>
+                                <div><%= bean.totalInventoryGrams %>g</div>
+                                <% if (Number(bean.nextInventoryGrams) > 0) { %>
+                                    <div class="bean-secondary-line"><%= bean.currentInventoryGrams %>g current + <%= bean.nextInventoryGrams %>g next</div>
+                                <% } %>
+                            <% } else { %>
+                                <span class="text-muted">Not tracked</span>
+                            <% } %>
                         </td>
 
                         <td class="text-md-end bean-actions-cell">

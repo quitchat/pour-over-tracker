@@ -10,6 +10,7 @@ import { CoffeeInformationResult, getCoffeeBagImageIdentityFromOpenAI, getCoffee
 import { AI_API_FEATURE_TYPES, AI_CALL_TYPES, AI_TOOL_CALL_TYPES, finishAiCallLog, startAiCallLog } from "../services/aiCallLog.service";
 import { formatDateUs, formatDateTimeUs, formatDateForInput as formatDateForInputValue, formatDateOnlyUs } from "../utils/dateFormat";
 import { TemperatureUnit, formatTemperatureDecimalForInput, normalizeTemperatureUnit } from "../utils/temperature";
+import { convertToGrams, findBestInventoryForBrew, formatGrams, formatMoney, getBeanInventorySummary, getEffectiveTotalCost, normalizeCurrencyCode, normalizeWeightUnit, parseOptionalDecimal, roundGrams, getInventoryUsage } from "../services/beanInventory.service";
 
 const router = Router();
 
@@ -360,6 +361,251 @@ async function getCoffeeBeanForUser(userId: number, id: number) {
     });
 }
 
+
+function getCurrentCurrencyCode(res: Response): string {
+    const currentUser = res.locals.currentUser as { preferredCurrencyCode?: string } | null | undefined;
+
+    return normalizeCurrencyCode(currentUser && currentUser.preferredCurrencyCode ? currentUser.preferredCurrencyCode : "USD");
+}
+
+function getCurrentWeightUnit(res: Response): "G" | "OZ" {
+    const currentUser = res.locals.currentUser as { preferredWeightUnit?: string } | null | undefined;
+
+    return normalizeWeightUnit(currentUser && currentUser.preferredWeightUnit ? currentUser.preferredWeightUnit : "G");
+}
+
+function getTodayInputDate(): string {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function parseDateInput(value: string): Date | null {
+    if (!value) {
+        return null;
+    }
+
+    return new Date(`${value}T00:00:00`);
+}
+
+function getInitialInventoryFormValues(req: Request) {
+    return {
+        skipInitialInventory: String(req.body.skipInitialInventory || "").trim() === "1",
+        initialQuantity: String(req.body.initialQuantity || "1").trim(),
+        initialBagSize: String(req.body.initialBagSize || "").trim(),
+        initialBagSizeUnit: normalizeWeightUnit(String(req.body.initialBagSizeUnit || "G")),
+        initialRoastDate: String(req.body.initialRoastDate || "").trim(),
+        initialPurchaseDate: String(req.body.initialPurchaseDate || "").trim(),
+        initialCurrencyCode: normalizeCurrencyCode(String(req.body.initialCurrencyCode || "USD")),
+        initialItemSubtotal: String(req.body.initialItemSubtotal || "").trim(),
+        initialDiscount: String(req.body.initialDiscount || "").trim(),
+        initialShipping: String(req.body.initialShipping || "").trim(),
+        initialTax: String(req.body.initialTax || "").trim(),
+        initialTotalPaid: String(req.body.initialTotalPaid || "").trim(),
+        initialBagNotes: String(req.body.initialBagNotes || "").trim()
+    };
+}
+
+function validateInitialInventoryForm(formValues: ReturnType<typeof getInitialInventoryFormValues>): string[] {
+    const errors: string[] = [];
+
+    if (formValues.skipInitialInventory) {
+        return errors;
+    }
+
+    const quantity = Number(formValues.initialQuantity || "1");
+    const bagSize = Number(formValues.initialBagSize);
+
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        errors.push("Initial bag quantity must be at least 1.");
+    }
+
+    if (!formValues.initialBagSize || Number.isNaN(bagSize) || bagSize <= 0) {
+        errors.push("Initial bag size must be greater than 0, or choose I do not have this bean on hand yet.");
+    }
+
+    if (!["G", "OZ"].includes(formValues.initialBagSizeUnit)) {
+        errors.push("Initial bag size unit must be g or oz.");
+    }
+
+    if (!/^[A-Z]{3}$/.test(formValues.initialCurrencyCode)) {
+        errors.push("Initial purchase currency must be a 3-letter code.");
+    }
+
+    [
+        ["Subtotal", formValues.initialItemSubtotal],
+        ["Discount", formValues.initialDiscount],
+        ["Shipping", formValues.initialShipping],
+        ["Tax", formValues.initialTax],
+        ["Total paid", formValues.initialTotalPaid]
+    ].forEach(function (item) {
+        const label = item[0];
+        const value = item[1];
+
+        if (value && Number.isNaN(Number(value))) {
+            errors.push(`Initial purchase ${label.toLowerCase()} must be a valid number.`);
+        }
+    });
+
+    return errors;
+}
+
+function getPurchaseFormValues(req: Request) {
+    return {
+        quantity: String(req.body.quantity || "1").trim(),
+        bagSize: String(req.body.bagSize || "").trim(),
+        bagSizeUnit: normalizeWeightUnit(String(req.body.bagSizeUnit || "G")),
+        roastDate: String(req.body.roastDate || "").trim(),
+        purchaseDate: String(req.body.purchaseDate || "").trim(),
+        currencyCode: normalizeCurrencyCode(String(req.body.currencyCode || "USD")),
+        itemSubtotal: String(req.body.itemSubtotal || "").trim(),
+        discount: String(req.body.discount || "").trim(),
+        shipping: String(req.body.shipping || "").trim(),
+        tax: String(req.body.tax || "").trim(),
+        totalPaid: String(req.body.totalPaid || "").trim(),
+        notes: String(req.body.notes || "").trim()
+    };
+}
+
+function validatePurchaseForm(formValues: ReturnType<typeof getPurchaseFormValues>): string[] {
+    const errors: string[] = [];
+    const quantity = Number(formValues.quantity);
+    const bagSize = Number(formValues.bagSize);
+
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        errors.push("Quantity must be at least 1.");
+    }
+
+    if (!formValues.bagSize || Number.isNaN(bagSize) || bagSize <= 0) {
+        errors.push("Bag size must be greater than 0.");
+    }
+
+    if (!["G", "OZ"].includes(formValues.bagSizeUnit)) {
+        errors.push("Bag size unit must be g or oz.");
+    }
+
+    if (!/^[A-Z]{3}$/.test(formValues.currencyCode)) {
+        errors.push("Currency must be a 3-letter code.");
+    }
+
+    [formValues.itemSubtotal, formValues.discount, formValues.shipping, formValues.tax, formValues.totalPaid].forEach(function (value) {
+        if (value && Number.isNaN(Number(value))) {
+            errors.push("Cost fields must be valid numbers when entered.");
+        }
+    });
+
+    return errors;
+}
+
+function getOpeningBalanceFormValues(req: Request) {
+    return {
+        currentAmount: String(req.body.currentAmount || "").trim(),
+        unit: normalizeWeightUnit(String(req.body.unit || "G")),
+        roastDate: String(req.body.roastDate || "").trim(),
+        purchaseDate: String(req.body.purchaseDate || "").trim(),
+        notes: String(req.body.notes || "").trim()
+    };
+}
+
+function validateOpeningBalanceForm(formValues: ReturnType<typeof getOpeningBalanceFormValues>): string[] {
+    const errors: string[] = [];
+    const currentAmount = Number(formValues.currentAmount);
+
+    if (!formValues.currentAmount || Number.isNaN(currentAmount) || currentAmount < 0) {
+        errors.push("Current remaining amount must be 0 or greater.");
+    }
+
+    if (!["G", "OZ"].includes(formValues.unit)) {
+        errors.push("Unit must be g or oz.");
+    }
+
+    return errors;
+}
+
+function getAdjustmentFormValues(req: Request) {
+    return {
+        adjustmentGrams: String(req.body.adjustmentGrams || "").trim(),
+        reason: String(req.body.reason || "CORRECTION").trim(),
+        notes: String(req.body.notes || "").trim()
+    };
+}
+
+function validateAdjustmentForm(formValues: ReturnType<typeof getAdjustmentFormValues>): string[] {
+    const errors: string[] = [];
+    const adjustmentGrams = Number(formValues.adjustmentGrams);
+    const validReasons = ["FINISHED_LEFTOVER", "DISCARDED", "CORRECTION", "OTHER"];
+
+    if (!formValues.adjustmentGrams || Number.isNaN(adjustmentGrams) || adjustmentGrams === 0) {
+        errors.push("Adjustment grams must be a non-zero number.");
+    }
+
+    if (!validReasons.includes(formValues.reason)) {
+        errors.push("Adjustment reason is invalid.");
+    }
+
+    return errors;
+}
+
+async function getCoffeeBeanForInventoryAction(userId: number, beanId: number) {
+    return await prisma.coffeeBean.findFirst({
+        where: {
+            id: beanId,
+            userId: userId
+        }
+    });
+}
+
+async function getInventoryForUser(userId: number, beanId: number, inventoryId: number) {
+    return await prisma.beanInventory.findFirst({
+        where: {
+            id: inventoryId,
+            beanId: beanId,
+            bean: {
+                userId: userId
+            }
+        },
+        include: {
+            beanPurchase: true,
+            brewSessions: {
+                select: {
+                    coffeeDoseGrams: true
+                }
+            },
+            adjustments: true
+        }
+    });
+}
+
+async function getDefaultPurchaseFormData(userId: number, beanId: number, res: Response) {
+    const lastInventory = await prisma.beanInventory.findFirst({
+        where: {
+            beanId: beanId,
+            bean: {
+                userId: userId
+            },
+            bagSizeOriginalValue: {
+                not: null
+            }
+        },
+        orderBy: {
+            createdAt: "desc"
+        }
+    });
+
+    return {
+        quantity: "1",
+        bagSize: lastInventory && lastInventory.bagSizeOriginalValue ? lastInventory.bagSizeOriginalValue.toString() : "",
+        bagSizeUnit: lastInventory && lastInventory.bagSizeOriginalUnit ? lastInventory.bagSizeOriginalUnit : getCurrentWeightUnit(res),
+        roastDate: "",
+        purchaseDate: getTodayInputDate(),
+        currencyCode: getCurrentCurrencyCode(res),
+        itemSubtotal: "",
+        discount: "",
+        shipping: "",
+        tax: "",
+        totalPaid: "",
+        notes: ""
+    };
+}
+
 async function getRoasterSuggestions(userId: number): Promise<string[]> {
     const roasters = await prisma.coffeeBean.findMany({
         where: {
@@ -422,6 +668,20 @@ router.get("/", async function (req: Request, res: Response) {
                         id: true,
                         coffeeDoseGrams: true
                     }
+                },
+                beanInventories: {
+                    include: {
+                        brewSessions: {
+                            select: {
+                                coffeeDoseGrams: true
+                            }
+                        },
+                        adjustments: {
+                            select: {
+                                adjustmentGrams: true
+                            }
+                        }
+                    }
                 }
             }
         })
@@ -434,6 +694,23 @@ router.get("/", async function (req: Request, res: Response) {
             }
 
             return sum + Number(session.coffeeDoseGrams.toString());
+        }, 0);
+
+        const totalInventoryGrams = bean.beanInventories.reduce(function (sum, inventory) {
+            const usage = getInventoryUsage(inventory);
+
+            return sum + usage.remainingGrams;
+        }, 0);
+        const availableInventories = bean.beanInventories
+            .map(function (inventory) {
+                return getInventoryUsage(inventory);
+            })
+            .filter(function (usage) {
+                return usage.remainingGrams > 0;
+            });
+        const currentInventoryGrams = availableInventories.length > 0 ? availableInventories[0].remainingGrams : 0;
+        const nextInventoryGrams = availableInventories.slice(1).reduce(function (sum, usage) {
+            return sum + usage.remainingGrams;
         }, 0);
 
         return {
@@ -452,7 +729,11 @@ router.get("/", async function (req: Request, res: Response) {
             isActive: bean.isActive,
             deactivatedAt: formatDateTime(bean.deactivatedAt),
             brewSessionCount: bean.brewSessions.length,
-            totalGramsBrewed: totalGramsBrewed.toFixed(1)
+            totalGramsBrewed: totalGramsBrewed.toFixed(1),
+            totalInventoryGrams: formatGrams(totalInventoryGrams),
+            currentInventoryGrams: formatGrams(currentInventoryGrams),
+            nextInventoryGrams: formatGrams(nextInventoryGrams),
+            hasInventory: bean.beanInventories.length > 0
         };
     });
 
@@ -484,7 +765,21 @@ router.get("/new", async function (req: Request, res: Response) {
         formAction: "/coffee-beans",
         submitButtonText: "Save Coffee Bean",
         errors: [],
-        formData: {},
+        formData: {
+            skipInitialInventory: false,
+            initialQuantity: "1",
+            initialBagSize: "",
+            initialBagSizeUnit: getCurrentWeightUnit(res),
+            initialRoastDate: "",
+            initialPurchaseDate: getTodayInputDate(),
+            initialCurrencyCode: getCurrentCurrencyCode(res),
+            initialItemSubtotal: "",
+            initialDiscount: "",
+            initialShipping: "",
+            initialTax: "",
+            initialTotalPaid: "",
+            initialBagNotes: ""
+        },
         roasterSuggestions: roasterSuggestions,
         isEdit: false
     });
@@ -646,7 +941,8 @@ router.post("/", async function (req: Request, res: Response) {
     const resizeErrors = uploadErrors.length === 0 ? await resizeUploadedCoffeeBeanImage(req) : [];
     const allUploadErrors = uploadErrors.concat(resizeErrors);
     const formValues = getCoffeeBeanFormValues(req);
-    const errors = validateCoffeeBeanForm(formValues).concat(allUploadErrors);
+    const initialInventoryValues = getInitialInventoryFormValues(req);
+    const errors = validateCoffeeBeanForm(formValues).concat(validateInitialInventoryForm(initialInventoryValues)).concat(allUploadErrors);
     const uploadedBagImageUrl = getUploadedCoffeeBeanImageUrl(req);
     const existingUploadedBagImageUrl = getExistingUploadedCoffeeBeanImageUrl(formValues.bagImageUrl);
 
@@ -662,6 +958,7 @@ router.post("/", async function (req: Request, res: Response) {
             errors: errors,
             formData: {
                 ...formValues,
+                ...initialInventoryValues,
                 bagImageUrl: existingUploadedBagImageUrl
             },
             roasterSuggestions: roasterSuggestions,
@@ -671,27 +968,553 @@ router.post("/", async function (req: Request, res: Response) {
         return;
     }
 
-    const createdBean = await prisma.coffeeBean.create({
-        data: {
-            userId: userId,
-            beanName: formValues.beanName,
-            roasterName: formValues.roasterName || null,
-            origin: formValues.origin || null,
-            process: formValues.process || null,
-            roastLevel: formValues.roastLevel || null,
-            roastDate: formValues.roastDate ? new Date(`${formValues.roastDate}T00:00:00`) : null,
-            price: formValues.price ? new Prisma.Decimal(formValues.price) : null,
-            flavorNotes: formValues.flavorNotes || null,
-            sourceUrl: formValues.sourceUrl || null,
-            bagImageUrl: uploadedBagImageUrl || existingUploadedBagImageUrl || null,
-            beanInfo: formValues.beanInfo || null,
-            beanNotes: formValues.beanNotes || null,
-            rating: formValues.rating ? new Prisma.Decimal(formValues.rating) : null,
-            isActive: true
+    const createdBean = await prisma.$transaction(async function (tx) {
+        const bean = await tx.coffeeBean.create({
+            data: {
+                userId: userId,
+                beanName: formValues.beanName,
+                roasterName: formValues.roasterName || null,
+                origin: formValues.origin || null,
+                process: formValues.process || null,
+                roastLevel: formValues.roastLevel || null,
+                roastDate: formValues.roastDate ? new Date(`${formValues.roastDate}T00:00:00`) : null,
+                price: formValues.price ? new Prisma.Decimal(formValues.price) : null,
+                flavorNotes: formValues.flavorNotes || null,
+                sourceUrl: formValues.sourceUrl || null,
+                bagImageUrl: uploadedBagImageUrl || existingUploadedBagImageUrl || null,
+                beanInfo: formValues.beanInfo || null,
+                beanNotes: formValues.beanNotes || null,
+                rating: formValues.rating ? new Prisma.Decimal(formValues.rating) : null,
+                isActive: true
+            }
+        });
+
+        if (!initialInventoryValues.skipInitialInventory) {
+            const quantity = Number(initialInventoryValues.initialQuantity || "1");
+            const bagSizeOriginalValue = Number(initialInventoryValues.initialBagSize);
+            const bagSizeGrams = roundGrams(convertToGrams(bagSizeOriginalValue, initialInventoryValues.initialBagSizeUnit));
+            const purchase = await tx.beanPurchase.create({
+                data: {
+                    beanId: bean.id,
+                    purchaseDate: parseDateInput(initialInventoryValues.initialPurchaseDate),
+                    quantity: quantity,
+                    currencyCode: initialInventoryValues.initialCurrencyCode,
+                    itemSubtotal: parseOptionalDecimal(initialInventoryValues.initialItemSubtotal),
+                    discount: parseOptionalDecimal(initialInventoryValues.initialDiscount),
+                    shipping: parseOptionalDecimal(initialInventoryValues.initialShipping),
+                    tax: parseOptionalDecimal(initialInventoryValues.initialTax),
+                    totalPaid: parseOptionalDecimal(initialInventoryValues.initialTotalPaid),
+                    notes: initialInventoryValues.initialBagNotes || null,
+                    createdByUserId: userId
+                }
+            });
+
+            for (let index = 0; index < quantity; index++) {
+                await tx.beanInventory.create({
+                    data: {
+                        beanId: bean.id,
+                        beanPurchaseId: purchase.id,
+                        inventoryType: "PURCHASE",
+                        startingGrams: new Prisma.Decimal(bagSizeGrams.toFixed(2)),
+                        bagSizeGrams: new Prisma.Decimal(bagSizeGrams.toFixed(2)),
+                        bagSizeOriginalValue: new Prisma.Decimal(bagSizeOriginalValue.toString()),
+                        bagSizeOriginalUnit: initialInventoryValues.initialBagSizeUnit,
+                        roastDate: parseDateInput(initialInventoryValues.initialRoastDate),
+                        purchaseDate: parseDateInput(initialInventoryValues.initialPurchaseDate),
+                        notes: initialInventoryValues.initialBagNotes || null
+                    }
+                });
+            }
         }
+
+        return bean;
     });
 
     res.redirect(`/coffee-beans/${createdBean.id}`);
+});
+
+router.get("/:id/replenishments/new", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+
+    if (!coffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    res.render("coffee-beans/inventory-purchase-form", {
+        title: "Add Replenishment",
+        pageHeading: "Add Replenishment",
+        coffeeBean: coffeeBean,
+        errors: [],
+        formData: await getDefaultPurchaseFormData(userId, id, res)
+    });
+});
+
+router.post("/:id/replenishments", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+
+    if (!coffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    const formValues = getPurchaseFormValues(req);
+    const errors = validatePurchaseForm(formValues);
+
+    if (errors.length > 0) {
+        res.status(400).render("coffee-beans/inventory-purchase-form", {
+            title: "Add Replenishment",
+            pageHeading: "Add Replenishment",
+            coffeeBean: coffeeBean,
+            errors: errors,
+            formData: formValues
+        });
+        return;
+    }
+
+    const quantity = Number(formValues.quantity);
+    const bagSizeOriginalValue = Number(formValues.bagSize);
+    const bagSizeGrams = roundGrams(convertToGrams(bagSizeOriginalValue, formValues.bagSizeUnit));
+
+    await prisma.$transaction(async function (tx) {
+        const purchase = await tx.beanPurchase.create({
+            data: {
+                beanId: id,
+                purchaseDate: parseDateInput(formValues.purchaseDate),
+                quantity: quantity,
+                currencyCode: formValues.currencyCode,
+                itemSubtotal: parseOptionalDecimal(formValues.itemSubtotal),
+                discount: parseOptionalDecimal(formValues.discount),
+                shipping: parseOptionalDecimal(formValues.shipping),
+                tax: parseOptionalDecimal(formValues.tax),
+                totalPaid: parseOptionalDecimal(formValues.totalPaid),
+                notes: formValues.notes || null,
+                createdByUserId: userId
+            }
+        });
+
+        for (let index = 0; index < quantity; index++) {
+            await tx.beanInventory.create({
+                data: {
+                    beanId: id,
+                    beanPurchaseId: purchase.id,
+                    inventoryType: "PURCHASE",
+                    startingGrams: new Prisma.Decimal(bagSizeGrams.toFixed(2)),
+                    bagSizeGrams: new Prisma.Decimal(bagSizeGrams.toFixed(2)),
+                    bagSizeOriginalValue: new Prisma.Decimal(bagSizeOriginalValue.toString()),
+                    bagSizeOriginalUnit: formValues.bagSizeUnit,
+                    roastDate: parseDateInput(formValues.roastDate),
+                    purchaseDate: parseDateInput(formValues.purchaseDate),
+                    notes: formValues.notes || null
+                }
+            });
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Replenishment added.")}`);
+});
+
+router.get("/:id/opening-balance/new", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+
+    if (!coffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    res.render("coffee-beans/opening-balance-form", {
+        title: "Set Current Inventory",
+        pageHeading: "Set Current Inventory",
+        coffeeBean: coffeeBean,
+        errors: [],
+        formData: {
+            currentAmount: "",
+            unit: getCurrentWeightUnit(res),
+            roastDate: "",
+            purchaseDate: "",
+            notes: ""
+        }
+    });
+});
+
+router.post("/:id/opening-balance", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+
+    if (!coffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    const formValues = getOpeningBalanceFormValues(req);
+    const errors = validateOpeningBalanceForm(formValues);
+
+    if (errors.length > 0) {
+        res.status(400).render("coffee-beans/opening-balance-form", {
+            title: "Set Current Inventory",
+            pageHeading: "Set Current Inventory",
+            coffeeBean: coffeeBean,
+            errors: errors,
+            formData: formValues
+        });
+        return;
+    }
+
+    const startingGrams = roundGrams(convertToGrams(Number(formValues.currentAmount), formValues.unit));
+
+    await prisma.beanInventory.create({
+        data: {
+            beanId: id,
+            inventoryType: "OPENING_BALANCE",
+            startingGrams: new Prisma.Decimal(startingGrams.toFixed(2)),
+            bagSizeGrams: null,
+            bagSizeOriginalValue: null,
+            bagSizeOriginalUnit: null,
+            roastDate: parseDateInput(formValues.roastDate),
+            purchaseDate: parseDateInput(formValues.purchaseDate),
+            notes: formValues.notes || null
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Current inventory set.")}`);
+});
+
+router.get("/:id/inventory/:inventoryId/edit", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const inventoryId = Number(req.params.inventoryId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(inventoryId)) {
+        res.status(400).send("Invalid inventory ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+    const inventory = await getInventoryForUser(userId, id, inventoryId);
+
+    if (!coffeeBean || !inventory) {
+        res.status(404).send("Inventory record not found.");
+        return;
+    }
+
+    res.render("coffee-beans/inventory-edit-form", {
+        title: "Edit Bag",
+        pageHeading: "Edit Bag",
+        coffeeBean: coffeeBean,
+        inventory: inventory,
+        errors: [],
+        formData: {
+            bagSize: inventory.bagSizeOriginalValue ? inventory.bagSizeOriginalValue.toString() : "",
+            bagSizeUnit: inventory.bagSizeOriginalUnit || "G",
+            startingGrams: inventory.startingGrams.toString(),
+            roastDate: formatDateForInput(inventory.roastDate),
+            purchaseDate: formatDateForInput(inventory.purchaseDate),
+            notes: inventory.notes || ""
+        }
+    });
+});
+
+router.post("/:id/inventory/:inventoryId/edit", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const inventoryId = Number(req.params.inventoryId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(inventoryId)) {
+        res.status(400).send("Invalid inventory ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+    const inventory = await getInventoryForUser(userId, id, inventoryId);
+
+    if (!coffeeBean || !inventory) {
+        res.status(404).send("Inventory record not found.");
+        return;
+    }
+
+    const formData = {
+        bagSize: String(req.body.bagSize || "").trim(),
+        bagSizeUnit: normalizeWeightUnit(String(req.body.bagSizeUnit || "G")),
+        startingGrams: String(req.body.startingGrams || "").trim(),
+        roastDate: String(req.body.roastDate || "").trim(),
+        purchaseDate: String(req.body.purchaseDate || "").trim(),
+        notes: String(req.body.notes || "").trim()
+    };
+    const errors: string[] = [];
+    const startingGrams = Number(formData.startingGrams);
+    const bagSize = Number(formData.bagSize);
+
+    if (!formData.startingGrams || Number.isNaN(startingGrams) || startingGrams < 0) {
+        errors.push("Starting grams must be 0 or greater.");
+    }
+
+    if (formData.bagSize && (Number.isNaN(bagSize) || bagSize <= 0)) {
+        errors.push("Bag size must be greater than 0 when entered.");
+    }
+
+    if (errors.length > 0) {
+        res.status(400).render("coffee-beans/inventory-edit-form", {
+            title: "Edit Bag",
+            pageHeading: "Edit Bag",
+            coffeeBean: coffeeBean,
+            inventory: inventory,
+            errors: errors,
+            formData: formData
+        });
+        return;
+    }
+
+    const bagSizeGrams = formData.bagSize ? roundGrams(convertToGrams(bagSize, formData.bagSizeUnit)) : null;
+
+    await prisma.beanInventory.update({
+        where: {
+            id: inventoryId
+        },
+        data: {
+            startingGrams: new Prisma.Decimal(startingGrams.toFixed(2)),
+            bagSizeGrams: bagSizeGrams === null ? null : new Prisma.Decimal(bagSizeGrams.toFixed(2)),
+            bagSizeOriginalValue: formData.bagSize ? new Prisma.Decimal(bagSize.toString()) : null,
+            bagSizeOriginalUnit: formData.bagSize ? formData.bagSizeUnit : null,
+            roastDate: parseDateInput(formData.roastDate),
+            purchaseDate: parseDateInput(formData.purchaseDate),
+            notes: formData.notes || null
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory bag updated.")}`);
+});
+
+router.get("/:id/inventory/:inventoryId/adjust", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const inventoryId = Number(req.params.inventoryId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(inventoryId)) {
+        res.status(400).send("Invalid inventory ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+    const inventory = await getInventoryForUser(userId, id, inventoryId);
+
+    if (!coffeeBean || !inventory) {
+        res.status(404).send("Inventory record not found.");
+        return;
+    }
+
+    const usage = getInventoryUsage(inventory);
+
+    res.render("coffee-beans/inventory-adjust-form", {
+        title: "Adjust Inventory",
+        pageHeading: "Adjust Inventory",
+        coffeeBean: coffeeBean,
+        inventory: inventory,
+        remainingGrams: usage.remainingGrams,
+        errors: [],
+        formData: {
+            adjustmentGrams: "",
+            reason: "CORRECTION",
+            notes: ""
+        }
+    });
+});
+
+router.post("/:id/inventory/:inventoryId/adjust", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const inventoryId = Number(req.params.inventoryId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(inventoryId)) {
+        res.status(400).send("Invalid inventory ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+    const inventory = await getInventoryForUser(userId, id, inventoryId);
+
+    if (!coffeeBean || !inventory) {
+        res.status(404).send("Inventory record not found.");
+        return;
+    }
+
+    const formValues = getAdjustmentFormValues(req);
+    const errors = validateAdjustmentForm(formValues);
+    const usage = getInventoryUsage(inventory);
+
+    if (errors.length > 0) {
+        res.status(400).render("coffee-beans/inventory-adjust-form", {
+            title: "Adjust Inventory",
+            pageHeading: "Adjust Inventory",
+            coffeeBean: coffeeBean,
+            inventory: inventory,
+            remainingGrams: usage.remainingGrams,
+            errors: errors,
+            formData: formValues
+        });
+        return;
+    }
+
+    await prisma.beanInventoryAdjustment.create({
+        data: {
+            beanInventoryId: inventoryId,
+            adjustmentGrams: new Prisma.Decimal(Number(formValues.adjustmentGrams).toFixed(2)),
+            reason: formValues.reason as any,
+            notes: formValues.notes || null,
+            createdByUserId: userId
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory adjusted.")}`);
+});
+
+router.get("/:id/inventory/:inventoryId/finish", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const inventoryId = Number(req.params.inventoryId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(inventoryId)) {
+        res.status(400).send("Invalid inventory ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+    const inventory = await getInventoryForUser(userId, id, inventoryId);
+
+    if (!coffeeBean || !inventory) {
+        res.status(404).send("Inventory record not found.");
+        return;
+    }
+
+    const usage = getInventoryUsage(inventory);
+
+    res.render("coffee-beans/inventory-finish-form", {
+        title: "Finish Bag",
+        pageHeading: "Finish Bag",
+        coffeeBean: coffeeBean,
+        inventory: inventory,
+        remainingGrams: usage.remainingGrams,
+        errors: [],
+        formData: {
+            reason: "FINISHED_LEFTOVER",
+            notes: ""
+        }
+    });
+});
+
+router.post("/:id/inventory/:inventoryId/finish", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const inventoryId = Number(req.params.inventoryId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(inventoryId)) {
+        res.status(400).send("Invalid inventory ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+    const inventory = await getInventoryForUser(userId, id, inventoryId);
+
+    if (!coffeeBean || !inventory) {
+        res.status(404).send("Inventory record not found.");
+        return;
+    }
+
+    const usage = getInventoryUsage(inventory);
+    const reason = String(req.body.reason || "FINISHED_LEFTOVER").trim();
+    const notes = String(req.body.notes || "").trim();
+    const validReasons = ["FINISHED_LEFTOVER", "DISCARDED", "CORRECTION", "OTHER"];
+
+    if (!validReasons.includes(reason)) {
+        res.status(400).render("coffee-beans/inventory-finish-form", {
+            title: "Finish Bag",
+            pageHeading: "Finish Bag",
+            coffeeBean: coffeeBean,
+            inventory: inventory,
+            remainingGrams: usage.remainingGrams,
+            errors: ["Reason is invalid."],
+            formData: {
+                reason: reason,
+                notes: notes
+            }
+        });
+        return;
+    }
+
+    if (usage.remainingGrams > 0) {
+        await prisma.beanInventoryAdjustment.create({
+            data: {
+                beanInventoryId: inventoryId,
+                adjustmentGrams: new Prisma.Decimal((-usage.remainingGrams).toFixed(2)),
+                reason: reason as any,
+                notes: notes || null,
+                createdByUserId: userId
+            }
+        });
+    }
+
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Bag finished.")}`);
+});
+
+router.post("/:id/inventory/:inventoryId/delete", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const inventoryId = Number(req.params.inventoryId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(inventoryId)) {
+        res.status(400).send("Invalid inventory ID.");
+        return;
+    }
+
+    const inventory = await getInventoryForUser(userId, id, inventoryId);
+
+    if (!inventory) {
+        res.status(404).send("Inventory record not found.");
+        return;
+    }
+
+    if (inventory.brewSessions.length > 0 || inventory.adjustments.length > 0) {
+        res.redirect(`/coffee-beans/${id}?errorMessage=${encodeURIComponent("Cannot delete a bag that already has brews or adjustments. Use Finish Bag or Adjust Inventory instead.")}`);
+        return;
+    }
+
+    await prisma.beanInventory.delete({
+        where: {
+            id: inventoryId
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory bag deleted.")}`);
 });
 
 router.get("/:id/edit", async function (req: Request, res: Response) {
@@ -968,6 +1791,7 @@ router.get("/:id", async function (req: Request, res: Response) {
     });
 
     const stats = buildBeanStats(coffeeBean.brewSessions, temperatureUnit);
+    const inventorySummary = await getBeanInventorySummary(coffeeBean.id, userId);
 
     res.render("coffee-beans/detail", {
         title: "Coffee Bean Detail",
@@ -992,6 +1816,9 @@ router.get("/:id", async function (req: Request, res: Response) {
             deactivatedAt: formatDateTime(coffeeBean.deactivatedAt)
         },
         stats: stats,
+        inventorySummary: inventorySummary,
+        formatInventoryGrams: formatGrams,
+        formatInventoryMoney: formatMoney,
         brewSessions: brewSessions
     });
 });

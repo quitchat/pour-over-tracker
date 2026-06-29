@@ -23,6 +23,7 @@
 - Admin-only AI access enablement
 - Per-user temperature unit preference during signup and profile editing
 - Per-user timezone preference during signup and profile editing, with popular worldwide timezone options for new-brew date defaults
+- Per-user preferred currency and bag weight unit defaults for bean inventory purchases
 - Password reset workflow with email-based reset links
 
 ## Coffee Bean Management
@@ -42,6 +43,21 @@
 - Bean usage statistics derived from brew sessions:
   - Total grams brewed
   - Brew count
+- Bean inventory and replenishment tracking under reusable coffee bean records
+- New-bean creation with optional initial bag/purchase creation
+- Add Replenishment workflow for repeat purchases of the same bean
+- Set Current Inventory / Opening Balance workflow for partially used beans
+- Multi-bag purchase support with shared order-level cost details
+- Bag size entry in grams or ounces with normalized gram calculations
+- Purchase cost tracking with currency, subtotal, discount, shipping, tax, and total paid fields
+- Effective cost per bag and effective cost per gram reporting
+- Inventory remaining-weight calculation from starting grams, linked brew doses, and adjustment history
+- Optional brew-session link to a specific bean inventory bag for inventory reporting
+- Automatic behind-the-scenes inventory bag association during brew creation
+- Finish Bag / Zero Out Remaining workflow using inventory adjustments
+- Manual inventory adjustment history for corrections, discarded beans, and leftover handling
+- Bean detail inventory section with available, current, next, finished, and opening-balance records
+- Compact bean-list inventory indicator
 
 ## Grinder and Brewer Management
 

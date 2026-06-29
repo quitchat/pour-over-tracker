@@ -7,6 +7,7 @@ import { AI_API_FEATURE_TYPES, AI_CALL_TYPES, AI_TOOL_CALL_TYPES, finishAiCallLo
 import { formatDateOnlyForInput, formatDateOnlyUs, getTodayDateForInput as getTodayDateForInputByTimeZone, parseDateOnlyToUtcDate, parseDateOnlyToUtcEndOfDay } from "../utils/dateFormat";
 import { TemperatureUnit, formatTemperatureDecimalForInput, normalizeTemperatureUnit, parseTemperatureInputToCelsiusDecimal } from "../utils/temperature";
 import { normalizeTimeZone } from "../utils/timeZone";
+import { findBestInventoryForBrew } from "../services/beanInventory.service";
 
 const router = Router();
 
@@ -480,12 +481,13 @@ function buildTastingScoreUpdateData(formValues: ReturnType<typeof getBrewSessio
     };
 }
 
-function buildBrewSessionCreateData(userId: number, formValues: ReturnType<typeof getBrewSessionFormValues>, temperatureUnit: TemperatureUnit) {
+function buildBrewSessionCreateData(userId: number, formValues: ReturnType<typeof getBrewSessionFormValues>, temperatureUnit: TemperatureUnit, beanInventoryId?: number | null) {
     const totalBrewTimeSeconds = buildTotalBrewTimeSeconds(formValues);
 
     return {
         userId: userId,
         coffeeBeanId: Number(formValues.coffeeBeanId),
+        beanInventoryId: beanInventoryId || null,
         grinderId: formValues.grinderId ? Number(formValues.grinderId) : null,
         brewerId: formValues.brewerId ? Number(formValues.brewerId) : null,
         brewDate: parseDateOnlyToUtcDate(formValues.brewDate),
@@ -1496,8 +1498,10 @@ router.post("/", async function (req: Request, res: Response) {
         return;
     }
 
+    const beanInventoryId = await findBestInventoryForBrew(userId, Number(formValues.coffeeBeanId), Number(formValues.coffeeDoseGrams));
+
     const createdSession = await prisma.brewSession.create({
-        data: buildBrewSessionCreateData(userId, formValues, temperatureUnit)
+        data: buildBrewSessionCreateData(userId, formValues, temperatureUnit, beanInventoryId)
     });
 
     res.redirect(`/brew-sessions/${createdSession.id}`);

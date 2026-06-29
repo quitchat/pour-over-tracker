@@ -13,7 +13,9 @@ function getProfileFormValues(req: Request) {
         displayName: String(req.body.displayName || "").trim(),
         email: String(req.body.email || "").trim().toLowerCase(),
         temperatureUnit: normalizeTemperatureUnit(String(req.body.temperatureUnit || "C")),
-        timeZone: normalizeTimeZone(String(req.body.timeZone || "America/Los_Angeles"))
+        timeZone: normalizeTimeZone(String(req.body.timeZone || "America/Los_Angeles")),
+        preferredCurrencyCode: String(req.body.preferredCurrencyCode || "USD").trim().toUpperCase(),
+        preferredWeightUnit: String(req.body.preferredWeightUnit || "G").trim().toUpperCase() === "OZ" ? "OZ" : "G"
     };
 }
 
@@ -85,6 +87,8 @@ async function getProfileUser(userId: number) {
             defaultWaterTemperatureC: true,
             temperatureUnit: true,
             timeZone: true,
+            preferredCurrencyCode: true,
+            preferredWeightUnit: true,
             createdAt: true
         }
     });
@@ -121,7 +125,9 @@ function buildProfileFormData(user: any) {
         displayName: user.displayName || "",
         email: user.email,
         temperatureUnit: normalizeTemperatureUnit(user.temperatureUnit),
-        timeZone: normalizeTimeZone(user.timeZone)
+        timeZone: normalizeTimeZone(user.timeZone),
+        preferredCurrencyCode: user.preferredCurrencyCode || "USD",
+        preferredWeightUnit: user.preferredWeightUnit || "G"
     };
 }
 
@@ -207,6 +213,14 @@ router.post("/", async function (req: Request, res: Response) {
         errors.push("Timezone must be valid.");
     }
 
+    if (!/^[A-Z]{3}$/.test(formValues.preferredCurrencyCode)) {
+        errors.push("Preferred currency must be a 3-letter code.");
+    }
+
+    if (!["G", "OZ"].includes(formValues.preferredWeightUnit)) {
+        errors.push("Preferred bag weight unit must be g or oz.");
+    }
+
     const existingEmailUser = formValues.email
         ? await prisma.user.findUnique({
             where: {
@@ -237,7 +251,9 @@ router.post("/", async function (req: Request, res: Response) {
             displayName: formValues.displayName,
             email: formValues.email,
             temperatureUnit: formValues.temperatureUnit,
-            timeZone: formValues.timeZone
+            timeZone: formValues.timeZone,
+            preferredCurrencyCode: formValues.preferredCurrencyCode,
+            preferredWeightUnit: formValues.preferredWeightUnit
         }
     });
 

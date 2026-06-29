@@ -8,29 +8,33 @@ datasource db {
 }
 
 model User {
-  id            Int           @id @default(autoincrement())
-  email         String        @unique
-  passwordHash  String
-  displayName   String?
-  role          String        @default("User")
-  isActive      Boolean       @default(true)
-  allowAi       Boolean       @default(false)
-  temperatureUnit String       @default("C")
-  timeZone      String        @default("America/Los_Angeles")
-  deactivatedAt DateTime?
-  defaultGrinderId Int?
-  defaultBrewerId Int?
-  defaultCoffeeDoseGrams Decimal? @db.Decimal(8, 2)
-  defaultWaterTemperatureC Decimal? @db.Decimal(5, 2)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                       Int       @id @default(autoincrement())
+  email                    String    @unique
+  passwordHash             String
+  displayName              String?
+  role                     String    @default("User")
+  isActive                 Boolean   @default(true)
+  allowAi                  Boolean   @default(false)
+  temperatureUnit          String    @default("C")
+  timeZone                 String    @default("America/Los_Angeles")
+  preferredCurrencyCode    String    @default("USD")
+  preferredWeightUnit      String    @default("G")
+  deactivatedAt            DateTime?
+  defaultGrinderId         Int?
+  defaultBrewerId          Int?
+  defaultCoffeeDoseGrams   Decimal?  @db.Decimal(8, 2)
+  defaultWaterTemperatureC Decimal?  @db.Decimal(5, 2)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
-  coffeeBeans   CoffeeBean[]
-  grinders      Grinder[]
-  brewers       Brewer[]
-  brewSessions  BrewSession[]
-  aiCallLogs   AiCallLog[]
-  passwordResetTokens PasswordResetToken[]
+  coffeeBeans              CoffeeBean[]
+  beanPurchases            BeanPurchase[]
+  beanInventoryAdjustments BeanInventoryAdjustment[]
+  grinders                 Grinder[]
+  brewers                  Brewer[]
+  brewSessions             BrewSession[]
+  aiCallLogs               AiCallLog[]
+  passwordResetTokens      PasswordResetToken[]
 
   @@index([role])
   @@index([isActive])
@@ -39,20 +43,28 @@ model User {
   @@index([timeZone])
 }
 
-
 model PasswordResetToken {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   userId    Int
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
   @@index([usedAt])
+}
+
+model Session {
+  sid    String   @id @db.VarChar
+  sess   Json
+  expire DateTime @db.Timestamp(6)
+
+  @@index([expire], map: "IDX_session_expire")
+  @@map("session")
 }
 
 model BeanDetailAiPrompt {
@@ -64,8 +76,6 @@ model BeanDetailAiPrompt {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
-
-
 
 model CoffeeBagImageIdentityAiPrompt {
   id              Int      @id @default(autoincrement())
@@ -87,8 +97,6 @@ model BrewSuggestionAiPrompt {
   updatedAt       DateTime @updatedAt
 }
 
-
-
 model AiCostSetting {
   id              Int      @id @default(autoincrement())
   key             String   @unique
@@ -105,32 +113,32 @@ model AiCostSetting {
 }
 
 model AiCallLog {
-  id            Int       @id @default(autoincrement())
-  userId        Int?
-  userEmail     String?
-  callType      String
-  model         String?
-  status        String    @default("Started")
-  startedAt     DateTime  @default(now())
-  completedAt   DateTime?
-  durationMs    Int?
-  inputTokens   Int?
-  outputTokens  Int?
-  totalTokens   Int?
-  imageCount    Int       @default(0)
-  apiFeatureType String    @default("text_only")
-  toolCallTypes String?
-  webSearchCallCount Int   @default(0)
-  tokenEstimatedCostUsd Decimal? @db.Decimal(12, 6)
-  toolEstimatedCostUsd Decimal? @db.Decimal(12, 6)
-  estimatedCostUsd Decimal? @db.Decimal(12, 6)
-  promptText    String?
-  outputText    String?
-  errorMessage  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                    Int       @id @default(autoincrement())
+  userId                Int?
+  userEmail             String?
+  callType              String
+  model                 String?
+  status                String    @default("Started")
+  startedAt             DateTime  @default(now())
+  completedAt           DateTime?
+  durationMs            Int?
+  inputTokens           Int?
+  outputTokens          Int?
+  totalTokens           Int?
+  imageCount            Int       @default(0)
+  apiFeatureType        String    @default("text_only")
+  toolCallTypes         String?
+  webSearchCallCount    Int       @default(0)
+  tokenEstimatedCostUsd Decimal?  @db.Decimal(12, 6)
+  toolEstimatedCostUsd  Decimal?  @db.Decimal(12, 6)
+  estimatedCostUsd      Decimal?  @db.Decimal(12, 6)
+  promptText            String?
+  outputText            String?
+  errorMessage          String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([userEmail])
@@ -141,35 +149,131 @@ model AiCallLog {
 }
 
 model CoffeeBean {
-  id            Int           @id @default(autoincrement())
-  userId        Int?
-  beanName      String
-  roasterName   String?
-  origin        String?
-  process       String?
-  roastLevel    String?
-  roastDate     DateTime?
-  price         Decimal?      @db.Decimal(10, 2)
-  flavorNotes   String?
-  bagImageUrl   String?
-  sourceUrl     String?
-  beanInfo      String?
-  beanNotes     String?
-  rating        Decimal?      @db.Decimal(4, 2)
-  isActive      Boolean       @default(true)
-  deactivatedAt DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id          Int       @id @default(autoincrement())
+  userId      Int?
+  beanName    String
+  roasterName String?
+  origin      String?
+  process     String?
+  roastLevel  String?
+  roastDate   DateTime?
+  price       Decimal?  @db.Decimal(10, 2)
+  flavorNotes String?
+  bagImageUrl String?
+  sourceUrl   String?
+  beanInfo    String?
+  beanNotes   String?
+  rating      Decimal?  @db.Decimal(4, 2)
 
-  user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  brewSessions  BrewSession[]
+  beanAcidity    Int @default(3)
+  beanAftertaste Int @default(3)
+  beanAroma      Int @default(3)
+  beanBody       Int @default(3)
+  beanSweetness  Int @default(3)
+
+  isActive      Boolean   @default(true)
+  deactivatedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user            User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brewSessions    BrewSession[]
+  beanPurchases   BeanPurchase[]
+  beanInventories BeanInventory[]
 
   @@index([userId])
   @@index([isActive])
 }
 
+enum BeanInventoryType {
+  PURCHASE
+  OPENING_BALANCE
+}
+
+enum BeanWeightUnit {
+  G
+  OZ
+}
+
+enum BeanInventoryAdjustmentReason {
+  FINISHED_LEFTOVER
+  DISCARDED
+  CORRECTION
+  OTHER
+}
+
+model BeanPurchase {
+  id              Int       @id @default(autoincrement())
+  beanId          Int
+  purchaseDate    DateTime?
+  quantity        Int       @default(1)
+  currencyCode    String    @default("USD")
+  itemSubtotal    Decimal?  @db.Decimal(10, 2)
+  discount        Decimal?  @db.Decimal(10, 2)
+  shipping        Decimal?  @db.Decimal(10, 2)
+  tax             Decimal?  @db.Decimal(10, 2)
+  totalPaid       Decimal?  @db.Decimal(10, 2)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdByUserId Int?
+
+  bean          CoffeeBean      @relation(fields: [beanId], references: [id], onDelete: Cascade)
+  createdByUser User?           @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  inventories   BeanInventory[]
+
+  @@index([beanId])
+  @@index([createdByUserId])
+  @@index([purchaseDate])
+}
+
+model BeanInventory {
+  id                   Int               @id @default(autoincrement())
+  beanId               Int
+  beanPurchaseId       Int?
+  inventoryType        BeanInventoryType @default(PURCHASE)
+  startingGrams        Decimal           @db.Decimal(10, 2)
+  bagSizeGrams         Decimal?          @db.Decimal(10, 2)
+  bagSizeOriginalValue Decimal?          @db.Decimal(10, 2)
+  bagSizeOriginalUnit  BeanWeightUnit?
+  roastDate            DateTime?
+  purchaseDate         DateTime?
+  notes                String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  bean         CoffeeBean                @relation(fields: [beanId], references: [id], onDelete: Cascade)
+  beanPurchase BeanPurchase?             @relation(fields: [beanPurchaseId], references: [id], onDelete: SetNull)
+  brewSessions BrewSession[]
+  adjustments  BeanInventoryAdjustment[]
+
+  @@index([beanId])
+  @@index([beanPurchaseId])
+  @@index([inventoryType])
+  @@index([purchaseDate])
+  @@index([roastDate])
+}
+
+model BeanInventoryAdjustment {
+  id              Int                           @id @default(autoincrement())
+  beanInventoryId Int
+  adjustmentGrams Decimal                       @db.Decimal(10, 2)
+  reason          BeanInventoryAdjustmentReason @default(CORRECTION)
+  notes           String?
+  createdAt       DateTime                      @default(now())
+  createdByUserId Int?
+
+  beanInventory BeanInventory @relation(fields: [beanInventoryId], references: [id], onDelete: Cascade)
+  createdByUser User?         @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([beanInventoryId])
+  @@index([createdByUserId])
+  @@index([reason])
+  @@index([createdAt])
+}
+
 model Grinder {
-  id                    Int           @id @default(autoincrement())
+  id                    Int      @id @default(autoincrement())
   userId                Int?
   name                  String
   brand                 String?
@@ -180,17 +284,17 @@ model Grinder {
   locationName          String?
   latitude              Float?
   longitude             Float?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  user                  User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  brewSessions          BrewSession[]
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brewSessions BrewSession[]
 
   @@index([userId])
 }
 
 model Brewer {
-  id           Int           @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   userId       Int?
   name         String
   brand        String?
@@ -199,8 +303,8 @@ model Brewer {
   locationName String?
   latitude     Float?
   longitude    Float?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   brewSessions BrewSession[]
@@ -209,59 +313,62 @@ model Brewer {
 }
 
 model BrewSession {
-  id                    Int           @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  userId                Int?
-  coffeeBeanId          Int
-  grinderId             Int?
-  brewerId              Int?
+  userId          Int?
+  coffeeBeanId    Int
+  beanInventoryId Int?
+  grinderId       Int?
+  brewerId        Int?
 
-  brewDate              DateTime
-  grindSize             String?
+  brewDate  DateTime
+  grindSize String?
 
-  coffeeDoseGrams       Decimal       @db.Decimal(8, 2)
-  brewRatio             Decimal       @db.Decimal(8, 3)
+  coffeeDoseGrams Decimal @db.Decimal(8, 2)
+  brewRatio       Decimal @db.Decimal(8, 3)
 
-  waterTemperatureC     Decimal?      @db.Decimal(5, 2)
-  totalBrewTimeSeconds  Int?
+  waterTemperatureC    Decimal? @db.Decimal(5, 2)
+  totalBrewTimeSeconds Int?
 
-  totalYieldGrams       Decimal?      @map("finalBeverageGrams") @db.Decimal(8, 2)
+  totalYieldGrams Decimal? @map("finalBeverageGrams") @db.Decimal(8, 2)
 
-  overallRating         Decimal?      @db.Decimal(4, 2)
-  notes                 String?
-  pourStructure         String?
-  recipeSteps           String?
-  adjustmentNotes       String?
+  overallRating   Decimal? @db.Decimal(4, 2)
+  notes           String?
+  pourStructure   String?
+  recipeSteps     String?
+  adjustmentNotes String?
 
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user                  User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coffeeBean            CoffeeBean    @relation(fields: [coffeeBeanId], references: [id])
-  grinder               Grinder?      @relation(fields: [grinderId], references: [id], onDelete: SetNull)
-  brewer                Brewer?       @relation(fields: [brewerId], references: [id], onDelete: SetNull)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coffeeBean    CoffeeBean     @relation(fields: [coffeeBeanId], references: [id])
+  beanInventory BeanInventory? @relation(fields: [beanInventoryId], references: [id], onDelete: SetNull)
+  grinder       Grinder?       @relation(fields: [grinderId], references: [id], onDelete: SetNull)
+  brewer        Brewer?        @relation(fields: [brewerId], references: [id], onDelete: SetNull)
 
-  tastingScore          TastingScore?
+  tastingScore TastingScore?
 
   @@index([userId])
   @@index([coffeeBeanId])
+  @@index([beanInventoryId])
   @@index([grinderId])
   @@index([brewerId])
 }
 
 model TastingScore {
-  id            Int         @id @default(autoincrement())
-  brewSessionId Int         @unique
+  id            Int @id @default(autoincrement())
+  brewSessionId Int @unique
 
-  richness      Int         @default(3)
-  sweetness     Int         @default(3)
-  aftertaste    Int         @default(3)
-  aroma         Int         @default(3)
-  bitterness    Int?
-  acidity       Int         @default(3)
+  richness   Int  @default(3)
+  sweetness  Int  @default(3)
+  aftertaste Int  @default(3)
+  aroma      Int  @default(3)
+  bitterness Int?
+  acidity    Int  @default(3)
 
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  brewSession   BrewSession @relation(fields: [brewSessionId], references: [id], onDelete: Cascade)
+  brewSession BrewSession @relation(fields: [brewSessionId], references: [id], onDelete: Cascade)
 }
