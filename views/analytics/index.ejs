@@ -33,15 +33,15 @@
 
         const clampedValue = Math.max(0, Math.min(5, numericValue));
         const displayValue = Number.isInteger(clampedValue) ? clampedValue.toFixed(0) : clampedValue.toFixed(1);
-        let html = `<span class="readonly-rating-display"><span class="readonly-rating-stars rating-stars-gold" aria-label="${displayValue} out of 5 stars">`;
+        let html = `<span class="readonly-rating-display" style="white-space: nowrap;"><span class="readonly-rating-stars" style="white-space: nowrap;" aria-label="${displayValue} out of 5 stars">`;
 
         for (let index = 1; index <= 5; index++) {
             if (clampedValue >= index) {
-                html += `<i class="bi bi-star-fill rating-star-icon"></i>`;
+                html += `<i class="bi bi-star-fill" style="color: #f5b301; -webkit-text-fill-color: #f5b301; line-height: 1;"></i>`;
             } else if (clampedValue >= index - 0.5) {
-                html += `<i class="bi bi-star-half rating-star-icon"></i>`;
+                html += `<i class="bi bi-star-half" style="color: #f5b301; -webkit-text-fill-color: #f5b301; line-height: 1;"></i>`;
             } else {
-                html += `<i class="bi bi-star rating-star-icon"></i>`;
+                html += `<i class="bi bi-star" style="color: #f5b301; -webkit-text-fill-color: #f5b301; line-height: 1;"></i>`;
             }
         }
 
