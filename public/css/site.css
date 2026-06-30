@@ -111,17 +111,21 @@ main.container {
     display: inline-flex;
     align-items: center;
     gap: 0.12rem;
-    color: #f5b301;
+    color: #f5b301 !important;
     white-space: nowrap;
     flex-wrap: nowrap;
 }
 
 .readonly-rating-stars .bi,
-.bean-rating-stars .bi {
+.bean-rating-stars .bi,
+.readonly-rating-stars i,
+.bean-rating-stars i {
+    color: #f5b301 !important;
     line-height: 1;
 }
 
-.readonly-rating-value {
+.readonly-rating-value,
+.bean-rating-value {
     white-space: nowrap;
 }
 
