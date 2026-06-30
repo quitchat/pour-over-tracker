@@ -741,3 +741,18 @@ main.container {
         padding-right: 0.55rem;
     }
 }
+
+.inventory-current-progress {
+    min-width: 8rem;
+}
+
+.inventory-bag-progress {
+    height: 0.55rem;
+    min-width: 7rem;
+}
+
+@media (max-width: 767.98px) {
+    .inventory-current-progress {
+        min-width: 10rem;
+    }
+}

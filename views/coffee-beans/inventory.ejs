@@ -105,6 +105,7 @@
                 </thead>
                 <tbody>
                     <% inventoryRows.forEach(function (bag) { %>
+                        <% const bagRemainingPercent = bag.startingGrams && Number(bag.startingGrams) > 0 ? Math.max(0, Math.min(100, Math.round((Number(bag.remainingGrams || 0) / Number(bag.startingGrams)) * 100))) : 0; %>
                         <tr class="<%= bag.isFinished ? "inventory-row-finished" : "" %>">
                             <td class="inventory-mobile-primary" data-label="Bag">
                                 <div class="fw-semibold">
@@ -121,9 +122,6 @@
                                         Start: <%= formatInventoryGrams(bag.startingGrams) %>g
                                     <% } %>
                                 </div>
-                                <% if (bag.notes) { %>
-                                    <div class="small text-muted mt-1"><i class="bi bi-sticky me-1"></i><%= bag.notes %></div>
-                                <% } %>
                                 <div class="d-md-none mt-2">
                                     <% if (bag.adjustments && bag.adjustments.length > 0) { %>
                                         <details class="inventory-adjustment-details inventory-mobile-adjustment-details">
@@ -161,7 +159,15 @@
                                 <% if (bag.isFinished) { %>
                                     <span class="badge text-bg-secondary">Finished</span>
                                 <% } else if (inventorySummary.currentItem && inventorySummary.currentItem.id === bag.id) { %>
-                                    <span class="badge text-bg-success">Current</span>
+                                    <div class="inventory-current-progress" title="Current bag: <%= bagRemainingPercent %>% remaining">
+                                        <div class="d-flex justify-content-between align-items-center small mb-1">
+                                            <span class="fw-semibold text-success">Current</span>
+                                            <span class="text-muted"><%= bagRemainingPercent %>%</span>
+                                        </div>
+                                        <div class="progress inventory-bag-progress" role="progressbar" aria-label="Current bag remaining" aria-valuenow="<%= bagRemainingPercent %>" aria-valuemin="0" aria-valuemax="100">
+                                            <div class="progress-bar bg-success" style="width: <%= bagRemainingPercent %>%"></div>
+                                        </div>
+                                    </div>
                                 <% } else { %>
                                     <span class="badge text-bg-light border">Next</span>
                                 <% } %>
