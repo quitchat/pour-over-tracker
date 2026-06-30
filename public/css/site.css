@@ -669,19 +669,32 @@ main.container {
 }
 
 .equipment-action-col {
-    width: 8.5rem;
+    width: 9.75rem;
+    min-width: 9.75rem;
     white-space: nowrap;
+    text-align: right;
 }
 
 .equipment-action-buttons {
     display: inline-flex;
+    flex-wrap: nowrap;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.45rem;
+    white-space: nowrap;
 }
 
 .equipment-action-buttons form {
     display: inline-flex;
+    flex: 0 0 auto;
     margin: 0;
+}
+
+.equipment-action-buttons .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
 }
 
 @media (max-width: 767.98px) {
@@ -713,9 +726,17 @@ main.container {
 
     .equipment-action-col {
         width: 5.75rem;
+        min-width: 5.75rem;
     }
 
     .equipment-action-buttons {
         gap: 0.35rem;
+    }
+
+    .equipment-action-buttons .btn {
+        min-width: 2.1rem;
+        min-height: 2.1rem;
+        padding-left: 0.45rem;
+        padding-right: 0.45rem;
     }
 }
