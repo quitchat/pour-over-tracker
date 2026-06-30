@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx src/app.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "inventory:backfill-links": "tsx src/scripts/backfillBrewInventoryLinks.ts",
+    "inventory:backfill-links:apply": "tsx src/scripts/backfillBrewInventoryLinks.ts --apply"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

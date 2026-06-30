@@ -133,24 +133,14 @@ main.container {
 }
 
 .recent-brew-clickable-row,
-.analytics-recent-brew-clickable-row,
-.analytics-cost-clickable-row {
+.analytics-recent-brew-clickable-row {
     cursor: pointer;
 }
 
 .recent-brew-clickable-row:focus,
-.analytics-recent-brew-clickable-row:focus,
-.analytics-cost-clickable-row:focus {
+.analytics-recent-brew-clickable-row:focus {
     outline: 2px solid var(--bs-primary);
     outline-offset: -2px;
-}
-
-.cost-range-select {
-    min-width: 11rem;
-}
-
-.cost-currency-subtotals {
-    line-height: 1.35;
 }
 
 .analytics-equipment-list-item {
@@ -750,28 +740,4 @@ main.container {
         padding-left: 0.55rem;
         padding-right: 0.55rem;
     }
-}
-
-/* Global form placeholder styling */
-:root {
-    --app-placeholder-color: #b8c0cc;
-}
-
-.form-control::placeholder,
-.form-control::-webkit-input-placeholder,
-.form-control::-moz-placeholder,
-.form-control:-ms-input-placeholder,
-.form-control::-ms-input-placeholder,
-input::placeholder,
-textarea::placeholder,
-input::-webkit-input-placeholder,
-textarea::-webkit-input-placeholder,
-input::-moz-placeholder,
-textarea::-moz-placeholder,
-input:-ms-input-placeholder,
-textarea:-ms-input-placeholder,
-input::-ms-input-placeholder,
-textarea::-ms-input-placeholder {
-    color: var(--app-placeholder-color);
-    opacity: 1;
 }

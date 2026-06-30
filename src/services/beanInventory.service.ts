@@ -75,11 +75,11 @@ export function getEffectiveTotalCost(purchase: Pick<BeanPurchase, "itemSubtotal
         return Number(purchase.totalPaid.toString());
     }
 
-    if (purchase.itemSubtotal === null) {
+    if (purchase.itemSubtotal === null && purchase.discount === null && purchase.shipping === null && purchase.tax === null) {
         return null;
     }
 
-    return Number(purchase.itemSubtotal.toString())
+    return Number((purchase.itemSubtotal || new Prisma.Decimal(0)).toString())
         - Number((purchase.discount || new Prisma.Decimal(0)).toString())
         + Number((purchase.shipping || new Prisma.Decimal(0)).toString())
         + Number((purchase.tax || new Prisma.Decimal(0)).toString());

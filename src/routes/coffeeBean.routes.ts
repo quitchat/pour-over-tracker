@@ -702,35 +702,76 @@ router.get("/", async function (req: Request, res: Response) {
         userId: userId
     };
 
-    const [totalBeanCount, coffeeBeansFromDatabase] = await Promise.all([
-        prisma.coffeeBean.count({
-            where: where
-        }),
-        prisma.coffeeBean.findMany({
-            where: where,
-            orderBy: [
-                {
-                    isActive: "desc"
+    const coffeeBeansForSorting = await prisma.coffeeBean.findMany({
+        where: where,
+        include: {
+            brewSessions: {
+                where: {
+                    userId: userId
                 },
-                {
-                    createdAt: "desc"
+                select: {
+                    id: true,
+                    coffeeDoseGrams: true
                 }
-            ],
-            skip: skip,
-            take: pageSize,
-            include: {
-                brewSessions: {
-                    where: {
-                        userId: userId
-                    },
-                    select: {
-                        id: true,
-                        coffeeDoseGrams: true
-                    }
+            },
+            beanInventories: {
+                select: {
+                    purchaseDate: true,
+                    createdAt: true
+                }
+            },
+            beanPurchases: {
+                select: {
+                    purchaseDate: true,
+                    createdAt: true
                 }
             }
-        })
-    ]);
+        }
+    });
+
+    const getLatestBeanPurchaseTime = function (bean: (typeof coffeeBeansForSorting)[number]) {
+        const purchaseTimes: number[] = [];
+
+        bean.beanInventories.forEach(function (inventory) {
+            const inventoryDate = inventory.purchaseDate || inventory.createdAt;
+
+            if (inventoryDate) {
+                purchaseTimes.push(inventoryDate.getTime());
+            }
+        });
+
+        bean.beanPurchases.forEach(function (purchase) {
+            const purchaseDate = purchase.purchaseDate || purchase.createdAt;
+
+            if (purchaseDate) {
+                purchaseTimes.push(purchaseDate.getTime());
+            }
+        });
+
+        if (purchaseTimes.length === 0) {
+            return 0;
+        }
+
+        return Math.max.apply(null, purchaseTimes);
+    };
+
+    const sortedCoffeeBeans = coffeeBeansForSorting.sort(function (leftBean, rightBean) {
+        if (leftBean.isActive !== rightBean.isActive) {
+            return leftBean.isActive ? -1 : 1;
+        }
+
+        const rightPurchaseTime = getLatestBeanPurchaseTime(rightBean);
+        const leftPurchaseTime = getLatestBeanPurchaseTime(leftBean);
+
+        if (rightPurchaseTime !== leftPurchaseTime) {
+            return rightPurchaseTime - leftPurchaseTime;
+        }
+
+        return rightBean.createdAt.getTime() - leftBean.createdAt.getTime();
+    });
+
+    const totalBeanCount = sortedCoffeeBeans.length;
+    const coffeeBeansFromDatabase = sortedCoffeeBeans.slice(skip, skip + pageSize);
 
     const coffeeBeans = coffeeBeansFromDatabase.map(function (bean) {
         const totalGramsBrewed = bean.brewSessions.reduce(function (sum, session) {

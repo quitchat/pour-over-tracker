@@ -104,8 +104,6 @@
 
 - Dashboard summary view
 - Brew statistics and analytics views
-- Cost Analytics for inventory-linked purchase cost, consumed coffee cost, purchased coffee cost, average cost per brew, average cost per gram, cost by bean, cost by roaster, best value beans, and most expensive brews
-- Currency-aware cost reporting with separate subtotals when multiple purchase currencies are present
 - Brew comparison interface
 - Chart.js-based visualizations
 - Radar diagram for tasting/scoring characteristics
@@ -182,3 +180,14 @@
 
 
 - Editable purchase/order cost records for bean inventory replenishments, with auto-calculated total paid.
+
+### Inventory backfill utility
+
+Existing brew sessions that were created before inventory tracking can be linked to bean inventory with a dry-run-first utility. The script uses advisory matching: for each brew, it links the oldest inventory bag for the same bean that has enough remaining grams. It does not create or delete brew sessions.
+
+```bash
+npm run inventory:backfill-links
+npm run inventory:backfill-links:apply
+```
+
+Optional filters are available through the underlying script, such as `--user-id=<id>`, `--bean-id=<id>`, and `--overwrite`.
