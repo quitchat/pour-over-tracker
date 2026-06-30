@@ -49,7 +49,7 @@
                         <div class="col-12">
                             <label for="adjustmentGrams" class="form-label">Adjustment Grams</label>
                             <input type="number" step="0.01" class="form-control" id="adjustmentGrams" name="adjustmentGrams" value="<%= formData.adjustmentGrams || "" %>">
-                            <div class="form-text">Use positive or negative grams, for example +20 or -8.</div>
+                            <div class="form-text" id="adjustmentHelpText">Enter a positive number to increase remaining inventory, or a negative number to decrease remaining inventory. For example, +20 adds 20g and -8 removes 8g.</div>
                         </div>
                         <div class="col-12">
                             <label for="reason" class="form-label">Reason</label>
@@ -123,3 +123,44 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const reasonSelect = document.getElementById("reason");
+        const gramsInput = document.getElementById("adjustmentGrams");
+        const helpText = document.getElementById("adjustmentHelpText");
+        const negativeOnlyReasons = ["BREWED_NOT_LOGGED", "DISCARDED", "FINISHED_LEFTOVER"];
+        const defaultHelpText = "Enter a positive number to increase remaining inventory, or a negative number to decrease remaining inventory. For example, +20 adds 20g and -8 removes 8g.";
+        const negativeOnlyHelpText = "This reason can only decrease remaining inventory. Enter a negative number, for example -8.";
+
+        function updateAdjustmentDirectionRules() {
+            if (!reasonSelect || !gramsInput || !helpText) {
+                return;
+            }
+
+            const isNegativeOnly = negativeOnlyReasons.includes(reasonSelect.value);
+
+            if (isNegativeOnly) {
+                gramsInput.setAttribute("max", "-0.01");
+                helpText.textContent = negativeOnlyHelpText;
+                helpText.classList.add("text-danger");
+
+                const currentValue = Number(gramsInput.value);
+                if (gramsInput.value && !Number.isNaN(currentValue) && currentValue > 0) {
+                    gramsInput.value = String(-Math.abs(currentValue));
+                }
+            } else {
+                gramsInput.removeAttribute("max");
+                helpText.textContent = defaultHelpText;
+                helpText.classList.remove("text-danger");
+            }
+        }
+
+        if (reasonSelect) {
+            reasonSelect.addEventListener("change", updateAdjustmentDirectionRules);
+        }
+
+        updateAdjustmentDirectionRules();
+    });
+</script>
+

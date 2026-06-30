@@ -551,6 +551,7 @@ function validateAdjustmentForm(formValues: ReturnType<typeof getAdjustmentFormV
     const errors: string[] = [];
     const adjustmentGrams = Number(formValues.adjustmentGrams);
     const validReasons = ["BREWED_NOT_LOGGED", "FINISHED_LEFTOVER", "DISCARDED", "CORRECTION", "OTHER"];
+    const negativeOnlyReasons = ["BREWED_NOT_LOGGED", "FINISHED_LEFTOVER", "DISCARDED"];
 
     if (!formValues.adjustmentGrams || Number.isNaN(adjustmentGrams) || adjustmentGrams === 0) {
         errors.push("Adjustment grams must be a non-zero number.");
@@ -558,6 +559,10 @@ function validateAdjustmentForm(formValues: ReturnType<typeof getAdjustmentFormV
 
     if (!validReasons.includes(formValues.reason)) {
         errors.push("Adjustment reason is invalid.");
+    }
+
+    if (negativeOnlyReasons.includes(formValues.reason) && adjustmentGrams > 0) {
+        errors.push("This adjustment reason can only decrease inventory. Enter a negative gram amount, such as -8.");
     }
 
     return errors;
