@@ -50,7 +50,7 @@
                                     <span class="fw-normal text-muted">
                                         (
                                         <% if (brewerMapUrl) { %>
-                                            <a href="<%= brewerMapUrl %>" target="_blank" rel="noopener noreferrer" class="text-muted"><%= brewer.locationName || "Open map" %></a>
+                                            <i class="bi bi-geo-alt-fill me-1" aria-hidden="true"></i><a href="<%= brewerMapUrl %>" target="_blank" rel="noopener noreferrer" class="text-muted"><%= brewer.locationName || "Open map" %></a>
                                         <% } else { %>
                                             <%= brewer.locationName %>
                                         <% } %>
