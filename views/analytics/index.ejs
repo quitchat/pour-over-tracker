@@ -358,6 +358,7 @@
             </div>
         </div>
 
+<% if (inventoryAnalyticsValue.beansRunningLow.length > 0) { %>
         <div class="row g-3 mb-4">
             <div class="col-12">
                 <div class="card h-100">
@@ -409,6 +410,8 @@
             </div>
         </div>
 
+<% } %>
+
         <div class="row g-3 mb-4">
             <div class="col-12">
                 <div class="card h-100">
@@ -459,7 +462,7 @@
         </div>
 
         <div class="row g-3">
-            <div class="col-xl-6">
+            <div class="col-12">
                 <div class="card h-100">
                     <div class="card-header">
                         <i class="bi bi-calendar-plus me-1"></i>
@@ -502,7 +505,7 @@
                 </div>
             </div>
 
-            <div class="col-xl-6">
+            <div class="col-12">
                 <div class="card h-100">
                     <div class="card-header">
                         <i class="bi bi-wallet2 me-1"></i>
@@ -516,13 +519,12 @@
                                     <th>Remaining</th>
                                     <th>Known Cost Coverage</th>
                                     <th>Estimated Value</th>
-                                    <th>Avg Cost/Gram</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <% if (inventoryAnalyticsValue.inventoryValueByBean.length === 0) { %>
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted py-4">No current inventory value data.</td>
+                                        <td colspan="4" class="text-center text-muted py-4">No current inventory value data.</td>
                                     </tr>
                                 <% } %>
                                 <% inventoryAnalyticsValue.inventoryValueByBean.forEach(function (bean) { %>
@@ -536,7 +538,6 @@
                                         <td data-label="Remaining"><%= formatNumber(bean.remainingGrams, 1) %>g</td>
                                         <td data-label="Known Cost Coverage"><%- renderInventoryValueCoverage(bean.valueDisplay) %></td>
                                         <td data-label="Estimated Value"><%- renderCostDisplay(bean.valueDisplay, 2) %></td>
-                                        <td data-label="Avg Cost/Gram"><%- renderCostDisplay(bean.averageCostPerGram, 4) %></td>
                                     </tr>
                                 <% }); %>
                             </tbody>
