@@ -156,7 +156,7 @@ main.container {
     display: inline-flex;
     flex-direction: column;
     justify-content: center;
-    align-items: flex-end;
+    align-items: center;
     flex: 0 0 auto;
     min-width: 7rem;
     min-height: 3.75rem;
@@ -166,7 +166,7 @@ main.container {
     background-color: var(--bs-light);
     color: var(--bs-body-color);
     line-height: 1.1;
-    text-align: right;
+    text-align: center;
     white-space: nowrap;
 }
 
@@ -329,10 +329,10 @@ main.container {
     }
 
     .analytics-total-box {
-        align-items: flex-start;
+        align-items: center;
         min-width: 100%;
         border-radius: 0.75rem;
-        text-align: left;
+        text-align: center;
     }
 }
 

@@ -62,10 +62,6 @@
         </p>
     </div>
 
-    <a href="/brew-sessions/new" class="btn btn-primary">
-        <i class="bi bi-plus-circle me-1"></i>
-        Add Brew Session
-    </a>
 </div>
 
 <div class="row g-3 mb-4">
@@ -190,7 +186,7 @@
                             <% } %>
                         </div>
 
-                        <span class="analytics-total-box text-end">
+                        <span class="analytics-total-box">
                             <span class="analytics-total-primary"><%= grinder.totalGroundGrams %>g</span>
                             <span class="analytics-total-secondary"><%= grinder.brewCount %> brews</span>
                         </span>
@@ -226,7 +222,7 @@
                             <% } %>
                         </div>
 
-                        <span class="analytics-total-box text-end">
+                        <span class="analytics-total-box">
                             <span class="analytics-total-primary"><%= brewer.totalBeanGrams %>g beans</span>
                             <span class="analytics-total-secondary"><%= brewer.brewCount %> brews</span>
                         </span>

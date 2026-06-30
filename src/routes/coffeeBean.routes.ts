@@ -746,8 +746,8 @@ router.get("/new", async function (req: Request, res: Response) {
     const roasterSuggestions = await getRoasterSuggestions(userId);
 
     res.render("coffee-beans/form", {
-        title: "Add Coffee Bean",
-        pageHeading: "Add Coffee Bean",
+        title: "Add Bean",
+        pageHeading: "Add Bean",
         formAction: "/coffee-beans",
         submitButtonText: "Save Coffee Bean",
         errors: [],
@@ -922,8 +922,8 @@ router.post("/", async function (req: Request, res: Response) {
         const roasterSuggestions = await getRoasterSuggestions(userId);
 
         res.status(400).render("coffee-beans/form", {
-            title: "Add Coffee Bean",
-            pageHeading: "Add Coffee Bean",
+            title: "Add Bean",
+            pageHeading: "Add Bean",
             formAction: "/coffee-beans",
             submitButtonText: "Save Coffee Bean",
             errors: errors,
