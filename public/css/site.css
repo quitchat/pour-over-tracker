@@ -114,18 +114,34 @@ main.container {
     white-space: nowrap;
 }
 
-.analytics-total-badge {
-    min-width: 5.75rem;
-    padding: 0.55rem 0.65rem;
-    line-height: 1.2;
+.analytics-total-box {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    min-width: 6.5rem;
+    min-height: 3.5rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-pill);
+    background-color: var(--bs-light);
+    color: var(--bs-body-color);
+    line-height: 1.15;
+    flex-shrink: 0;
 }
 
 .analytics-total-primary {
-    margin-bottom: 0.22rem;
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 700;
 }
 
 .analytics-total-secondary {
-    margin-top: 0.12rem;
+    display: block;
+    margin-top: 0.42rem;
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: var(--bs-secondary-color);
 }
 
 @media (max-width: 991.98px) {
