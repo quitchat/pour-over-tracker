@@ -68,28 +68,6 @@
     </a>
 </div>
 
-<style>
-    .analytics-summary-card {
-        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-    }
-
-    .analytics-summary-card:hover,
-    .analytics-summary-card:focus {
-        transform: translateY(-1px);
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
-        border-color: rgba(var(--bs-primary-rgb), 0.35);
-    }
-
-    .analytics-recent-brew-clickable-row {
-        cursor: pointer;
-    }
-
-    .analytics-recent-brew-clickable-row:focus {
-        outline: 2px solid var(--bs-primary);
-        outline-offset: -2px;
-    }
-</style>
-
 <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3">
         <a href="/brew-sessions" class="card h-100 text-decoration-none text-reset analytics-summary-card">
@@ -203,8 +181,8 @@
                 <% } %>
 
                 <% topGrinderList.forEach(function (grinder) { %>
-                    <a href="/grinders/<%= grinder.id %>/edit" class="list-group-item list-group-item-action d-flex justify-content-between align-items-start gap-3">
-                        <div>
+                    <a href="/grinders/<%= grinder.id %>/edit" class="list-group-item list-group-item-action d-flex justify-content-between gap-3 analytics-equipment-list-item">
+                        <div class="analytics-equipment-list-info">
                             <div class="fw-semibold"><%= grinder.name %></div>
 
                             <% if (grinder.brand) { %>
@@ -237,8 +215,8 @@
                 <% } %>
 
                 <% topBrewerList.forEach(function (brewer) { %>
-                    <a href="/brewers/<%= brewer.id %>/edit" class="list-group-item list-group-item-action d-flex justify-content-between align-items-start gap-3">
-                        <div>
+                    <a href="/brewers/<%= brewer.id %>/edit" class="list-group-item list-group-item-action d-flex justify-content-between gap-3 analytics-equipment-list-item">
+                        <div class="analytics-equipment-list-info">
                             <div class="fw-semibold">
                                 <%= brewer.name %><% if (brewer.locationName) { %> (<%= brewer.locationName %>)<% } %>
                             </div>
