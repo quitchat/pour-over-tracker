@@ -219,7 +219,6 @@
                     <th>Roast</th>
                     <th>Bean Rating</th>
                     <th class="text-center">Brews</th>
-                    <th class="text-center">Grams Brewed</th>
                     <th class="text-end bean-actions-cell" aria-label="Bean actions"></th>
                 </tr>
             </thead>
@@ -227,7 +226,7 @@
             <tbody>
                 <% if (beans.length === 0) { %>
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">
+                        <td colspan="6" class="text-center text-muted py-4">
                             No coffee beans yet.
                         </td>
                     </tr>
@@ -350,16 +349,17 @@
                         <td class="text-md-center">
                             <div class="bean-mobile-label">Brews</div>
 
-                            <a href="/coffee-beans/<%= bean.id %>" class="text-decoration-none">
-                                <span class="badge text-bg-light border">
-                                    <%= bean.brewSessionCount %>
-                                </span>
-                            </a>
-                        </td>
-
-                        <td class="text-md-center">
-                            <div class="bean-mobile-label">Grams Brewed</div>
-                            <%= bean.totalGramsBrewed || "0.0" %> g
+                            <% const brewCount = Number(bean.brewSessionCount || 0); %>
+                            <% const totalGramsBrewed = bean.totalGramsBrewed || "0.0"; %>
+                            <% if (brewCount > 0) { %>
+                                <a href="/coffee-beans/<%= bean.id %>" class="text-decoration-none text-body">
+                                    <span class="fw-semibold"><%= brewCount %> <%= brewCount === 1 ? "brew" : "brews" %></span>
+                                    <span class="text-muted mx-1">·</span>
+                                    <span><%= totalGramsBrewed %>g</span>
+                                </a>
+                            <% } else { %>
+                                <span class="text-muted">No brews yet</span>
+                            <% } %>
                         </td>
 
                         <td class="text-md-end bean-actions-cell">
