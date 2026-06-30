@@ -30,6 +30,36 @@
 
         return `Ratio 1:${session.brewRatio}`;
     }
+
+    function renderRatingStars(value, emptyText = "Not rated") {
+        if (value === null || value === undefined || value === "") {
+            return `<span class="text-muted">${emptyText}</span>`;
+        }
+
+        const numericValue = Number(value);
+
+        if (Number.isNaN(numericValue)) {
+            return `<span class="text-muted">${emptyText}</span>`;
+        }
+
+        const clampedValue = Math.max(0, Math.min(5, numericValue));
+        const displayValue = Number.isInteger(clampedValue) ? clampedValue.toFixed(0) : clampedValue.toFixed(1);
+        let html = `<span class="readonly-rating-stars" aria-label="${displayValue} out of 5 stars">`;
+
+        for (let index = 1; index <= 5; index++) {
+            if (clampedValue >= index) {
+                html += `<i class="bi bi-star-fill"></i>`;
+            } else if (clampedValue >= index - 0.5) {
+                html += `<i class="bi bi-star-half"></i>`;
+            } else {
+                html += `<i class="bi bi-star"></i>`;
+            }
+        }
+
+        html += `</span>`;
+        html += ` <span class="text-muted small readonly-rating-value">${displayValue}</span>`;
+        return html;
+    }
 %>
 
 <div class="d-flex justify-content-between align-items-start align-items-md-center mb-3 gap-3 flex-column flex-md-row">
@@ -282,13 +312,7 @@
                         <td>
                             <div class="brew-mobile-label">Rating</div>
 
-                            <% if (session.overallRating) { %>
-                                <span class="badge text-bg-warning">
-                                    <%= session.overallRating %> / 5
-                                </span>
-                            <% } else { %>
-                                <span class="text-muted">-</span>
-                            <% } %>
+                            <%- renderRatingStars(session.overallRating, "-") %>
                         </td>
 
                         <td class="brew-actions-cell">
