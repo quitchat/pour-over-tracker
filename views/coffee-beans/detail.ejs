@@ -10,6 +10,37 @@
     }
 </style>
 
+<%
+    function renderRatingStars(value, emptyText = "-") {
+        if (value === null || value === undefined || value === "") {
+            return `<span class="text-muted">${emptyText}</span>`;
+        }
+
+        const numericValue = Number(value);
+
+        if (Number.isNaN(numericValue)) {
+            return `<span class="text-muted">${emptyText}</span>`;
+        }
+
+        const clampedValue = Math.max(0, Math.min(5, numericValue));
+        const displayValue = Number.isInteger(clampedValue) ? clampedValue.toFixed(0) : clampedValue.toFixed(1);
+        let html = `<span class="readonly-rating-display"><span class="readonly-rating-stars" aria-label="${displayValue} out of 5 stars">`;
+
+        for (let index = 1; index <= 5; index++) {
+            if (clampedValue >= index) {
+                html += `<i class="bi bi-star-fill"></i>`;
+            } else if (clampedValue >= index - 0.5) {
+                html += `<i class="bi bi-star-half"></i>`;
+            } else {
+                html += `<i class="bi bi-star"></i>`;
+            }
+        }
+
+        html += `</span><span class="text-muted small readonly-rating-value">${displayValue}</span></span>`;
+        return html;
+    }
+%>
+
 <style>
     .bean-history-mobile-label {
         display: none;
@@ -456,7 +487,7 @@
                         </td>
                         <td>
                             <span class="bean-history-mobile-label">Rating</span>
-                            <%= session.overallRating || "-" %>
+                            <%- renderRatingStars(session.overallRating, "-") %>
                         </td>
                         <td class="bean-history-action-cell">
                             <a href="/brew-sessions/<%= session.id %>" class="btn btn-sm btn-outline-primary">

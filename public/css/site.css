@@ -98,15 +98,26 @@ main.container {
     font-weight: 600;
 }
 
-.readonly-rating-stars {
+.readonly-rating-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+}
+
+.readonly-rating-stars,
+.bean-rating-stars {
     display: inline-flex;
     align-items: center;
     gap: 0.12rem;
-    color: #ffc107;
+    color: #f5b301;
     white-space: nowrap;
+    flex-wrap: nowrap;
 }
 
-.readonly-rating-stars .bi {
+.readonly-rating-stars .bi,
+.bean-rating-stars .bi {
     line-height: 1;
 }
 

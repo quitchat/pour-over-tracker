@@ -33,7 +33,7 @@
 
         const clampedValue = Math.max(0, Math.min(5, numericValue));
         const displayValue = Number.isInteger(clampedValue) ? clampedValue.toFixed(0) : clampedValue.toFixed(1);
-        let html = `<span class="readonly-rating-stars" aria-label="${displayValue} out of 5 stars">`;
+        let html = `<span class="readonly-rating-display"><span class="readonly-rating-stars" aria-label="${displayValue} out of 5 stars">`;
 
         for (let index = 1; index <= 5; index++) {
             if (clampedValue >= index) {
@@ -46,7 +46,7 @@
         }
 
         html += `</span>`;
-        html += ` <span class="text-muted small readonly-rating-value">${displayValue}</span>`;
+        html += `<span class="text-muted small readonly-rating-value">${displayValue}</span></span>`;
         return html;
     }
 %>
