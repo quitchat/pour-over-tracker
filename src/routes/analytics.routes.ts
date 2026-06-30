@@ -98,6 +98,7 @@ type PurchaseInventoryItem = {
     quantity: number;
     bagSizeGrams: number | null;
     totalGrams: number;
+    remainingGrams: number;
     cost: number | null;
     currencyCode: string;
 };
@@ -1095,6 +1096,12 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             };
         });
 
+        const inventoryRecordById = new Map<number, InventoryRecordItem>();
+
+        inventoryRecords.forEach(function (inventory) {
+            inventoryRecordById.set(inventory.id, inventory);
+        });
+
         const currentInventoryRecords = inventoryRecords
             .filter(function (inventory) {
                 return inventory.remainingGrams > 0;
@@ -1222,6 +1229,11 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                 const bagSizeGrams = purchase.inventories.length > 0 && purchase.inventories[0].bagSizeGrams !== null
                     ? round(toNumber(purchase.inventories[0].bagSizeGrams), 1)
                     : null;
+                const remainingGrams = purchase.inventories.reduce(function (sum, inventory) {
+                    const inventoryRecord = inventoryRecordById.get(inventory.id);
+
+                    return sum + (inventoryRecord ? inventoryRecord.remainingGrams : 0);
+                }, 0);
 
                 return {
                     id: purchase.id,
@@ -1233,6 +1245,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                     quantity: purchase.quantity || Math.max(1, purchase.inventories.length),
                     bagSizeGrams: bagSizeGrams,
                     totalGrams: round(totalGrams, 1),
+                    remainingGrams: round(Math.max(0, remainingGrams), 1),
                     cost: getEffectiveTotalCost(purchase),
                     currencyCode: purchase.currencyCode || "USD"
                 };
@@ -1287,6 +1300,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                 quantity: purchase.quantity,
                 bagSizeGrams: purchase.bagSizeGrams,
                 totalGrams: purchase.totalGrams,
+                remainingGrams: purchase.remainingGrams,
                 cost: purchase.cost === null ? null : round(purchase.cost, 2),
                 currencyCode: purchase.currencyCode
             };

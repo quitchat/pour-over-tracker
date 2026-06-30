@@ -476,13 +476,14 @@
                                     <th>Bean</th>
                                     <th>Quantity</th>
                                     <th>Total Grams</th>
+                                    <th>Remaining</th>
                                     <th>Cost</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <% if (inventoryAnalyticsValue.recentlyReplenished.length === 0) { %>
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted py-4">No replenishments yet.</td>
+                                        <td colspan="6" class="text-center text-muted py-4">No replenishments yet.</td>
                                     </tr>
                                 <% } %>
                                 <% inventoryAnalyticsValue.recentlyReplenished.forEach(function (purchase) { %>
@@ -496,6 +497,7 @@
                                         </td>
                                         <td data-label="Quantity"><%= purchase.quantity %><% if (purchase.bagSizeGrams) { %> × <%= formatNumber(purchase.bagSizeGrams, 1) %>g<% } %></td>
                                         <td data-label="Total Grams"><%= formatNumber(purchase.totalGrams, 1) %>g</td>
+                                        <td data-label="Remaining"><%= formatNumber(purchase.remainingGrams, 1) %>g</td>
                                         <td data-label="Cost"><%= purchase.cost === null ? "—" : formatCurrencyValue(purchase.cost, purchase.currencyCode, 2) %></td>
                                     </tr>
                                 <% }); %>
@@ -519,12 +521,13 @@
                                     <th>Remaining</th>
                                     <th>Known Cost Coverage</th>
                                     <th>Estimated Value</th>
+                                    <th>Cost / Gram</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <% if (inventoryAnalyticsValue.inventoryValueByBean.length === 0) { %>
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted py-4">No current inventory value data.</td>
+                                        <td colspan="5" class="text-center text-muted py-4">No current inventory value data.</td>
                                     </tr>
                                 <% } %>
                                 <% inventoryAnalyticsValue.inventoryValueByBean.forEach(function (bean) { %>
@@ -538,6 +541,7 @@
                                         <td data-label="Remaining"><%= formatNumber(bean.remainingGrams, 1) %>g</td>
                                         <td data-label="Known Cost Coverage"><%- renderInventoryValueCoverage(bean.valueDisplay) %></td>
                                         <td data-label="Estimated Value"><%- renderCostDisplay(bean.valueDisplay, 2) %></td>
+                                        <td data-label="Cost / Gram"><%- renderCostDisplay(bean.averageCostPerGram, 4) %></td>
                                     </tr>
                                 <% }); %>
                             </tbody>
