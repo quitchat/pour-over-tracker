@@ -23,6 +23,7 @@
 - Admin-only AI access enablement
 - Per-user temperature unit preference during signup and profile editing
 - Per-user timezone preference during signup and profile editing, with popular worldwide timezone options for new-brew date defaults
+- Per-user preferred currency and bag weight unit defaults for bean inventory purchases
 - Password reset workflow with email-based reset links
 
 ## Coffee Bean Management
@@ -42,6 +43,24 @@
 - Bean usage statistics derived from brew sessions:
   - Total grams brewed
   - Brew count
+- Bean inventory and replenishment tracking under reusable coffee bean records
+- Low-friction new-bean creation focused on coffee identity, with inventory added later from the dedicated inventory screen
+- Bean identity fields stay focused on reusable coffee details; roast dates and purchase costs are tracked on inventory/replenishment records
+- Add Replenishment workflow for repeat purchases of the same bean
+- Set Current Inventory / Opening Balance workflow for partially used beans
+- Multi-bag purchase support with shared order-level cost details
+- Bag size entry in grams or ounces with normalized gram calculations
+- Purchase cost tracking with currency, subtotal, discount, shipping, tax, and total paid fields
+- Effective cost per bag reporting for inventory cost analytics
+- Inventory remaining-weight calculation from starting grams, linked brew doses, and adjustment history
+- Read-only remaining inventory link on bean detail that opens a dedicated inventory maintenance screen
+- Dedicated bean inventory screen for listing and maintaining bags, replenishments, opening balances, and adjustments
+- Optional brew-session link to a specific bean inventory bag for inventory reporting
+- Automatic behind-the-scenes inventory bag association during brew creation
+- Finish Bag / Zero Out Remaining workflow using inventory adjustments
+- Manual inventory adjustment history for corrections, discarded beans, and leftover handling
+- Editable and deletable inventory adjustment records
+- Inventory bag deletion that preserves brew sessions by unlinking them from the deleted bag
 
 ## Grinder and Brewer Management
 
@@ -54,6 +73,7 @@
 - Grinder-level aggregation without grind-setting/click-level breakdown
 - Location-aware equipment configuration
 - Saved geographic location support for grinders and brewers
+- Mobile-friendly responsive grinder and brewer tables on small screens
 - Browser/device geolocation-based equipment suggestion during brew creation
 - Manual equipment override for denied location permission, unavailable geolocation, inaccurate geolocation, or multiple equipment matches
 
@@ -70,12 +90,14 @@
 - Brew timing and recipe-related fields
 - Brew pour step tracking
 - Tasting note tracking
+- Free-form brew comments saved with each brew session
 - Brew-session scoring separate from bean-level rating
 - Radar-chart tasting visualization
 - Brew session duplication workflow
 - Brew detail previous/next navigation with mobile swipe support
 - Brew comparison workflow
 - AI suggestion support through adjustment notes
+- Previous-brew comments included in AI recipe suggestion context
 - Temperature-aware AI recipe prompts and structured recipe output
 
 ## Dashboard, Analytics, and Visualization
@@ -83,6 +105,7 @@
 - Dashboard summary view
 - Brew statistics and analytics views
 - Cost Analytics for inventory-linked purchase cost, consumed coffee cost, purchased coffee cost, average cost per brew, cost by bean, cost by roaster, best value beans, and most expensive brews
+- Bean Inventory Summary analytics for total coffee on hand, low-stock beans, oldest inventory, recent replenishments, inventory value estimates, and monthly coffee consumption
 - Currency-aware cost reporting with separate subtotals when multiple purchase currencies are present
 - Brew comparison interface
 - Chart.js-based visualizations
@@ -157,3 +180,17 @@
 - Runtime log inspection through PM2
 - Production environment configuration
 - Raspberry Pi reboot-safe application hosting
+
+
+- Editable purchase/order cost records for bean inventory replenishments, with auto-calculated total paid.
+
+### Inventory backfill utility
+
+Existing brew sessions that were created before inventory tracking can be linked to bean inventory with a dry-run-first utility. The script uses advisory matching: for each brew, it links the oldest inventory bag for the same bean that has enough remaining grams. It does not create or delete brew sessions.
+
+```bash
+npm run inventory:backfill-links
+npm run inventory:backfill-links:apply
+```
+
+Optional filters are available through the underlying script, such as `--user-id=<id>`, `--bean-id=<id>`, and `--overwrite`.

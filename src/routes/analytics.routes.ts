@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma";
 import { getRequiredUserId, requireAuth } from "../middleware/auth";
 import { buildLastMonthKeys, formatDateOnlyUs, formatMonthKeyFromDateOnly, getTodayDateForInput, parseDateOnlyToUtcDate, parseDateOnlyToUtcEndOfDay } from "../utils/dateFormat";
 import { normalizeTimeZone } from "../utils/timeZone";
-import { getEffectiveTotalCost } from "../services/beanInventory.service";
+import { getEffectiveTotalCost, getInventoryUsage } from "../services/beanInventory.service";
 
 const router = Router();
 
@@ -49,6 +49,59 @@ type PurchaseCostItem = {
     cost: number | null;
     currencyCode: string;
 };
+
+type InventoryValueDisplay = CostDisplay & {
+    knownRecordCount: number;
+    totalRecordCount: number;
+};
+
+type InventoryRecordItem = {
+    id: number;
+    beanId: number;
+    beanName: string;
+    roasterName: string;
+    remainingGrams: number;
+    startingGrams: number;
+    bagSizeGrams: number | null;
+    bagSizeLabel: string;
+    roastDate: Date | null;
+    purchaseDate: Date | null;
+    createdAt: Date;
+    ageDays: number | null;
+    sortDate: Date;
+    estimatedValue: number | null;
+    costPerGram: number | null;
+    currencyCode: string | null;
+    lastBrewedDate: Date | null;
+};
+
+type BeanInventoryGroupItem = {
+    beanId: number;
+    beanName: string;
+    roasterName: string;
+    remainingGrams: number;
+    inventoryCount: number;
+    knownValueInventoryCount: number;
+    lastBrewedDate: Date | null;
+    lastReplenishedDate: Date | null;
+    valueByCurrency: Map<string, CostBucket>;
+    gramsWithKnownCostByCurrency: Map<string, number>;
+};
+
+type PurchaseInventoryItem = {
+    id: number;
+    beanId: number;
+    beanName: string;
+    roasterName: string;
+    purchaseDate: Date | null;
+    createdAt: Date;
+    quantity: number;
+    bagSizeGrams: number | null;
+    totalGrams: number;
+    cost: number | null;
+    currencyCode: string;
+};
+
 
 function getCurrentTimeZone(res: Response): string {
     const currentUser = res.locals.currentUser as { timeZone?: string } | null | undefined;
@@ -231,6 +284,90 @@ function buildAverageCostDisplay(map: Map<string, CostBucket>, denominatorSelect
     };
 }
 
+
+function formatDateOrNull(value: Date | null | undefined): string {
+    if (!value) {
+        return "";
+    }
+
+    return formatDateOnlyUs(value);
+}
+
+function addValueToCurrencyBucket(map: Map<string, CostBucket>, currencyCode: string, value: number): void {
+    addCostToBucket(map, currencyCode, value, 0);
+}
+
+function buildInventoryValueDisplay(map: Map<string, CostBucket>, knownRecordCount: number, totalRecordCount: number): InventoryValueDisplay {
+    const display = buildCostDisplay(map) as InventoryValueDisplay;
+    display.knownRecordCount = knownRecordCount;
+    display.totalRecordCount = totalRecordCount;
+
+    return display;
+}
+
+function getFirstAvailableDate(values: Array<Date | null | undefined>): Date | null {
+    for (const value of values) {
+        if (value) {
+            return value;
+        }
+    }
+
+    return null;
+}
+
+function getDaysBetween(startDate: Date | null, endDate: Date): number | null {
+    if (!startDate) {
+        return null;
+    }
+
+    const millisecondsPerDay = 24 * 60 * 60 * 1000;
+
+    return Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / millisecondsPerDay));
+}
+
+function getMonthStartDate(timeZone: string): Date {
+    const todayText = getTodayDateForInput(timeZone);
+    const monthStartText = `${todayText.substring(0, 7)}-01`;
+
+    return parseDateOnlyToUtcDate(monthStartText);
+}
+
+function getInventoryCostDetails(inventory: {
+    startingGrams: unknown;
+    beanPurchase: ({ currencyCode: string | null; quantity: number; inventories: { id: number }[] } & Parameters<typeof getEffectiveTotalCost>[0]) | null;
+}): { costPerGram: number | null; bagEffectiveCost: number | null; currencyCode: string | null } {
+    const purchase = inventory.beanPurchase;
+
+    if (!purchase) {
+        return {
+            costPerGram: null,
+            bagEffectiveCost: null,
+            currencyCode: null
+        };
+    }
+
+    const purchaseEffectiveTotalCost = getEffectiveTotalCost(purchase);
+
+    if (purchaseEffectiveTotalCost === null) {
+        return {
+            costPerGram: null,
+            bagEffectiveCost: null,
+            currencyCode: purchase.currencyCode || "USD"
+        };
+    }
+
+    const bagCount = Math.max(1, purchase.inventories.length || purchase.quantity || 1);
+    const bagEffectiveCost = purchaseEffectiveTotalCost / bagCount;
+    const startingGrams = toOptionalNumber(inventory.startingGrams);
+    const costPerGram = startingGrams !== null && startingGrams > 0 ? bagEffectiveCost / startingGrams : null;
+
+    return {
+        costPerGram: costPerGram,
+        bagEffectiveCost: bagEffectiveCost,
+        currencyCode: purchase.currencyCode || "USD"
+    };
+}
+
 function formatBrewTime(totalSeconds: number | null | undefined): string {
     if (totalSeconds === null || typeof totalSeconds === "undefined") {
         return "";
@@ -281,7 +418,8 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             allBeans,
             allGrinders,
             allBrewers,
-            beanPurchases
+            beanPurchases,
+            beanInventories
         ] = await Promise.all([
             prisma.coffeeBean.count({
                 where: {
@@ -376,12 +514,64 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                     }
                 },
                 include: {
+                    bean: true,
                     inventories: {
                         select: {
-                            id: true
+                            id: true,
+                            startingGrams: true,
+                            bagSizeGrams: true
                         }
                     }
                 }
+            }),
+
+            prisma.beanInventory.findMany({
+                where: {
+                    bean: {
+                        userId: userId
+                    }
+                },
+                include: {
+                    bean: true,
+                    beanPurchase: {
+                        include: {
+                            inventories: {
+                                select: {
+                                    id: true
+                                }
+                            }
+                        }
+                    },
+                    brewSessions: {
+                        select: {
+                            id: true,
+                            brewDate: true,
+                            coffeeDoseGrams: true
+                        },
+                        orderBy: {
+                            brewDate: "desc"
+                        }
+                    },
+                    adjustments: {
+                        select: {
+                            adjustmentGrams: true
+                        }
+                    }
+                },
+                orderBy: [
+                    {
+                        roastDate: "asc"
+                    },
+                    {
+                        purchaseDate: "asc"
+                    },
+                    {
+                        createdAt: "asc"
+                    },
+                    {
+                        id: "asc"
+                    }
+                ]
             })
         ]);
 
@@ -860,6 +1050,248 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                 };
             });
 
+        const lowStockThresholdGrams = 50;
+        const todayForInventory = parseDateOnlyToUtcEndOfDay(getTodayDateForInput(timeZone));
+        const monthStartDate = getMonthStartDate(timeZone);
+        const monthEndDate = parseDateOnlyToUtcEndOfDay(getTodayDateForInput(timeZone));
+        const coffeeConsumedThisMonth = brewSessions.reduce(function (sum, session) {
+            if (!isInCostDateRange(session.brewDate, monthStartDate, monthEndDate)) {
+                return sum;
+            }
+
+            return sum + (toOptionalNumber(session.coffeeDoseGrams) || 0);
+        }, 0);
+
+        const inventoryRecords: InventoryRecordItem[] = beanInventories.map(function (inventory) {
+            const usage = getInventoryUsage(inventory);
+            const costDetails = getInventoryCostDetails(inventory);
+            const displayRemainingGrams = Math.max(0, usage.remainingGrams);
+            const estimatedValue = costDetails.costPerGram !== null ? displayRemainingGrams * costDetails.costPerGram : null;
+            const ageDate = getFirstAvailableDate([inventory.roastDate, inventory.purchaseDate, inventory.createdAt]);
+            const sortDate = ageDate || inventory.createdAt;
+            const bagSizeGrams = inventory.bagSizeGrams === null ? null : round(Number(inventory.bagSizeGrams.toString()), 1);
+            const startingGrams = round(toNumber(inventory.startingGrams), 1);
+            const bagSizeLabel = bagSizeGrams !== null ? `${bagSizeGrams}g` : `${startingGrams}g`;
+            const lastBrewedDate = inventory.brewSessions.length > 0 ? inventory.brewSessions[0].brewDate : null;
+
+            return {
+                id: inventory.id,
+                beanId: inventory.bean.id,
+                beanName: inventory.bean.beanName,
+                roasterName: inventory.bean.roasterName || "",
+                remainingGrams: round(displayRemainingGrams, 1),
+                startingGrams: startingGrams,
+                bagSizeGrams: bagSizeGrams,
+                bagSizeLabel: bagSizeLabel,
+                roastDate: inventory.roastDate,
+                purchaseDate: inventory.purchaseDate,
+                createdAt: inventory.createdAt,
+                ageDays: getDaysBetween(ageDate, todayForInventory),
+                sortDate: sortDate,
+                estimatedValue: estimatedValue === null ? null : round(estimatedValue, 2),
+                costPerGram: costDetails.costPerGram === null ? null : round(costDetails.costPerGram, 4),
+                currencyCode: estimatedValue === null ? null : costDetails.currencyCode,
+                lastBrewedDate: lastBrewedDate
+            };
+        });
+
+        const currentInventoryRecords = inventoryRecords
+            .filter(function (inventory) {
+                return inventory.remainingGrams > 0;
+            })
+            .sort(function (left, right) {
+                if (left.sortDate.getTime() !== right.sortDate.getTime()) {
+                    return left.sortDate.getTime() - right.sortDate.getTime();
+                }
+
+                return left.beanName.localeCompare(right.beanName);
+            });
+
+        const inventoryValueByCurrency = new Map<string, CostBucket>();
+        let knownInventoryValueRecordCount = 0;
+
+        currentInventoryRecords.forEach(function (inventory) {
+            if (inventory.estimatedValue !== null && inventory.currencyCode) {
+                knownInventoryValueRecordCount += 1;
+                addValueToCurrencyBucket(inventoryValueByCurrency, inventory.currencyCode, inventory.estimatedValue);
+            }
+        });
+
+        const inventoryByBeanMap = new Map<number, BeanInventoryGroupItem>();
+
+        inventoryRecords.forEach(function (inventory) {
+            const current = inventoryByBeanMap.get(inventory.beanId) || {
+                beanId: inventory.beanId,
+                beanName: inventory.beanName,
+                roasterName: inventory.roasterName,
+                remainingGrams: 0,
+                inventoryCount: 0,
+                knownValueInventoryCount: 0,
+                lastBrewedDate: null,
+                lastReplenishedDate: null,
+                valueByCurrency: new Map<string, CostBucket>(),
+                gramsWithKnownCostByCurrency: new Map<string, number>()
+            };
+
+            current.remainingGrams += inventory.remainingGrams;
+            current.inventoryCount += 1;
+
+            if (inventory.lastBrewedDate && (!current.lastBrewedDate || inventory.lastBrewedDate.getTime() > current.lastBrewedDate.getTime())) {
+                current.lastBrewedDate = inventory.lastBrewedDate;
+            }
+
+            const replenishedDate = inventory.purchaseDate || inventory.createdAt;
+
+            if (replenishedDate && (!current.lastReplenishedDate || replenishedDate.getTime() > current.lastReplenishedDate.getTime())) {
+                current.lastReplenishedDate = replenishedDate;
+            }
+
+            if (inventory.estimatedValue !== null && inventory.currencyCode) {
+                current.knownValueInventoryCount += 1;
+                addValueToCurrencyBucket(current.valueByCurrency, inventory.currencyCode, inventory.estimatedValue);
+                current.gramsWithKnownCostByCurrency.set(
+                    inventory.currencyCode,
+                    (current.gramsWithKnownCostByCurrency.get(inventory.currencyCode) || 0) + inventory.remainingGrams
+                );
+            }
+
+            inventoryByBeanMap.set(inventory.beanId, current);
+        });
+
+        const beanInventoryGroups = Array.from(inventoryByBeanMap.values())
+            .map(function (item) {
+                const valueDisplay = buildInventoryValueDisplay(item.valueByCurrency, item.knownValueInventoryCount, item.inventoryCount);
+                const averageCostValues = valueDisplay.values.map(function (value) {
+                    const grams = item.gramsWithKnownCostByCurrency.get(value.currencyCode) || 0;
+
+                    return {
+                        currencyCode: value.currencyCode,
+                        total: grams > 0 ? round(value.total / grams, 4) : NaN
+                    };
+                }).filter(function (value) {
+                    return !Number.isNaN(value.total);
+                });
+
+                return {
+                    beanId: item.beanId,
+                    beanName: item.beanName,
+                    roasterName: item.roasterName,
+                    remainingGrams: round(Math.max(0, item.remainingGrams), 1),
+                    inventoryCount: item.inventoryCount,
+                    knownValueInventoryCount: item.knownValueInventoryCount,
+                    lastBrewedDate: formatDateOrNull(item.lastBrewedDate),
+                    lastReplenishedDate: formatDateOrNull(item.lastReplenishedDate),
+                    valueDisplay: valueDisplay,
+                    averageCostPerGram: {
+                        isKnown: averageCostValues.length > 0,
+                        isMultipleCurrency: averageCostValues.length > 1,
+                        currencyCode: averageCostValues.length === 1 ? averageCostValues[0].currencyCode : "",
+                        total: averageCostValues.length === 1 ? averageCostValues[0].total : null,
+                        values: averageCostValues
+                    }
+                };
+            });
+
+        const beansRunningLow = beanInventoryGroups
+            .filter(function (bean) {
+                return bean.remainingGrams <= lowStockThresholdGrams;
+            })
+            .sort(function (left, right) {
+                if (left.remainingGrams !== right.remainingGrams) {
+                    return left.remainingGrams - right.remainingGrams;
+                }
+
+                return left.beanName.localeCompare(right.beanName);
+            });
+
+        const lowBeanCount = beanInventoryGroups.filter(function (bean) {
+            return bean.remainingGrams > 0 && bean.remainingGrams <= lowStockThresholdGrams;
+        }).length;
+
+        const outOfStockBeanCount = beanInventoryGroups.filter(function (bean) {
+            return bean.remainingGrams <= 0;
+        }).length;
+
+        const oldestInventory = currentInventoryRecords.length > 0 ? currentInventoryRecords[0] : null;
+
+        const recentlyReplenished = beanPurchases
+            .map(function (purchase): PurchaseInventoryItem {
+                const totalGrams = purchase.inventories.reduce(function (sum, inventory) {
+                    return sum + toNumber(inventory.startingGrams);
+                }, 0);
+                const bagSizeGrams = purchase.inventories.length > 0 && purchase.inventories[0].bagSizeGrams !== null
+                    ? round(toNumber(purchase.inventories[0].bagSizeGrams), 1)
+                    : null;
+
+                return {
+                    id: purchase.id,
+                    beanId: purchase.bean.id,
+                    beanName: purchase.bean.beanName,
+                    roasterName: purchase.bean.roasterName || "",
+                    purchaseDate: purchase.purchaseDate,
+                    createdAt: purchase.createdAt,
+                    quantity: purchase.quantity || Math.max(1, purchase.inventories.length),
+                    bagSizeGrams: bagSizeGrams,
+                    totalGrams: round(totalGrams, 1),
+                    cost: getEffectiveTotalCost(purchase),
+                    currencyCode: purchase.currencyCode || "USD"
+                };
+            })
+            .sort(function (left, right) {
+                const leftDate = left.purchaseDate || left.createdAt;
+                const rightDate = right.purchaseDate || right.createdAt;
+
+                return rightDate.getTime() - leftDate.getTime();
+            });
+
+        const mostRecentlyReplenished = recentlyReplenished.length > 0 ? recentlyReplenished[0] : null;
+
+        const inventoryValueByBean = beanInventoryGroups
+            .filter(function (bean) {
+                return bean.remainingGrams > 0;
+            })
+            .sort(function (left, right) {
+                const leftTotal = left.valueDisplay.values.reduce(function (sum, value) { return sum + value.total; }, 0);
+                const rightTotal = right.valueDisplay.values.reduce(function (sum, value) { return sum + value.total; }, 0);
+
+                if (rightTotal !== leftTotal) {
+                    return rightTotal - leftTotal;
+                }
+
+                return left.beanName.localeCompare(right.beanName);
+            });
+
+        const formattedCurrentInventoryRecords = currentInventoryRecords.map(function (inventory) {
+            return {
+                id: inventory.id,
+                beanId: inventory.beanId,
+                beanName: inventory.beanName,
+                roasterName: inventory.roasterName,
+                remainingGrams: inventory.remainingGrams,
+                bagSizeLabel: inventory.bagSizeLabel,
+                roastDate: formatDateOrNull(inventory.roastDate),
+                purchaseDate: formatDateOrNull(inventory.purchaseDate),
+                ageDays: inventory.ageDays,
+                estimatedValue: inventory.estimatedValue,
+                currencyCode: inventory.currencyCode || ""
+            };
+        });
+
+        const formattedRecentlyReplenished = recentlyReplenished.slice(0, 10).map(function (purchase) {
+            return {
+                id: purchase.id,
+                beanId: purchase.beanId,
+                beanName: purchase.beanName,
+                roasterName: purchase.roasterName,
+                purchaseDate: formatDateOrNull(purchase.purchaseDate || purchase.createdAt),
+                quantity: purchase.quantity,
+                bagSizeGrams: purchase.bagSizeGrams,
+                totalGrams: purchase.totalGrams,
+                cost: purchase.cost === null ? null : round(purchase.cost, 2),
+                currencyCode: purchase.currencyCode
+            };
+        });
+
         const recentBrews = brewSessions
             .slice()
             .sort(function (a, b) {
@@ -891,6 +1323,38 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
             topGrinders: topGrinders,
             topBrewers: topBrewers,
             recentBrews: recentBrews,
+            inventoryAnalytics: {
+                lowStockThresholdGrams: lowStockThresholdGrams,
+                summary: {
+                    totalCoffeeOnHandGrams: round(currentInventoryRecords.reduce(function (sum, inventory) { return sum + inventory.remainingGrams; }, 0), 1),
+                    beanCountWithInventory: beanInventoryGroups.filter(function (bean) { return bean.remainingGrams > 0; }).length,
+                    lowBeanCount: lowBeanCount,
+                    outOfStockBeanCount: outOfStockBeanCount,
+                    oldestInventory: oldestInventory ? {
+                        id: oldestInventory.id,
+                        beanId: oldestInventory.beanId,
+                        beanName: oldestInventory.beanName,
+                        roasterName: oldestInventory.roasterName,
+                        remainingGrams: oldestInventory.remainingGrams,
+                        ageDays: oldestInventory.ageDays,
+                        roastDate: formatDateOrNull(oldestInventory.roastDate),
+                        purchaseDate: formatDateOrNull(oldestInventory.purchaseDate)
+                    } : null,
+                    inventoryValueEstimate: buildInventoryValueDisplay(inventoryValueByCurrency, knownInventoryValueRecordCount, currentInventoryRecords.length),
+                    coffeeConsumedThisMonthGrams: round(coffeeConsumedThisMonth, 1),
+                    mostRecentlyReplenished: mostRecentlyReplenished ? {
+                        id: mostRecentlyReplenished.id,
+                        beanId: mostRecentlyReplenished.beanId,
+                        beanName: mostRecentlyReplenished.beanName,
+                        roasterName: mostRecentlyReplenished.roasterName,
+                        replenishedDate: formatDateOrNull(mostRecentlyReplenished.purchaseDate || mostRecentlyReplenished.createdAt)
+                    } : null
+                },
+                beansRunningLow: beansRunningLow,
+                currentInventory: formattedCurrentInventoryRecords,
+                recentlyReplenished: formattedRecentlyReplenished,
+                inventoryValueByBean: inventoryValueByBean
+            },
             costAnalytics: {
                 selectedRange: costRangeKey,
                 selectedRangeLabel: costDateRange.label,

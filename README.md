@@ -105,6 +105,7 @@
 - Dashboard summary view
 - Brew statistics and analytics views
 - Cost Analytics for inventory-linked purchase cost, consumed coffee cost, purchased coffee cost, average cost per brew, cost by bean, cost by roaster, best value beans, and most expensive brews
+- Bean Inventory Summary analytics for total coffee on hand, low-stock beans, oldest inventory, recent replenishments, inventory value estimates, and monthly coffee consumption
 - Currency-aware cost reporting with separate subtotals when multiple purchase currencies are present
 - Brew comparison interface
 - Chart.js-based visualizations

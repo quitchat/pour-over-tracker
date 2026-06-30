@@ -12,6 +12,26 @@
     const topBrewerList = typeof topBrewers !== "undefined" ? topBrewers : [];
     const recentBrewList = typeof recentBrews !== "undefined" ? recentBrews : [];
 
+
+
+    const inventoryAnalyticsValue = typeof inventoryAnalytics !== "undefined" ? inventoryAnalytics : {
+        lowStockThresholdGrams: 50,
+        summary: {
+            totalCoffeeOnHandGrams: 0,
+            beanCountWithInventory: 0,
+            lowBeanCount: 0,
+            outOfStockBeanCount: 0,
+            oldestInventory: null,
+            inventoryValueEstimate: { isKnown: false, isMultipleCurrency: false, currencyCode: "", total: null, values: [], knownRecordCount: 0, totalRecordCount: 0 },
+            coffeeConsumedThisMonthGrams: 0,
+            mostRecentlyReplenished: null
+        },
+        beansRunningLow: [],
+        currentInventory: [],
+        recentlyReplenished: [],
+        inventoryValueByBean: []
+    };
+
     const costAnalyticsValue = typeof costAnalytics !== "undefined" ? costAnalytics : {
         selectedRange: "last90",
         selectedRangeLabel: "Last 90 days",
@@ -103,6 +123,42 @@
 
         return `<span class="text-muted small">Cost based on ${knownCount} of ${totalCount} brews</span>`;
     }
+
+
+    function renderInventoryValueCoverage(display) {
+        if (!display || !display.totalRecordCount || Number(display.totalRecordCount) === 0) {
+            return `<span class="text-muted small">No current inventory</span>`;
+        }
+
+        if (Number(display.knownRecordCount) === Number(display.totalRecordCount)) {
+            return `<span class="text-muted small">Value known for all ${display.totalRecordCount} inventory records</span>`;
+        }
+
+        return `<span class="text-muted small">Based on ${display.knownRecordCount} of ${display.totalRecordCount} inventory records</span>`;
+    }
+
+    function formatMaybeDate(value) {
+        if (!value) {
+            return "—";
+        }
+
+        return value;
+    }
+
+    function formatAge(value) {
+        if (value === null || value === undefined || value === "") {
+            return "—";
+        }
+
+        const numericValue = Number(value);
+
+        if (Number.isNaN(numericValue)) {
+            return "—";
+        }
+
+        return `${numericValue} days`;
+    }
+
     function renderRatingStars(value, emptyText = "Not rated") {
         if (value === null || value === undefined || value === "") {
             return `<span class="text-muted">${emptyText}</span>`;
@@ -180,6 +236,297 @@
                 <div class="small text-primary">View beans</div>
             </div>
         </a>
+    </div>
+</div>
+
+
+<div class="card mb-4" id="bean-inventory-summary">
+    <div class="card-header">
+        <div class="fw-semibold">
+            <i class="bi bi-box-seam me-1"></i>
+            Bean Inventory Summary
+        </div>
+        <div class="small text-muted">
+            Current inventory, low-stock beans, replenishments, and estimated on-hand value.
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card h-100 bg-light border-0">
+                    <div class="card-body">
+                        <div class="text-muted small">Total Coffee On Hand</div>
+                        <div class="h4 fw-semibold mb-1"><%= formatNumber(inventoryAnalyticsValue.summary.totalCoffeeOnHandGrams, 1) %>g</div>
+                        <div class="small text-muted">Across <%= inventoryAnalyticsValue.summary.beanCountWithInventory %> beans</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card h-100 bg-light border-0">
+                    <div class="card-body">
+                        <div class="text-muted small">Beans Running Low</div>
+                        <div class="h4 fw-semibold mb-1"><%= inventoryAnalyticsValue.summary.lowBeanCount %> beans low</div>
+                        <div class="small text-muted">
+                            ≤ <%= inventoryAnalyticsValue.lowStockThresholdGrams %>g, plus <%= inventoryAnalyticsValue.summary.outOfStockBeanCount %> out of stock
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card h-100 bg-light border-0">
+                    <div class="card-body">
+                        <div class="text-muted small">Oldest Inventory</div>
+                        <% if (inventoryAnalyticsValue.summary.oldestInventory) { %>
+                            <div class="fw-semibold mb-1">
+                                <a href="/coffee-beans/<%= inventoryAnalyticsValue.summary.oldestInventory.beanId %>/inventory" class="text-decoration-none">
+                                    <%= inventoryAnalyticsValue.summary.oldestInventory.beanName %>
+                                </a>
+                            </div>
+                            <div class="small text-muted">
+                                <% if (inventoryAnalyticsValue.summary.oldestInventory.roasterName) { %><%= inventoryAnalyticsValue.summary.oldestInventory.roasterName %> · <% } %>
+                                <%= formatAge(inventoryAnalyticsValue.summary.oldestInventory.ageDays) %> · <%= formatNumber(inventoryAnalyticsValue.summary.oldestInventory.remainingGrams, 1) %>g left
+                            </div>
+                        <% } else { %>
+                            <div class="h4 fw-semibold mb-1 text-muted">—</div>
+                            <div class="small text-muted">No current inventory</div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card h-100 bg-light border-0">
+                    <div class="card-body">
+                        <div class="text-muted small">Inventory Value Estimate</div>
+                        <div class="h4 fw-semibold mb-1"><%- renderCostDisplay(inventoryAnalyticsValue.summary.inventoryValueEstimate, 2) %></div>
+                        <%- renderInventoryValueCoverage(inventoryAnalyticsValue.summary.inventoryValueEstimate) %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card h-100 bg-light border-0">
+                    <div class="card-body">
+                        <div class="text-muted small">Coffee Consumed This Month</div>
+                        <div class="h4 fw-semibold mb-1"><%= formatNumber(inventoryAnalyticsValue.summary.coffeeConsumedThisMonthGrams, 1) %>g</div>
+                        <div class="small text-muted">All brews this month</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-4">
+                <div class="card h-100 bg-light border-0">
+                    <div class="card-body">
+                        <div class="text-muted small">Most Recently Replenished</div>
+                        <% if (inventoryAnalyticsValue.summary.mostRecentlyReplenished) { %>
+                            <div class="fw-semibold mb-1">
+                                <a href="/coffee-beans/<%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.beanId %>/inventory" class="text-decoration-none">
+                                    <%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.beanName %>
+                                </a>
+                            </div>
+                            <div class="small text-muted">
+                                <% if (inventoryAnalyticsValue.summary.mostRecentlyReplenished.roasterName) { %><%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.roasterName %> · <% } %>
+                                added <%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.replenishedDate %>
+                            </div>
+                        <% } else { %>
+                            <div class="h4 fw-semibold mb-1 text-muted">—</div>
+                            <div class="small text-muted">No replenishments yet</div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Beans Running Low
+                    </div>
+                    <div class="table-responsive mobile-card-table-wrap">
+                        <table class="table table-hover mb-0 align-middle mobile-card-table">
+                            <thead>
+                                <tr>
+                                    <th>Bean</th>
+                                    <th>Remaining</th>
+                                    <th>Last Brewed</th>
+                                    <th>Last Replenished</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (inventoryAnalyticsValue.beansRunningLow.length === 0) { %>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">No beans are currently low.</td>
+                                    </tr>
+                                <% } %>
+                                <% inventoryAnalyticsValue.beansRunningLow.forEach(function (bean) { %>
+                                    <tr class="analytics-inventory-clickable-row" data-href="/coffee-beans/<%= bean.beanId %>/inventory" tabindex="0" role="link" aria-label="View inventory for <%= bean.beanName %>">
+                                        <td data-label="Bean">
+                                            <div class="fw-semibold"><%= bean.beanName %></div>
+                                            <% if (bean.roasterName) { %>
+                                                <div class="text-muted small"><%= bean.roasterName %></div>
+                                            <% } %>
+                                        </td>
+                                        <td data-label="Remaining"><%= formatNumber(bean.remainingGrams, 1) %>g</td>
+                                        <td data-label="Last Brewed"><%= formatMaybeDate(bean.lastBrewedDate) %></td>
+                                        <td data-label="Last Replenished"><%= formatMaybeDate(bean.lastReplenishedDate) %></td>
+                                        <td data-label="Actions">
+                                            <div class="btn-group btn-group-sm" role="group" aria-label="Inventory actions">
+                                                <a href="/coffee-beans/<%= bean.beanId %>" class="btn btn-outline-secondary">View Bean</a>
+                                                <a href="/coffee-beans/<%= bean.beanId %>/replenishments/new" class="btn btn-outline-secondary">Add Replenishment</a>
+                                                <a href="/coffee-beans/<%= bean.beanId %>/opening-balance/new" class="btn btn-outline-secondary">Set Current Inventory</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-boxes me-1"></i>
+                        Current Inventory
+                    </div>
+                    <div class="table-responsive mobile-card-table-wrap">
+                        <table class="table table-hover mb-0 align-middle mobile-card-table">
+                            <thead>
+                                <tr>
+                                    <th>Bean</th>
+                                    <th>Remaining</th>
+                                    <th>Bag Size</th>
+                                    <th>Roast Date</th>
+                                    <th>Purchase Date</th>
+                                    <th>Age</th>
+                                    <th>Estimated Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (inventoryAnalyticsValue.currentInventory.length === 0) { %>
+                                    <tr>
+                                        <td colspan="7" class="text-center text-muted py-4">No current inventory on hand.</td>
+                                    </tr>
+                                <% } %>
+                                <% inventoryAnalyticsValue.currentInventory.forEach(function (inventory) { %>
+                                    <tr class="analytics-inventory-clickable-row" data-href="/coffee-beans/<%= inventory.beanId %>/inventory" tabindex="0" role="link" aria-label="View inventory for <%= inventory.beanName %>">
+                                        <td data-label="Bean">
+                                            <div class="fw-semibold"><%= inventory.beanName %></div>
+                                            <% if (inventory.roasterName) { %>
+                                                <div class="text-muted small"><%= inventory.roasterName %></div>
+                                            <% } %>
+                                        </td>
+                                        <td data-label="Remaining"><%= formatNumber(inventory.remainingGrams, 1) %>g</td>
+                                        <td data-label="Bag Size"><%= inventory.bagSizeLabel %></td>
+                                        <td data-label="Roast Date"><%= formatMaybeDate(inventory.roastDate) %></td>
+                                        <td data-label="Purchase Date"><%= formatMaybeDate(inventory.purchaseDate) %></td>
+                                        <td data-label="Age"><%= formatAge(inventory.ageDays) %></td>
+                                        <td data-label="Estimated Value"><%= inventory.estimatedValue === null ? "—" : formatCurrencyValue(inventory.estimatedValue, inventory.currencyCode, 2) %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-xl-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-calendar-plus me-1"></i>
+                        Recently Replenished
+                    </div>
+                    <div class="table-responsive mobile-card-table-wrap">
+                        <table class="table table-hover mb-0 align-middle mobile-card-table">
+                            <thead>
+                                <tr>
+                                    <th>Purchase Date</th>
+                                    <th>Bean</th>
+                                    <th>Quantity</th>
+                                    <th>Total Grams</th>
+                                    <th>Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (inventoryAnalyticsValue.recentlyReplenished.length === 0) { %>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">No replenishments yet.</td>
+                                    </tr>
+                                <% } %>
+                                <% inventoryAnalyticsValue.recentlyReplenished.forEach(function (purchase) { %>
+                                    <tr class="analytics-inventory-clickable-row" data-href="/coffee-beans/<%= purchase.beanId %>/inventory" tabindex="0" role="link" aria-label="View inventory for <%= purchase.beanName %>">
+                                        <td data-label="Purchase Date"><%= formatMaybeDate(purchase.purchaseDate) %></td>
+                                        <td data-label="Bean">
+                                            <div class="fw-semibold"><%= purchase.beanName %></div>
+                                            <% if (purchase.roasterName) { %>
+                                                <div class="text-muted small"><%= purchase.roasterName %></div>
+                                            <% } %>
+                                        </td>
+                                        <td data-label="Quantity"><%= purchase.quantity %><% if (purchase.bagSizeGrams) { %> × <%= formatNumber(purchase.bagSizeGrams, 1) %>g<% } %></td>
+                                        <td data-label="Total Grams"><%= formatNumber(purchase.totalGrams, 1) %>g</td>
+                                        <td data-label="Cost"><%= purchase.cost === null ? "—" : formatCurrencyValue(purchase.cost, purchase.currencyCode, 2) %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-wallet2 me-1"></i>
+                        Inventory Value by Bean
+                    </div>
+                    <div class="table-responsive mobile-card-table-wrap">
+                        <table class="table table-hover mb-0 align-middle mobile-card-table">
+                            <thead>
+                                <tr>
+                                    <th>Bean</th>
+                                    <th>Remaining</th>
+                                    <th>Known Cost Coverage</th>
+                                    <th>Estimated Value</th>
+                                    <th>Avg Cost/Gram</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (inventoryAnalyticsValue.inventoryValueByBean.length === 0) { %>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">No current inventory value data.</td>
+                                    </tr>
+                                <% } %>
+                                <% inventoryAnalyticsValue.inventoryValueByBean.forEach(function (bean) { %>
+                                    <tr class="analytics-inventory-clickable-row" data-href="/coffee-beans/<%= bean.beanId %>/inventory" tabindex="0" role="link" aria-label="View inventory for <%= bean.beanName %>">
+                                        <td data-label="Bean">
+                                            <div class="fw-semibold"><%= bean.beanName %></div>
+                                            <% if (bean.roasterName) { %>
+                                                <div class="text-muted small"><%= bean.roasterName %></div>
+                                            <% } %>
+                                        </td>
+                                        <td data-label="Remaining"><%= formatNumber(bean.remainingGrams, 1) %>g</td>
+                                        <td data-label="Known Cost Coverage"><%- renderInventoryValueCoverage(bean.valueDisplay) %></td>
+                                        <td data-label="Estimated Value"><%- renderCostDisplay(bean.valueDisplay, 2) %></td>
+                                        <td data-label="Avg Cost/Gram"><%- renderCostDisplay(bean.averageCostPerGram, 4) %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -629,7 +976,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        document.querySelectorAll(".analytics-recent-brew-clickable-row[data-href], .analytics-cost-clickable-row[data-href]").forEach(function (row) {
+        document.querySelectorAll(".analytics-recent-brew-clickable-row[data-href], .analytics-cost-clickable-row[data-href], .analytics-inventory-clickable-row[data-href]").forEach(function (row) {
             row.addEventListener("click", function (event) {
                 if (event.target.closest("a, button, input, select, textarea, label, form, .dropdown, .dropdown-menu")) {
                     return;
