@@ -523,14 +523,20 @@ main.container {
 
     .inventory-mobile-table tbody tr:not(.inventory-row-detail) {
         border: 1px solid var(--bs-border-color);
-        border-radius: 0.75rem;
+        border-radius: 0;
         background: var(--bs-body-bg);
         overflow: hidden;
         box-shadow: 0 0.125rem 0.35rem rgba(0, 0, 0, 0.04);
     }
 
-    .inventory-mobile-table tbody tr:not(.inventory-row-detail):not(.inventory-mobile-first-row):not(.inventory-mobile-last-row) {
-        border-radius: 0;
+    .inventory-mobile-table tbody tr:not(.inventory-row-detail).inventory-mobile-first-row:not(.inventory-mobile-has-header) {
+        border-top-left-radius: 0.75rem;
+        border-top-right-radius: 0.75rem;
+    }
+
+    .inventory-mobile-table tbody tr:not(.inventory-row-detail).inventory-mobile-last-row {
+        border-bottom-left-radius: 0.75rem;
+        border-bottom-right-radius: 0.75rem;
     }
 
     .inventory-mobile-table tbody tr.inventory-row-detail {

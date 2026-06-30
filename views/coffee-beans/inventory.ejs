@@ -106,7 +106,7 @@
                 <tbody>
                     <% inventoryRows.forEach(function (bag, bagIndex) { %>
                         <% const bagRemainingPercent = bag.startingGrams && Number(bag.startingGrams) > 0 ? Math.max(0, Math.min(100, Math.round((Number(bag.remainingGrams || 0) / Number(bag.startingGrams)) * 100))) : 0; %>
-                        <% const bagMobileRowEdgeClass = (bagIndex === 0 ? "inventory-mobile-first-row" : "") + (bagIndex === inventoryRows.length - 1 ? " inventory-mobile-last-row" : ""); %>
+                        <% const bagMobileRowEdgeClass = (bagIndex === 0 ? "inventory-mobile-first-row inventory-mobile-has-header" : "") + (bagIndex === inventoryRows.length - 1 ? " inventory-mobile-last-row" : ""); %>
                         <tr class="<%= bagMobileRowEdgeClass %> <%= bag.isFinished ? "inventory-row-finished" : "" %>">
                             <td class="inventory-mobile-primary" data-label="Bag">
                                 <div class="fw-semibold">
