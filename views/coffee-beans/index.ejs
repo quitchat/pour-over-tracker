@@ -84,8 +84,12 @@
     }
 
     .bean-actions-cell {
-        width: 190px;
+        width: 120px;
         white-space: nowrap;
+    }
+
+    .bean-brew-action {
+        min-width: 5rem;
     }
 
     .bean-status-badge {
@@ -186,6 +190,12 @@
 
         .bean-actions-cell {
             white-space: normal;
+        }
+
+        .bean-brew-action {
+            width: 100%;
+            padding: 0.65rem 1rem;
+            font-size: 1rem;
         }
     }
 </style>
@@ -307,13 +317,17 @@
                             <div class="bean-mobile-label">Roast</div>
 
                             <% if (bean.roastLevel || bean.roastDate) { %>
-                                <div>
-                                    <%= bean.roastLevel || "-" %>
-                                </div>
+                                <% if (bean.roastLevel) { %>
+                                    <div>
+                                        <%= bean.roastLevel %>
+                                    </div>
+                                <% } %>
 
-                                <div class="bean-secondary-line">
-                                    <%= bean.roastDate || "No roast date" %>
-                                </div>
+                                <% if (bean.roastDate) { %>
+                                    <div class="bean-secondary-line">
+                                        <%= bean.roastDate %>
+                                    </div>
+                                <% } %>
                             <% } else { %>
                                 <span class="text-muted">Not set</span>
                             <% } %>
@@ -351,61 +365,13 @@
                         <td class="text-md-end bean-actions-cell">
                             <div class="bean-mobile-label">Actions</div>
 
-                            <div class="d-inline-flex gap-2 align-items-center">
+                            <div class="d-inline-flex gap-2 align-items-center w-100 w-md-auto">
                                 <% if (bean.isActive) { %>
-                                    <a href="/brew-sessions/new?coffeeBeanId=<%= bean.id %>" class="btn btn-sm btn-success">
+                                    <a href="/brew-sessions/new?coffeeBeanId=<%= bean.id %>" class="btn btn-sm btn-success bean-brew-action">
                                         <i class="bi bi-plus-circle me-1"></i>
                                         Brew
                                     </a>
                                 <% } %>
-
-                                <div class="dropdown">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
-                                        More
-                                    </button>
-
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <a class="dropdown-item" href="/coffee-beans/<%= bean.id %>/edit">
-                                                <i class="bi bi-pencil-square me-2"></i>
-                                                Edit
-                                            </a>
-                                        </li>
-
-                                        <li>
-                                            <hr class="dropdown-divider">
-                                        </li>
-
-                                        <% if (bean.brewSessionCount === 0) { %>
-                                            <li>
-                                                <form method="post" action="/coffee-beans/<%= bean.id %>/delete" onsubmit="return confirm('Delete this coffee bean permanently? This is only allowed because it has no brew sessions.');">
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="bi bi-trash me-2"></i>
-                                                        Delete
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        <% } else if (bean.isActive) { %>
-                                            <li>
-                                                <form method="post" action="/coffee-beans/<%= bean.id %>/deactivate" onsubmit="return confirm('Deactivate this coffee bean? Historical brew sessions will stay available.');">
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="bi bi-archive me-2"></i>
-                                                        Deactivate
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        <% } else { %>
-                                            <li>
-                                                <form method="post" action="/coffee-beans/<%= bean.id %>/reactivate">
-                                                    <button type="submit" class="dropdown-item text-success">
-                                                        <i class="bi bi-arrow-counterclockwise me-2"></i>
-                                                        Reactivate
-                                                    </button>
-                                                </form>
-                                            </li>
-                                        <% } %>
-                                    </ul>
-                                </div>
                             </div>
                         </td>
                     </tr>
