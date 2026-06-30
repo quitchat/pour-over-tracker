@@ -188,9 +188,9 @@
                             <% } %>
                         </div>
 
-                        <span class="badge text-bg-light border text-end">
-                            <span class="d-block"><%= grinder.totalGroundGrams %>g</span>
-                            <span class="d-block fw-normal text-muted"><%= grinder.brewCount %> brews</span>
+                        <span class="badge text-bg-light border text-end analytics-total-badge">
+                            <span class="d-block analytics-total-primary"><%= grinder.totalGroundGrams %>g</span>
+                            <span class="d-block fw-normal text-muted analytics-total-secondary"><%= grinder.brewCount %> brews</span>
                         </span>
                     </a>
                 <% }); %>
@@ -224,9 +224,9 @@
                             <% } %>
                         </div>
 
-                        <span class="badge text-bg-light border text-end">
-                            <span class="d-block"><%= brewer.totalBeanGrams %>g beans</span>
-                            <span class="d-block fw-normal text-muted"><%= brewer.brewCount %> brews</span>
+                        <span class="badge text-bg-light border text-end analytics-total-badge">
+                            <span class="d-block analytics-total-primary"><%= brewer.totalBeanGrams %>g beans</span>
+                            <span class="d-block fw-normal text-muted analytics-total-secondary"><%= brewer.brewCount %> brews</span>
                         </span>
                     </a>
                 <% }); %>

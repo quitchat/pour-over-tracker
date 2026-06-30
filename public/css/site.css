@@ -114,6 +114,20 @@ main.container {
     white-space: nowrap;
 }
 
+.analytics-total-badge {
+    min-width: 5.75rem;
+    padding: 0.55rem 0.65rem;
+    line-height: 1.2;
+}
+
+.analytics-total-primary {
+    margin-bottom: 0.22rem;
+}
+
+.analytics-total-secondary {
+    margin-top: 0.12rem;
+}
+
 @media (max-width: 991.98px) {
     .navbar-nav {
         padding-top: 0.75rem;
