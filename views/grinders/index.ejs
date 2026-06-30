@@ -43,7 +43,7 @@
 
                 <% grinders.forEach(function (grinder) { %>
                     <tr>
-                        <td class="fw-semibold equipment-primary-col">
+                        <td class="fw-semibold equipment-primary-col" data-label="Name">
                             <div><%= grinder.name %></div>
                             <div class="small text-muted d-md-none">
                                 <% const grinderMobileSummary = [grinder.grinderType, grinder.burrType].filter(Boolean).join(" · "); %>
@@ -66,17 +66,17 @@
                                 </div>
                             <% } %>
                         </td>
-                        <td><%= grinder.brand || "" %></td>
-                        <td class="d-none d-md-table-cell"><%= grinder.grinderType || "" %></td>
-                        <td class="d-none d-xl-table-cell"><%= grinder.burrType || "" %></td>
-                        <td class="text-end">
+                        <td data-label="Brand"><%= grinder.brand || "" %></td>
+                        <td class="d-none d-md-table-cell" data-label="Type"><%= grinder.grinderType || "" %></td>
+                        <td class="d-none d-xl-table-cell" data-label="Burr Type"><%= grinder.burrType || "" %></td>
+                        <td class="text-end" data-label="Brews">
                             <span class="badge text-bg-secondary"><%= grinder.brewCount || 0 %></span>
                         </td>
-                        <td class="text-end text-nowrap">
+                        <td class="text-end text-nowrap" data-label="Total Ground">
                             <%= grinder.totalGramsGround || "0.0" %> g
                         </td>
-                        <td class="d-none d-lg-table-cell"><%= grinder.defaultGrindSizeRange || "" %></td>
-                        <td class="d-none d-md-table-cell">
+                        <td class="d-none d-lg-table-cell" data-label="Default Grind Range"><%= grinder.defaultGrindSizeRange || "" %></td>
+                        <td class="d-none d-md-table-cell" data-label="Location">
                             <% if (grinder.locationName || (grinder.latitude !== null && grinder.longitude !== null)) { %>
                                 <% const grinderMapUrl = grinder.latitude !== null && grinder.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(grinder.latitude) + "," + String(grinder.longitude)) : ""; %>
                                 <% if (grinderMapUrl) { %>
@@ -88,8 +88,8 @@
                                 <% } %>
                             <% } %>
                         </td>
-                        <td class="d-none d-xl-table-cell"><%= grinder.calibrationNotes || "" %></td>
-                        <td class="equipment-action-col">
+                        <td class="d-none d-xl-table-cell" data-label="Calibration Notes"><%= grinder.calibrationNotes || "" %></td>
+                        <td class="equipment-action-col" data-label="Actions">
                             <div class="equipment-action-buttons">
                                 <a href="/grinders/<%= grinder.id %>/edit" class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-pencil-square d-inline d-sm-none"></i>

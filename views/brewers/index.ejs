@@ -43,7 +43,7 @@
 
                 <% brewers.forEach(function (brewer) { %>
                     <tr>
-                        <td class="fw-semibold equipment-primary-col">
+                        <td class="fw-semibold equipment-primary-col" data-label="Name">
                             <div><%= brewer.name %></div>
                             <% if (brewer.brewerType) { %>
                                 <div class="small text-muted d-md-none"><%= brewer.brewerType %></div>
@@ -60,15 +60,15 @@
                                 </div>
                             <% } %>
                         </td>
-                        <td><%= brewer.brand || "" %></td>
-                        <td class="d-none d-md-table-cell"><%= brewer.brewerType || "" %></td>
-                        <td class="text-end">
+                        <td data-label="Brand"><%= brewer.brand || "" %></td>
+                        <td class="d-none d-md-table-cell" data-label="Type"><%= brewer.brewerType || "" %></td>
+                        <td class="text-end" data-label="Brews">
                             <span class="badge text-bg-secondary"><%= brewer.brewCount || 0 %></span>
                         </td>
-                        <td class="text-end text-nowrap">
+                        <td class="text-end text-nowrap" data-label="Total Bean Weight">
                             <%= brewer.totalBeanGrams || "0.0" %> g
                         </td>
-                        <td class="d-none d-md-table-cell">
+                        <td class="d-none d-md-table-cell" data-label="Location">
                             <% if (brewer.locationName || (brewer.latitude !== null && brewer.longitude !== null)) { %>
                                 <% const brewerMapUrl = brewer.latitude !== null && brewer.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(brewer.latitude) + "," + String(brewer.longitude)) : ""; %>
                                 <% if (brewerMapUrl) { %>
@@ -80,8 +80,8 @@
                                 <% } %>
                             <% } %>
                         </td>
-                        <td class="d-none d-lg-table-cell"><%= brewer.notes || "" %></td>
-                        <td class="equipment-action-col">
+                        <td class="d-none d-lg-table-cell" data-label="Notes"><%= brewer.notes || "" %></td>
+                        <td class="equipment-action-col" data-label="Actions">
                             <div class="equipment-action-buttons">
                                 <a href="/brewers/<%= brewer.id %>/edit" class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-pencil-square d-inline d-sm-none"></i>

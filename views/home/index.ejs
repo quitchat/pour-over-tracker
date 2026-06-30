@@ -137,8 +137,8 @@
                 </a>
             </div>
 
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
+            <div class="table-responsive mobile-card-table-wrap">
+                <table class="table table-hover mb-0 align-middle mobile-card-table">
                     <thead>
                         <tr>
                             <th>Date</th>
@@ -164,9 +164,9 @@
                                 tabindex="0"
                                 role="link"
                                 aria-label="View brew session details for <%= brew.beanName %> on <%= brew.brewDate %>">
-                                <td><%= brew.brewDate %></td>
+                                <td data-label="Date"><%= brew.brewDate %></td>
 
-                                <td>
+                                <td data-label="Coffee">
                                     <div class="fw-semibold"><%= brew.beanName %></div>
 
                                     <% if (brew.roasterName) { %>
@@ -174,7 +174,7 @@
                                     <% } %>
                                 </td>
 
-                                <td>
+                                <td data-label="Setup">
                                     <% if (brew.brewerName || brew.grinderName) { %>
                                         <div><%= brew.brewerName || "No brewer" %></div>
                                         <div class="text-muted small"><%= brew.grinderName || "No grinder" %></div>
@@ -183,7 +183,7 @@
                                     <% } %>
                                 </td>
 
-                                <td>
+                                <td data-label="Rating">
                                     <%- renderRatingStars(brew.overallRating) %>
                                 </td>
 
