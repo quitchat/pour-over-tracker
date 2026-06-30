@@ -16,6 +16,28 @@
 </style>
 
 <%
+
+    function getBeanHistoryBrewSummaryText(session) {
+        const dose = session.coffeeDoseGrams ? `${session.coffeeDoseGrams}g` : "-";
+        const totalYield = session.totalYieldGrams ? `${session.totalYieldGrams}g` : "-";
+        const waterTemperature = session.waterTemperatureC ? ` @ ${session.waterTemperatureC}${session.waterTemperatureUnit || "°C"}` : "";
+        const totalBrewTime = session.totalBrewTime ? ` over ${session.totalBrewTime}` : "";
+
+        if (dose === "-" && totalYield === "-" && !waterTemperature && !totalBrewTime) {
+            return "-";
+        }
+
+        return `${dose} → ${totalYield}${waterTemperature}${totalBrewTime}`;
+    }
+
+    function getBeanHistoryBrewSummarySubtext(session) {
+        if (!session.brewRatio) {
+            return "";
+        }
+
+        return `Ratio 1:${session.brewRatio}`;
+    }
+
     function renderRatingStars(value, emptyText = "-") {
         if (value === null || value === undefined || value === "") {
             return `<span class="text-muted">${emptyText}</span>`;
@@ -81,6 +103,15 @@
     .bean-photo-modal-image {
         max-height: 82vh;
         object-fit: contain;
+    }
+
+    .bean-history-brew-summary {
+        white-space: nowrap;
+    }
+
+    .bean-history-muted {
+        color: var(--bs-secondary-color);
+        font-size: 0.875rem;
     }
 
     @media (max-width: 991.98px) {
@@ -426,11 +457,7 @@
                     <th>Grinder</th>
                     <th>Brewer</th>
                     <th>Grind</th>
-                    <th>Dose</th>
-                    <th>Total Yield</th>
-                    <th>Ratio</th>
-                    <th>Temp</th>
-                    <th>Time</th>
+                    <th>Brew</th>
                     <th>Rating</th>
                     <th style="width: 90px;">Action</th>
                 </tr>
@@ -438,7 +465,7 @@
             <tbody>
                 <% if (brewSessions.length === 0) { %>
                     <tr>
-                        <td colspan="11" class="text-muted text-center py-4">
+                        <td colspan="7" class="text-muted text-center py-4">
                             No brew sessions yet for this bean.
                         </td>
                     </tr>
@@ -463,24 +490,11 @@
                             <%= session.grindSize || "-" %>
                         </td>
                         <td>
-                            <span class="bean-history-mobile-label">Dose</span>
-                            <%= session.coffeeDoseGrams || "-" %>
-                        </td>
-                        <td>
-                            <span class="bean-history-mobile-label">Total Yield</span>
-                            <%= session.totalYieldGrams || "-" %>
-                        </td>
-                        <td>
-                            <span class="bean-history-mobile-label">Ratio</span>
-                            <%= session.brewRatio ? "1:" + session.brewRatio : "-" %>
-                        </td>
-                        <td>
-                            <span class="bean-history-mobile-label">Temp</span>
-                            <%= session.waterTemperatureC ? session.waterTemperatureC + " " + (session.waterTemperatureUnit || "°C") : "-" %>
-                        </td>
-                        <td>
-                            <span class="bean-history-mobile-label">Time</span>
-                            <%= session.totalBrewTime || "-" %>
+                            <span class="bean-history-mobile-label">Brew</span>
+                            <div class="bean-history-brew-summary"><%= getBeanHistoryBrewSummaryText(session) %></div>
+                            <% if (getBeanHistoryBrewSummarySubtext(session)) { %>
+                                <div class="bean-history-muted"><%= getBeanHistoryBrewSummarySubtext(session) %></div>
+                            <% } %>
                         </td>
                         <td>
                             <span class="bean-history-mobile-label">Rating</span>

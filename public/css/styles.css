@@ -112,6 +112,11 @@ main.container {
     gap: 0.05rem;
 }
 
+
+.dashboard-quick-actions {
+    align-items: center;
+}
+
 /* Dashboard / Analytics clickable cards */
 .dashboard-summary-card,
 .analytics-summary-card {
@@ -209,6 +214,19 @@ main.container {
 
     .display-6 {
         font-size: 2rem;
+    }
+
+    .dashboard-quick-actions {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        width: 100%;
+    }
+
+    .dashboard-quick-actions .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        justify-content: center;
+        text-align: center;
     }
 
     .card {
