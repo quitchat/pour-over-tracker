@@ -68,14 +68,37 @@
     </a>
 </div>
 
+<style>
+    .analytics-summary-card {
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .analytics-summary-card:hover,
+    .analytics-summary-card:focus {
+        transform: translateY(-1px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+        border-color: rgba(var(--bs-primary-rgb), 0.35);
+    }
+
+    .analytics-recent-brew-clickable-row {
+        cursor: pointer;
+    }
+
+    .analytics-recent-brew-clickable-row:focus {
+        outline: 2px solid var(--bs-primary);
+        outline-offset: -2px;
+    }
+</style>
+
 <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3">
-        <div class="card h-100">
+        <a href="/brew-sessions" class="card h-100 text-decoration-none text-reset analytics-summary-card">
             <div class="card-body">
                 <div class="text-muted small">Total Brews</div>
                 <div class="display-6 fw-semibold"><%= summaryValue.totalBrews %></div>
+                <div class="small text-primary">View brew sessions</div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-6 col-lg-3">
@@ -90,15 +113,16 @@
 
 
     <div class="col-6 col-lg-3">
-        <div class="card h-100">
+        <a href="/coffee-beans" class="card h-100 text-decoration-none text-reset analytics-summary-card">
             <div class="card-body">
                 <div class="text-muted small">Beans</div>
                 <div class="display-6 fw-semibold"><%= summaryValue.totalBeans %></div>
                 <div class="text-muted small">
                     <%= summaryValue.activeBeans %> active / <%= summaryValue.inactiveBeans %> inactive
                 </div>
+                <div class="small text-primary">View beans</div>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 
@@ -249,21 +273,25 @@
                     <th>Coffee</th>
                     <th>Setup</th>
                     <th>Rating</th>
-                    <th class="text-end">Action</th>
                 </tr>
             </thead>
 
             <tbody>
                 <% if (recentBrewList.length === 0) { %>
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
+                        <td colspan="4" class="text-center text-muted py-4">
                             No brew sessions yet.
                         </td>
                     </tr>
                 <% } %>
 
                 <% recentBrewList.forEach(function (brew) { %>
-                    <tr>
+                    <tr
+                        class="analytics-recent-brew-clickable-row"
+                        data-href="/brew-sessions/<%= brew.id %>"
+                        tabindex="0"
+                        role="link"
+                        aria-label="View brew session details for <%= brew.coffeeName %> on <%= brew.brewDate %>">
                         <td><%= brew.brewDate %></td>
 
                         <td>
@@ -287,12 +315,6 @@
                             <%- renderRatingStars(brew.overallRating) %>
                         </td>
 
-
-                        <td class="text-end">
-                            <a href="/brew-sessions/<%= brew.id %>" class="btn btn-sm btn-outline-primary">
-                                View
-                            </a>
-                        </td>
                     </tr>
                 <% }); %>
             </tbody>
@@ -303,6 +325,31 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".analytics-recent-brew-clickable-row[data-href]").forEach(function (row) {
+            row.addEventListener("click", function (event) {
+                if (event.target.closest("a, button, input, select, textarea, label, form, .dropdown, .dropdown-menu")) {
+                    return;
+                }
+
+                window.location.href = row.getAttribute("data-href");
+            });
+
+            row.addEventListener("keydown", function (event) {
+                if (event.key !== "Enter" && event.key !== " ") {
+                    return;
+                }
+
+                if (event.target.closest("a, button, input, select, textarea, label, form, .dropdown, .dropdown-menu")) {
+                    return;
+                }
+
+                event.preventDefault();
+                window.location.href = row.getAttribute("data-href");
+            });
+        });
+    });
+
     const analyticsChartData = <%- JSON.stringify(analyticsChartData) %>;
 
     const monthlyBrewChartElement = document.getElementById("monthlyBrewChart");
