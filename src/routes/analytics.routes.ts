@@ -1194,7 +1194,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
 
         const beansRunningLow = beanInventoryGroups
             .filter(function (bean) {
-                return bean.remainingGrams <= lowStockThresholdGrams;
+                return bean.remainingGrams > 0 && bean.remainingGrams <= lowStockThresholdGrams;
             })
             .sort(function (left, right) {
                 if (left.remainingGrams !== right.remainingGrams) {
