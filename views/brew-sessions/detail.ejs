@@ -217,12 +217,21 @@
                         <% } %>
                     </div>
 
-                    <div>
+                    <div class="mb-3">
                         <h3 class="h6">Adjustment Notes</h3>
                         <% if (session.adjustmentNotes) { %>
                             <div style="white-space: pre-wrap;"><%= session.adjustmentNotes %></div>
                         <% } else { %>
                             <span class="text-muted">No adjustment notes entered.</span>
+                        <% } %>
+                    </div>
+
+                    <div>
+                        <h3 class="h6">Brew Comments</h3>
+                        <% if (session.brewComments) { %>
+                            <div style="white-space: pre-wrap;"><%= session.brewComments %></div>
+                        <% } else { %>
+                            <span class="text-muted">No brew comments entered.</span>
                         <% } %>
                     </div>
                 </div>

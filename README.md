@@ -88,12 +88,14 @@
 - Brew timing and recipe-related fields
 - Brew pour step tracking
 - Tasting note tracking
+- Free-form brew comments saved with each brew session
 - Brew-session scoring separate from bean-level rating
 - Radar-chart tasting visualization
 - Brew session duplication workflow
 - Brew detail previous/next navigation with mobile swipe support
 - Brew comparison workflow
 - AI suggestion support through adjustment notes
+- Previous-brew comments included in AI recipe suggestion context
 - Temperature-aware AI recipe prompts and structured recipe output
 
 ## Dashboard, Analytics, and Visualization

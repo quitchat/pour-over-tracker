@@ -335,42 +335,6 @@
                     </div>
                 </div>
 
-                <div class="col-md-6">
-                    <label class="form-label d-flex justify-content-between align-items-center" for="overallRating">
-                        <span>Overall Rating</span>
-                        <span class="text-muted small" id="overallRatingDisplay">No rating</span>
-                    </label>
-
-                    <input
-                        type="hidden"
-                        id="overallRating"
-                        name="overallRating"
-                        value="<%= formData.overallRating || "" %>">
-
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <div class="star-rating-control" id="overallRatingStars" role="radiogroup" aria-label="Overall rating">
-                            <% [1, 2, 3, 4, 5].forEach(function (starNumber) { %>
-                                <button
-                                    type="button"
-                                    class="star-rating-button"
-                                    data-star-number="<%= starNumber %>"
-                                    aria-label="Rate <%= starNumber %> star">
-                                    <i class="bi bi-star-fill star-rating-empty"></i>
-                                    <i class="bi bi-star-fill star-rating-filled"></i>
-                                </button>
-                            <% }); %>
-                        </div>
-
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearOverallRatingButton">
-                            Clear
-                        </button>
-                    </div>
-
-                    <div class="form-text">
-                        Click the left half of a star for a half-star rating, or the right half for a full star.
-                    </div>
-                </div>
-
 
                 <div class="col-12">
                     <label for="pourStructure" class="form-label">Pour Structure</label>
@@ -482,6 +446,60 @@
                         </div>
                     </div>
                 </div>
+
+                <hr class="my-4">
+
+                <div class="row g-3 align-items-start">
+                    <div class="col-lg-5">
+                        <label class="form-label d-flex justify-content-between align-items-center" for="overallRating">
+                            <span>Overall Rating</span>
+                            <span class="text-muted small" id="overallRatingDisplay">No rating</span>
+                        </label>
+
+                        <input
+                            type="hidden"
+                            id="overallRating"
+                            name="overallRating"
+                            value="<%= formData.overallRating || "" %>">
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="star-rating-control" id="overallRatingStars" role="radiogroup" aria-label="Overall rating">
+                                <% [1, 2, 3, 4, 5].forEach(function (starNumber) { %>
+                                    <button
+                                        type="button"
+                                        class="star-rating-button"
+                                        data-star-number="<%= starNumber %>"
+                                        aria-label="Rate <%= starNumber %> star">
+                                        <i class="bi bi-star-fill star-rating-empty"></i>
+                                        <i class="bi bi-star-fill star-rating-filled"></i>
+                                    </button>
+                                <% }); %>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearOverallRatingButton">
+                                Clear
+                            </button>
+                        </div>
+
+                        <div class="form-text">
+                            Click the left half of a star for a half-star rating, or the right half for a full star.
+                        </div>
+                    </div>
+
+                    <div class="col-lg-7">
+                        <label for="brewComments" class="form-label">Brew Comments</label>
+                        <textarea
+                            class="form-control"
+                            id="brewComments"
+                            name="brewComments"
+                            rows="4"
+                            placeholder="Your tasting notes, what you liked, what felt off, or anything to remember about this brew."><%= formData.brewComments || "" %></textarea>
+                        <div class="form-text">
+                            Your comments are saved with this brew and included as context for future AI recipe suggestions.
+                        </div>
+                    </div>
+                </div>
+
         </div>
     </div>
 
@@ -611,7 +629,6 @@
                     <input type="hidden" id="suggestedWaterTemperatureC">
                     <input type="hidden" id="suggestedCoffeeDoseGrams">
                     <input type="hidden" id="suggestedTotalYieldGrams">
-                    <input type="hidden" id="suggestedTotalBrewTimeSeconds">
                     <input type="hidden" id="suggestedPourStructure">
                     <input type="hidden" id="suggestedRecipeSteps">
                     <input type="hidden" id="suggestedAdjustmentNotes">
@@ -1379,7 +1396,6 @@
             setElementValue("suggestedWaterTemperatureC", recipe.waterTemperature || "");
             setElementValue("suggestedCoffeeDoseGrams", recipe.coffeeDoseGrams || "");
             setElementValue("suggestedTotalYieldGrams", recipe.totalYieldGrams || "");
-            setElementValue("suggestedTotalBrewTimeSeconds", recipe.totalBrewTimeSeconds || "");
             setElementValue("suggestedPourStructure", buildPourStructureText(recipe));
             setElementValue("suggestedRecipeSteps", buildRecipeStepsText(recipe));
             setElementValue("suggestedAdjustmentNotes", buildAdjustmentNotesText(recipe));
@@ -1499,7 +1515,6 @@
             const waterTemperatureC = getElementValue("suggestedWaterTemperatureC");
             const coffeeDoseGrams = getElementValue("suggestedCoffeeDoseGrams");
             const totalYieldGrams = getElementValue("suggestedTotalYieldGrams");
-            const totalBrewTimeSeconds = getElementValue("suggestedTotalBrewTimeSeconds");
             const suggestedPourStructure = getElementValue("suggestedPourStructure");
             const suggestedRecipeSteps = getElementValue("suggestedRecipeSteps");
             const suggestedAdjustmentNotes = getElementValue("suggestedAdjustmentNotes");
@@ -1520,14 +1535,6 @@
                 setElementValue("totalYieldGrams", totalYieldGrams);
             }
 
-            if (totalBrewTimeSeconds) {
-                const parsedSeconds = Number(totalBrewTimeSeconds);
-
-                if (!Number.isNaN(parsedSeconds)) {
-                    setElementValue("totalBrewTimeMinutes", String(Math.floor(parsedSeconds / 60)));
-                    setElementValue("totalBrewTimeSeconds", String(parsedSeconds % 60));
-                }
-            }
 
             if (suggestedPourStructure) {
                 setElementValue("pourStructure", suggestedPourStructure);

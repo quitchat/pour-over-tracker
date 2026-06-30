@@ -21,6 +21,7 @@ export type RecentMatchingBrewForSuggestion = {
     overallRating: string;
     pourStructure: string;
     recipeSteps: string;
+    brewComments: string;
     richness: number | null;
     sweetness: number | null;
     aftertaste: number | null;
@@ -71,7 +72,7 @@ export const DEFAULT_BREW_SUGGESTION_AI_PROMPT = [
     "Create a practical brewing recipe for the selected coffee bean, grinder, brewer, and dose.",
     "If recent matching brew history is provided, use it as the most important context for the recommendation.",
     "When previous brews have ratings and tasting scores, suggest a next recipe that learns from what worked and avoids repeating what did not work.",
-    "The pentagon tasting scores are the user's tasting feedback. Do not expect separate written tasting notes.",
+    "The pentagon tasting scores are structured tasting feedback. The user's brew comments are free-form tasting notes and observations when available.",
     "Use web search when helpful to find brewing guidance for the brewer, coffee, roaster, or brew method.",
     "Do not invent exact roaster-specific instructions unless supported by search results or common brewing practice.",
     "Prefer practical home-brewing guidance over competition recipes.",
@@ -150,7 +151,8 @@ function formatRecentMatchingBrewHistory(recentMatchingBrews: RecentMatchingBrew
             `Overall rating: ${brew.overallRating || "Unknown"}`,
             `Scores: ${scoreParts || "Unknown"}`,
             `Previous pour structure: ${brew.pourStructure || "None"}`,
-            `Previous recipe steps: ${brew.recipeSteps || "None"}`
+            `Previous recipe steps: ${brew.recipeSteps || "None"}`,
+            `User brew comments: ${brew.brewComments || "None"}`
         ].join("\n");
     }).join("\n\n");
 }
@@ -215,7 +217,8 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
         "If the recent brews were highly rated, preserve the working parts of those recipes.",
         "If the recent brews had lower ratings or low pentagon tasting scores, suggest practical adjustments to avoid those issues.",
         `Return waterTemperature as a number in ${input.temperatureUnit || "°C"}. Do not return the other temperature unit.`,
-        "The user's tasting feedback is captured by the pentagon scores only: richness, sweetness, aftertaste, aroma, and acidity.",
+        "The user's structured tasting feedback is captured by the pentagon scores: richness, sweetness, aftertaste, aroma, and acidity.",
+        "The user's free-form brew comments may include tasting notes, issues, preferences, or reminders. Use those comments when they are available.",
         "Suggest a balanced recipe that highlights the coffee bean characteristics."
     ].join("\n");
     const loggedPromptText = [
