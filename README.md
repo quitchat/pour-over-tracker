@@ -72,7 +72,7 @@
 - Grinder-level aggregation without grind-setting/click-level breakdown
 - Location-aware equipment configuration
 - Saved geographic location support for grinders and brewers
-- Mobile-friendly grinder and brewer list cards on small screens
+- Mobile-friendly responsive grinder and brewer tables on small screens
 - Browser/device geolocation-based equipment suggestion during brew creation
 - Manual equipment override for denied location permission, unavailable geolocation, inaccurate geolocation, or multiple equipment matches
 
