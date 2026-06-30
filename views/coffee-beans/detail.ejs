@@ -221,38 +221,50 @@
                         <% } %>
                     </dd>
 
-                    <dt class="col-sm-4">Roaster</dt>
-                    <dd class="col-sm-8"><%= coffeeBean.roasterName %></dd>
+                    <% if (coffeeBean.roasterName) { %>
+                        <dt class="col-sm-4">Roaster</dt>
+                        <dd class="col-sm-8"><%= coffeeBean.roasterName %></dd>
+                    <% } %>
 
-                    <dt class="col-sm-4">Coffee Name</dt>
-                    <dd class="col-sm-8"><%= coffeeBean.beanName %></dd>
+                    <% if (coffeeBean.beanName) { %>
+                        <dt class="col-sm-4">Coffee Name</dt>
+                        <dd class="col-sm-8"><%= coffeeBean.beanName %></dd>
+                    <% } %>
 
-                    <dt class="col-sm-4">Origin</dt>
-                    <dd class="col-sm-8"><%= coffeeBean.origin %></dd>
+                    <% if (coffeeBean.origin) { %>
+                        <dt class="col-sm-4">Origin</dt>
+                        <dd class="col-sm-8"><%= coffeeBean.origin %></dd>
+                    <% } %>
 
-                    <dt class="col-sm-4">Process</dt>
-                    <dd class="col-sm-8"><%= coffeeBean.process %></dd>
+                    <% if (coffeeBean.process) { %>
+                        <dt class="col-sm-4">Process</dt>
+                        <dd class="col-sm-8"><%= coffeeBean.process %></dd>
+                    <% } %>
 
-                    <dt class="col-sm-4">Roast Level</dt>
-                    <dd class="col-sm-8"><%= coffeeBean.roastLevel %></dd>
+                    <% if (coffeeBean.roastLevel) { %>
+                        <dt class="col-sm-4">Roast Level</dt>
+                        <dd class="col-sm-8"><%= coffeeBean.roastLevel %></dd>
+                    <% } %>
 
-                    <dt class="col-sm-4">Roast Date</dt>
-                    <dd class="col-sm-8"><%= coffeeBean.roastDate %></dd>
+                    <% if (coffeeBean.roastDate) { %>
+                        <dt class="col-sm-4">Roast Date</dt>
+                        <dd class="col-sm-8"><%= coffeeBean.roastDate %></dd>
+                    <% } %>
 
-                    <dt class="col-sm-4">Price US$</dt>
-                    <dd class="col-sm-8"><%= coffeeBean.price %></dd>
+                    <% if (coffeeBean.price !== null && coffeeBean.price !== undefined && coffeeBean.price !== "") { %>
+                        <dt class="col-sm-4">Price US$</dt>
+                        <dd class="col-sm-8"><%= coffeeBean.price %></dd>
+                    <% } %>
 
-                    <dt class="col-sm-4">Bean Rating</dt>
-                    <dd class="col-sm-8">
-                        <% if (coffeeBean.rating) { %>
+                    <% if (coffeeBean.rating !== null && coffeeBean.rating !== undefined && coffeeBean.rating !== "") { %>
+                        <dt class="col-sm-4">Bean Rating</dt>
+                        <dd class="col-sm-8">
                             <% const beanRatingValue = Number(coffeeBean.rating); %>
                             <span class="bean-rating-stars" style="white-space: nowrap;" aria-label="<%= coffeeBean.rating %> out of 5 stars">
                                 <% for (let i = 1; i <= 5; i++) { %><% if (beanRatingValue >= i) { %><i class="bi bi-star-fill" style="color: #f5b301; -webkit-text-fill-color: #f5b301; line-height: 1;"></i><% } else if (beanRatingValue >= i - 0.5) { %><i class="bi bi-star-half" style="color: #f5b301; -webkit-text-fill-color: #f5b301; line-height: 1;"></i><% } else { %><i class="bi bi-star" style="color: #f5b301; -webkit-text-fill-color: #f5b301; line-height: 1;"></i><% } %><% } %>
                             </span>
-                        <% } else { %>
-                            <span class="text-muted">No bean rating.</span>
-                        <% } %>
-                    </dd>
+                        </dd>
+                    <% } %>
 
                     <dt class="col-sm-4">Remaining Inventory</dt>
                     <dd class="col-sm-8">
@@ -263,57 +275,43 @@
                         <div class="form-text">Click to manage bags, replenishments, and adjustments.</div>
                     </dd>
 
-                    <dt class="col-sm-4">Flavor Notes</dt>
-                    <dd class="col-sm-8">
-                        <% if (coffeeBean.flavorNotes) { %>
-                            <%= coffeeBean.flavorNotes %>
-                        <% } else { %>
-                            <span class="text-muted">No flavor notes entered.</span>
-                        <% } %>
-                    </dd>
+                    <% if (coffeeBean.flavorNotes) { %>
+                        <dt class="col-sm-4">Flavor Notes</dt>
+                        <dd class="col-sm-8"><%= coffeeBean.flavorNotes %></dd>
+                    <% } %>
 
-                    <dt class="col-sm-4">Source</dt>
-                    <dd class="col-sm-8">
-                        <% if (coffeeBean.sourceUrl) { %>
+                    <% if (coffeeBean.sourceUrl) { %>
+                        <dt class="col-sm-4">Source</dt>
+                        <dd class="col-sm-8">
                             <a href="<%= coffeeBean.sourceUrl %>" target="_blank" rel="noopener noreferrer">
                                 <%= coffeeBean.sourceUrl %>
                             </a>
-                        <% } else { %>
-                            <span class="text-muted">No source URL.</span>
-                        <% } %>
-                    </dd>
+                        </dd>
+                    <% } %>
 
-                    <dt class="col-sm-4">Bean Info</dt>
-                    <dd class="col-sm-8">
-                        <% if (coffeeBean.beanInfo) { %>
-                            <div class="bean-notes-display"><%= coffeeBean.beanInfo %></div>
-                        <% } else { %>
-                            <span class="text-muted">No bean info entered.</span>
-                        <% } %>
-                    </dd>
+                    <% if (coffeeBean.beanInfo) { %>
+                        <dt class="col-sm-4">Bean Info</dt>
+                        <dd class="col-sm-8"><div class="bean-notes-display"><%= coffeeBean.beanInfo %></div></dd>
+                    <% } %>
 
-                    <dt class="col-sm-4">Bean Notes</dt>
-                    <dd class="col-sm-8">
-                        <% if (coffeeBean.beanNotes) { %>
-                            <div class="bean-notes-display"><%= coffeeBean.beanNotes %></div>
-                        <% } else { %>
-                            <span class="text-muted">No bean notes entered.</span>
-                        <% } %>
-                    </dd>
+                    <% if (coffeeBean.beanNotes) { %>
+                        <dt class="col-sm-4">Bean Notes</dt>
+                        <dd class="col-sm-8"><div class="bean-notes-display"><%= coffeeBean.beanNotes %></div></dd>
+                    <% } %>
                 </dl>
             </div>
         </div>
     </div>
 
     <div class="col-lg-4">
-        <div class="card mb-3">
-            <div class="card-header">
-                <i class="bi bi-image me-1"></i>
-                Bean Picture
-            </div>
+        <% if (coffeeBean.bagImageUrl) { %>
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-image me-1"></i>
+                    Bean Picture
+                </div>
 
-            <div class="card-body">
-                <% if (coffeeBean.bagImageUrl) { %>
+                <div class="card-body">
                     <button
                         type="button"
                         class="bean-photo-detail-button"
@@ -327,14 +325,9 @@
                             style="max-height: 360px; object-fit: cover;">
                     </button>
                     <div class="form-text text-center mt-2">Click photo to enlarge.</div>
-                <% } else { %>
-                    <div class="text-muted text-center py-4 border rounded bg-body-tertiary">
-                        <i class="bi bi-image d-block fs-1 mb-2"></i>
-                        No picture uploaded.
-                    </div>
-                <% } %>
+                </div>
             </div>
-        </div>
+        <% } %>
 
         <div class="card">
             <div class="card-header">
