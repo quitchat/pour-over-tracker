@@ -352,7 +352,17 @@ main.container {
     overflow: hidden;
 }
 
+.inventory-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
 .inventory-header-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: auto;
 }
 
@@ -385,6 +395,29 @@ main.container {
 
 .inventory-action-group .btn {
     border-radius: 0;
+}
+
+.inventory-action-buttons {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+}
+
+.inventory-action-buttons form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.inventory-action-buttons .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.inventory-form-actions .btn {
+    min-width: 9rem;
 }
 
 .inventory-adjustment-item-compact {
@@ -449,9 +482,25 @@ main.container {
 @media (max-width: 767.98px) {
     .inventory-header-actions {
         width: 100%;
+        display: grid;
+        grid-template-columns: 1fr;
     }
 
     .inventory-header-actions .btn {
+        width: 100%;
+    }
+
+    .inventory-action-buttons {
+        justify-content: flex-start;
+    }
+
+    .inventory-action-buttons .btn,
+    .inventory-action-buttons form,
+    .inventory-action-buttons form .btn {
+        width: 100%;
+    }
+
+    .inventory-form-actions .btn {
         width: 100%;
     }
 

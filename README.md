@@ -177,3 +177,5 @@
 - Production environment configuration
 - Raspberry Pi reboot-safe application hosting
 
+
+- Editable purchase/order cost records for bean inventory replenishments, with auto-calculated total paid.

@@ -495,6 +495,32 @@ function validatePurchaseForm(formValues: ReturnType<typeof getPurchaseFormValue
     return errors;
 }
 
+function hasPurchaseCostValues(formValues: Pick<ReturnType<typeof getPurchaseFormValues>, "itemSubtotal" | "discount" | "shipping" | "tax">): boolean {
+    return Boolean(formValues.itemSubtotal || formValues.discount || formValues.shipping || formValues.tax);
+}
+
+function calculatePurchaseTotalPaid(formValues: Pick<ReturnType<typeof getPurchaseFormValues>, "itemSubtotal" | "discount" | "shipping" | "tax">): Prisma.Decimal | null {
+    if (!hasPurchaseCostValues(formValues)) {
+        return null;
+    }
+
+    const itemSubtotal = Number(formValues.itemSubtotal || "0");
+    const discount = Number(formValues.discount || "0");
+    const shipping = Number(formValues.shipping || "0");
+    const tax = Number(formValues.tax || "0");
+    const totalPaid = itemSubtotal - discount + shipping + tax;
+
+    return new Prisma.Decimal(totalPaid.toFixed(2));
+}
+
+function formatDecimalForInput(value: Prisma.Decimal | null | undefined): string {
+    if (value === null || typeof value === "undefined") {
+        return "";
+    }
+
+    return Number(value.toString()).toFixed(2);
+}
+
 function getOpeningBalanceFormValues(req: Request) {
     return {
         currentAmount: String(req.body.currentAmount || "").trim(),
@@ -572,6 +598,26 @@ async function getInventoryForUser(userId: number, beanId: number, inventoryId: 
             adjustments: {
                 orderBy: {
                     createdAt: "desc"
+                }
+            }
+        }
+    });
+}
+
+
+async function getPurchaseForUser(userId: number, beanId: number, purchaseId: number) {
+    return await prisma.beanPurchase.findFirst({
+        where: {
+            id: purchaseId,
+            beanId: beanId,
+            bean: {
+                userId: userId
+            }
+        },
+        include: {
+            inventories: {
+                orderBy: {
+                    id: "asc"
                 }
             }
         }
@@ -1035,7 +1081,7 @@ router.post("/:id/replenishments", async function (req: Request, res: Response) 
                 discount: parseOptionalDecimal(formValues.discount),
                 shipping: parseOptionalDecimal(formValues.shipping),
                 tax: parseOptionalDecimal(formValues.tax),
-                totalPaid: parseOptionalDecimal(formValues.totalPaid),
+                totalPaid: calculatePurchaseTotalPaid(formValues),
                 notes: formValues.notes || null,
                 createdByUserId: userId
             }
@@ -1170,6 +1216,123 @@ router.get("/:id/inventory", async function (req: Request, res: Response) {
         formatInventoryMoney: formatMoney,
         formatDateUs: formatDateOnly
     });
+});
+
+router.get("/:id/inventory/purchases/:purchaseId/edit", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const purchaseId = Number(req.params.purchaseId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(purchaseId)) {
+        res.status(400).send("Invalid purchase ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+    const purchase = await getPurchaseForUser(userId, id, purchaseId);
+
+    if (!coffeeBean || !purchase) {
+        res.status(404).send("Purchase record not found.");
+        return;
+    }
+
+    res.render("coffee-beans/inventory-purchase-cost-form", {
+        title: "Edit Purchase Cost",
+        pageHeading: "Edit Purchase Cost",
+        coffeeBean: coffeeBean,
+        purchase: purchase,
+        errors: [],
+        formData: {
+            purchaseDate: formatDateForInput(purchase.purchaseDate),
+            currencyCode: purchase.currencyCode || getCurrentCurrencyCode(res),
+            itemSubtotal: formatDecimalForInput(purchase.itemSubtotal),
+            discount: formatDecimalForInput(purchase.discount),
+            shipping: formatDecimalForInput(purchase.shipping),
+            tax: formatDecimalForInput(purchase.tax),
+            totalPaid: formatDecimalForInput(calculatePurchaseTotalPaid({
+                itemSubtotal: formatDecimalForInput(purchase.itemSubtotal),
+                discount: formatDecimalForInput(purchase.discount),
+                shipping: formatDecimalForInput(purchase.shipping),
+                tax: formatDecimalForInput(purchase.tax)
+            })),
+            notes: purchase.notes || ""
+        }
+    });
+});
+
+router.post("/:id/inventory/purchases/:purchaseId/edit", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+    const purchaseId = Number(req.params.purchaseId);
+
+    if (!Number.isInteger(id) || !Number.isInteger(purchaseId)) {
+        res.status(400).send("Invalid purchase ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+    const purchase = await getPurchaseForUser(userId, id, purchaseId);
+
+    if (!coffeeBean || !purchase) {
+        res.status(404).send("Purchase record not found.");
+        return;
+    }
+
+    const formValues = {
+        quantity: String(purchase.quantity || 1),
+        bagSize: "1",
+        bagSizeUnit: "G" as "G",
+        roastDate: "",
+        purchaseDate: String(req.body.purchaseDate || "").trim(),
+        currencyCode: normalizeCurrencyCode(String(req.body.currencyCode || purchase.currencyCode || "USD")),
+        itemSubtotal: String(req.body.itemSubtotal || "").trim(),
+        discount: String(req.body.discount || "").trim(),
+        shipping: String(req.body.shipping || "").trim(),
+        tax: String(req.body.tax || "").trim(),
+        totalPaid: String(req.body.totalPaid || "").trim(),
+        notes: String(req.body.notes || "").trim()
+    };
+    const errors: string[] = [];
+
+    if (!/^[A-Z]{3}$/.test(formValues.currencyCode)) {
+        errors.push("Currency must be a 3-letter code.");
+    }
+
+    [formValues.itemSubtotal, formValues.discount, formValues.shipping, formValues.tax].forEach(function (value) {
+        if (value && Number.isNaN(Number(value))) {
+            errors.push("Cost fields must be valid numbers when entered.");
+        }
+    });
+
+    if (errors.length > 0) {
+        res.status(400).render("coffee-beans/inventory-purchase-cost-form", {
+            title: "Edit Purchase Cost",
+            pageHeading: "Edit Purchase Cost",
+            coffeeBean: coffeeBean,
+            purchase: purchase,
+            errors: errors,
+            formData: formValues
+        });
+        return;
+    }
+
+    await prisma.beanPurchase.update({
+        where: {
+            id: purchaseId
+        },
+        data: {
+            purchaseDate: parseDateInput(formValues.purchaseDate),
+            currencyCode: formValues.currencyCode,
+            itemSubtotal: parseOptionalDecimal(formValues.itemSubtotal),
+            discount: parseOptionalDecimal(formValues.discount),
+            shipping: parseOptionalDecimal(formValues.shipping),
+            tax: parseOptionalDecimal(formValues.tax),
+            totalPaid: calculatePurchaseTotalPaid(formValues),
+            notes: formValues.notes || null
+        }
+    });
+
+    res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Purchase cost updated.")}`);
 });
 
 router.get("/:id/inventory/:inventoryId/edit", async function (req: Request, res: Response) {
