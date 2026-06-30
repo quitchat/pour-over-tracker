@@ -21,8 +21,8 @@
             Remaining now: <%= displayAdjustmentGrams(remainingGrams) %>g
         </p>
     </div>
-    <a href="/coffee-beans/<%= coffeeBean.id %>" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Back to Bean
+    <a href="/coffee-beans/<%= coffeeBean.id %>/inventory" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Inventory
     </a>
 </div>
 
@@ -72,7 +72,7 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-save me-1"></i><%= submitText %>
                 </button>
-                <a href="/coffee-beans/<%= coffeeBean.id %>" class="btn btn-outline-secondary">Cancel</a>
+                <a href="/coffee-beans/<%= coffeeBean.id %>/inventory" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </form>
     </div>
