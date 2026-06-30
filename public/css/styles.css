@@ -133,14 +133,24 @@ main.container {
 }
 
 .recent-brew-clickable-row,
-.analytics-recent-brew-clickable-row {
+.analytics-recent-brew-clickable-row,
+.analytics-cost-clickable-row {
     cursor: pointer;
 }
 
 .recent-brew-clickable-row:focus,
-.analytics-recent-brew-clickable-row:focus {
+.analytics-recent-brew-clickable-row:focus,
+.analytics-cost-clickable-row:focus {
     outline: 2px solid var(--bs-primary);
     outline-offset: -2px;
+}
+
+.cost-range-select {
+    min-width: 11rem;
+}
+
+.cost-currency-subtotals {
+    line-height: 1.35;
 }
 
 .analytics-equipment-list-item {
