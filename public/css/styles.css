@@ -529,6 +529,10 @@ main.container {
         box-shadow: 0 0.125rem 0.35rem rgba(0, 0, 0, 0.04);
     }
 
+    .inventory-mobile-table tbody tr:not(.inventory-row-detail):not(.inventory-mobile-first-row):not(.inventory-mobile-last-row) {
+        border-radius: 0;
+    }
+
     .inventory-mobile-table tbody tr.inventory-row-detail {
         display: none !important;
     }
