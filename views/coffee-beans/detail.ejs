@@ -277,16 +277,6 @@
                         <dd class="col-sm-8"><%= coffeeBean.roastLevel %></dd>
                     <% } %>
 
-                    <% if (coffeeBean.roastDate) { %>
-                        <dt class="col-sm-4">Roast Date</dt>
-                        <dd class="col-sm-8"><%= coffeeBean.roastDate %></dd>
-                    <% } %>
-
-                    <% if (coffeeBean.price !== null && coffeeBean.price !== undefined && coffeeBean.price !== "") { %>
-                        <dt class="col-sm-4">Price US$</dt>
-                        <dd class="col-sm-8"><%= coffeeBean.price %></dd>
-                    <% } %>
-
                     <% if (coffeeBean.rating !== null && coffeeBean.rating !== undefined && coffeeBean.rating !== "") { %>
                         <dt class="col-sm-4">Bean Rating</dt>
                         <dd class="col-sm-8">

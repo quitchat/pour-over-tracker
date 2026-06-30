@@ -219,8 +219,6 @@ function getCoffeeBeanFormValues(req: Request) {
         origin: String(req.body.origin || "").trim(),
         process: String(req.body.process || "").trim(),
         roastLevel: String(req.body.roastLevel || "").trim(),
-        roastDate: String(req.body.roastDate || "").trim(),
-        price: String(req.body.price || "").trim(),
         flavorNotes: String(req.body.flavorNotes || "").trim(),
         sourceUrl: String(req.body.sourceUrl || "").trim(),
         bagImageUrl: String(req.body.bagImageUrl || "").trim(),
@@ -234,7 +232,6 @@ function getCoffeeBeanFormValues(req: Request) {
 function validateCoffeeBeanForm(formValues: ReturnType<typeof getCoffeeBeanFormValues>): string[] {
     const errors: string[] = [];
     const validRoastLevels = ["", "Light", "Medium", "Dark"];
-    const price = Number(formValues.price);
     const rating = Number(formValues.rating);
 
     if (!formValues.beanName) {
@@ -243,10 +240,6 @@ function validateCoffeeBeanForm(formValues: ReturnType<typeof getCoffeeBeanFormV
 
     if (!validRoastLevels.includes(formValues.roastLevel)) {
         errors.push("Roast level must be Light, Medium, or Dark.");
-    }
-
-    if (formValues.price && (Number.isNaN(price) || price < 0)) {
-        errors.push("Price must be 0 or greater.");
     }
 
     if (formValues.sourceUrl && !formValues.sourceUrl.startsWith("http")) {
@@ -756,8 +749,6 @@ router.get("/", async function (req: Request, res: Response) {
             origin: bean.origin || "",
             process: bean.process || "",
             roastLevel: bean.roastLevel || "",
-            roastDate: formatDateOnly(bean.roastDate),
-            price: bean.price ? bean.price.toString() : "",
             bagImageUrl: bean.bagImageUrl || "",
             beanInfo: bean.beanInfo || "",
             beanNotes: bean.beanNotes || "",
@@ -993,8 +984,6 @@ router.post("/", async function (req: Request, res: Response) {
                 origin: formValues.origin || null,
                 process: formValues.process || null,
                 roastLevel: formValues.roastLevel || null,
-                roastDate: formValues.roastDate ? new Date(`${formValues.roastDate}T00:00:00`) : null,
-                price: formValues.price ? new Prisma.Decimal(formValues.price) : null,
                 flavorNotes: formValues.flavorNotes || null,
                 sourceUrl: formValues.sourceUrl || null,
                 bagImageUrl: uploadedBagImageUrl || existingUploadedBagImageUrl || null,
@@ -1812,8 +1801,6 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
             origin: coffeeBean.origin || "",
             process: coffeeBean.process || "",
             roastLevel: coffeeBean.roastLevel || "",
-            roastDate: formatDateForInput(coffeeBean.roastDate),
-            price: coffeeBean.price ? coffeeBean.price.toString() : "",
             flavorNotes: coffeeBean.flavorNotes || "",
             sourceUrl: coffeeBean.sourceUrl || "",
             bagImageUrl: coffeeBean.bagImageUrl || "",
@@ -1897,8 +1884,6 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             origin: formValues.origin || null,
             process: formValues.process || null,
             roastLevel: formValues.roastLevel || null,
-            roastDate: formValues.roastDate ? new Date(`${formValues.roastDate}T00:00:00`) : null,
-            price: formValues.price ? new Prisma.Decimal(formValues.price) : null,
             flavorNotes: formValues.flavorNotes || null,
             sourceUrl: formValues.sourceUrl || null,
             bagImageUrl: bagImageUrl,
@@ -2069,8 +2054,6 @@ router.get("/:id", async function (req: Request, res: Response) {
             origin: coffeeBean.origin || "",
             process: coffeeBean.process || "",
             roastLevel: coffeeBean.roastLevel || "",
-            roastDate: formatDateOnly(coffeeBean.roastDate),
-            price: coffeeBean.price ? coffeeBean.price.toString() : "",
             flavorNotes: coffeeBean.flavorNotes || "",
             sourceUrl: coffeeBean.sourceUrl || "",
             bagImageUrl: coffeeBean.bagImageUrl || "",

@@ -161,8 +161,6 @@ model CoffeeBean {
   origin        String?
   process       String?
   roastLevel    String?
-  roastDate     DateTime?
-  price         Decimal?      @db.Decimal(10, 2)
   flavorNotes   String?
   bagImageUrl   String?
   sourceUrl     String?

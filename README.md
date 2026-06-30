@@ -45,6 +45,7 @@
   - Brew count
 - Bean inventory and replenishment tracking under reusable coffee bean records
 - Low-friction new-bean creation focused on coffee identity, with inventory added later from the dedicated inventory screen
+- Bean identity fields stay focused on reusable coffee details; roast dates and purchase costs are tracked on inventory/replenishment records
 - Add Replenishment workflow for repeat purchases of the same bean
 - Set Current Inventory / Opening Balance workflow for partially used beans
 - Multi-bag purchase support with shared order-level cost details

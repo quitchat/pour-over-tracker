@@ -319,18 +319,10 @@
                         <td>
                             <div class="bean-mobile-label">Roast</div>
 
-                            <% if (bean.roastLevel || bean.roastDate) { %>
-                                <% if (bean.roastLevel) { %>
-                                    <div>
-                                        <%= bean.roastLevel %>
-                                    </div>
-                                <% } %>
-
-                                <% if (bean.roastDate) { %>
-                                    <div class="bean-secondary-line">
-                                        <%= bean.roastDate %>
-                                    </div>
-                                <% } %>
+                            <% if (bean.roastLevel) { %>
+                                <div>
+                                    <%= bean.roastLevel %>
+                                </div>
                             <% } else { %>
                                 <span class="text-muted">Not set</span>
                             <% } %>

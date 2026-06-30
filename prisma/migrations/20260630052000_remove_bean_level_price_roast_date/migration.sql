@@ -1,0 +1,1 @@
+ALTER TABLE "CoffeeBean" DROP COLUMN IF EXISTS "price", DROP COLUMN IF EXISTS "roastDate";
