@@ -549,6 +549,7 @@
         <div class="tab-pane fade" id="cost-analytics-pane" role="tabpanel" aria-labelledby="cost-analytics-tab" tabindex="0">
         <div class="d-flex justify-content-end mb-3">
             <form method="get" action="/analytics" class="d-flex align-items-center gap-2 flex-wrap">
+                <input type="hidden" name="tab" value="cost-analytics">
                 <label for="costRange" class="form-label small text-muted mb-0">Date range</label>
                 <select id="costRange" name="costRange" class="form-select form-select-sm cost-range-select" onchange="this.form.submit()">
                     <% costAnalyticsValue.rangeOptions.forEach(function (option) { %>
@@ -1084,17 +1085,43 @@
         }
     }
 
+    const tabParam = new URLSearchParams(window.location.search).get("tab");
+    const tabTargetMap = {
+        "inventory-summary": "#inventory-summary-pane",
+        "cost-analytics": "#cost-analytics-pane",
+        "brew-summary": "#brew-summary-pane"
+    };
+
+    if (tabParam && tabTargetMap[tabParam]) {
+        const selectedTabButton = document.querySelector('[data-bs-target="' + tabTargetMap[tabParam] + '"]');
+
+        if (selectedTabButton && window.bootstrap && bootstrap.Tab) {
+            bootstrap.Tab.getOrCreateInstance(selectedTabButton).show();
+        }
+    }
+
+    document.querySelectorAll('#analyticsDetailTabs button[data-bs-toggle="tab"]').forEach(function (tabButton) {
+        tabButton.addEventListener("shown.bs.tab", function (event) {
+            const target = event.target.getAttribute("data-bs-target");
+            const tabName = Object.keys(tabTargetMap).find(function (key) {
+                return tabTargetMap[key] === target;
+            });
+
+            if (tabName && window.history && window.history.replaceState) {
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set("tab", tabName);
+                window.history.replaceState({}, "", currentUrl.toString());
+            }
+
+            if (target === "#brew-summary-pane") {
+                initializeBrewSummaryCharts();
+            }
+        });
+    });
+
     const brewSummaryPane = document.getElementById("brew-summary-pane");
 
     if (brewSummaryPane && brewSummaryPane.classList.contains("show")) {
         initializeBrewSummaryCharts();
-    }
-
-    const brewSummaryTab = document.getElementById("brew-summary-tab");
-
-    if (brewSummaryTab) {
-        brewSummaryTab.addEventListener("shown.bs.tab", function () {
-            initializeBrewSummaryCharts();
-        });
     }
 </script>
