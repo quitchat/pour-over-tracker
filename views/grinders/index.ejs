@@ -27,7 +27,6 @@
                     <th class="text-end">Brews</th>
                     <th class="text-end">Total Ground</th>
                     <th class="d-none d-lg-table-cell">Default Grind Range</th>
-                    <th class="d-none d-md-table-cell">Location</th>
                     <th class="d-none d-xl-table-cell">Calibration Notes</th>
                     <th class="equipment-action-col">Actions</th>
                 </tr>
@@ -35,7 +34,7 @@
             <tbody>
                 <% if (grinders.length === 0) { %>
                     <tr>
-                        <td colspan="10" class="text-muted text-center py-4">
+                        <td colspan="9" class="text-muted text-center py-4">
                             No grinders yet. Click Add Grinder to create one.
                         </td>
                     </tr>
@@ -44,7 +43,21 @@
                 <% grinders.forEach(function (grinder) { %>
                     <tr>
                         <td class="fw-semibold equipment-primary-col" data-label="Name">
-                            <div><%= grinder.name %></div>
+                            <div>
+                                <%= grinder.name %>
+                                <% if (grinder.locationName || (grinder.latitude !== null && grinder.longitude !== null)) { %>
+                                    <% const grinderMapUrl = grinder.latitude !== null && grinder.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(grinder.latitude) + "," + String(grinder.longitude)) : ""; %>
+                                    <span class="fw-normal text-muted">
+                                        (
+                                        <% if (grinderMapUrl) { %>
+                                            <a href="<%= grinderMapUrl %>" target="_blank" rel="noopener noreferrer" class="text-muted"><%= grinder.locationName || "Open map" %></a>
+                                        <% } else { %>
+                                            <%= grinder.locationName %>
+                                        <% } %>
+                                        )
+                                    </span>
+                                <% } %>
+                            </div>
                             <div class="small text-muted d-md-none">
                                 <% const grinderMobileSummary = [grinder.grinderType, grinder.burrType].filter(Boolean).join(" · "); %>
                                 <%= grinderMobileSummary || "" %>
@@ -52,17 +65,6 @@
                             <% if (grinder.defaultGrindSizeRange) { %>
                                 <div class="small text-muted d-lg-none">
                                     Grind: <%= grinder.defaultGrindSizeRange %>
-                                </div>
-                            <% } %>
-                            <% if (grinder.locationName || (grinder.latitude !== null && grinder.longitude !== null)) { %>
-                                <% const grinderMobileMapUrl = grinder.latitude !== null && grinder.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(grinder.latitude) + "," + String(grinder.longitude)) : ""; %>
-                                <div class="small text-muted d-md-none">
-                                    <i class="bi bi-geo-alt me-1"></i>
-                                    <% if (grinderMobileMapUrl) { %>
-                                        <a href="<%= grinderMobileMapUrl %>" target="_blank" rel="noopener noreferrer"><%= grinder.locationName || "Open map" %></a>
-                                    <% } else { %>
-                                        <%= grinder.locationName %>
-                                    <% } %>
                                 </div>
                             <% } %>
                         </td>
@@ -76,18 +78,6 @@
                             <%= grinder.totalGramsGround || "0.0" %> g
                         </td>
                         <td class="d-none d-lg-table-cell" data-label="Default Grind Range"><%= grinder.defaultGrindSizeRange || "" %></td>
-                        <td class="d-none d-md-table-cell" data-label="Location">
-                            <% if (grinder.locationName || (grinder.latitude !== null && grinder.longitude !== null)) { %>
-                                <% const grinderMapUrl = grinder.latitude !== null && grinder.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(grinder.latitude) + "," + String(grinder.longitude)) : ""; %>
-                                <% if (grinderMapUrl) { %>
-                                    <a href="<%= grinderMapUrl %>" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
-                                        <i class="bi bi-geo-alt me-1"></i><%= grinder.locationName || "Open map" %>
-                                    </a>
-                                <% } else { %>
-                                    <%= grinder.locationName %>
-                                <% } %>
-                            <% } %>
-                        </td>
                         <td class="d-none d-xl-table-cell" data-label="Calibration Notes"><%= grinder.calibrationNotes || "" %></td>
                         <td class="equipment-action-col" data-label="Actions">
                             <div class="equipment-action-buttons">
