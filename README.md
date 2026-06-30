@@ -52,6 +52,8 @@
 - Purchase cost tracking with currency, subtotal, discount, shipping, tax, and total paid fields
 - Effective cost per bag and effective cost per gram reporting
 - Inventory remaining-weight calculation from starting grams, linked brew doses, and adjustment history
+- Read-only remaining inventory link on bean detail that opens a dedicated inventory maintenance screen
+- Dedicated bean inventory screen for listing and maintaining bags, replenishments, opening balances, and adjustments
 - Optional brew-session link to a specific bean inventory bag for inventory reporting
 - Automatic behind-the-scenes inventory bag association during brew creation
 - Finish Bag / Zero Out Remaining workflow using inventory adjustments

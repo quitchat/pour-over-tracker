@@ -1113,7 +1113,7 @@ router.post("/:id/replenishments", async function (req: Request, res: Response) 
         }
     });
 
-    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Replenishment added.")}`);
+    res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Replenishment added.")}`);
 });
 
 router.get("/:id/opening-balance/new", async function (req: Request, res: Response) {
@@ -1193,7 +1193,37 @@ router.post("/:id/opening-balance", async function (req: Request, res: Response)
         }
     });
 
-    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Current inventory set.")}`);
+    res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Current inventory set.")}`);
+});
+
+router.get("/:id/inventory", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid coffee bean ID.");
+        return;
+    }
+
+    const coffeeBean = await getCoffeeBeanForInventoryAction(userId, id);
+
+    if (!coffeeBean) {
+        res.status(404).send("Coffee bean not found.");
+        return;
+    }
+
+    const inventorySummary = await getBeanInventorySummary(id, userId);
+
+    res.render("coffee-beans/inventory", {
+        title: "Bean Inventory",
+        message: String(req.query.message || ""),
+        errorMessage: String(req.query.errorMessage || ""),
+        coffeeBean: coffeeBean,
+        inventorySummary: inventorySummary,
+        formatInventoryGrams: formatGrams,
+        formatInventoryMoney: formatMoney,
+        formatDateUs: formatDateOnly
+    });
 });
 
 router.get("/:id/inventory/:inventoryId/edit", async function (req: Request, res: Response) {
@@ -1298,7 +1328,7 @@ router.post("/:id/inventory/:inventoryId/edit", async function (req: Request, re
         }
     });
 
-    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory bag updated.")}`);
+    res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Inventory bag updated.")}`);
 });
 
 router.get("/:id/inventory/:inventoryId/adjust", async function (req: Request, res: Response) {
@@ -1383,7 +1413,7 @@ router.post("/:id/inventory/:inventoryId/adjust", async function (req: Request, 
         }
     });
 
-    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory adjusted.")}`);
+    res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Inventory adjusted.")}`);
 });
 
 
@@ -1480,7 +1510,7 @@ router.post("/:id/inventory/:inventoryId/adjustments/:adjustmentId/edit", async 
         }
     });
 
-    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory adjustment updated.")}`);
+    res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Inventory adjustment updated.")}`);
 });
 
 router.post("/:id/inventory/:inventoryId/adjustments/:adjustmentId/delete", async function (req: Request, res: Response) {
@@ -1507,7 +1537,7 @@ router.post("/:id/inventory/:inventoryId/adjustments/:adjustmentId/delete", asyn
         }
     });
 
-    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory adjustment deleted.")}`);
+    res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Inventory adjustment deleted.")}`);
 });
 
 router.get("/:id/inventory/:inventoryId/finish", async function (req: Request, res: Response) {
@@ -1595,7 +1625,7 @@ router.post("/:id/inventory/:inventoryId/finish", async function (req: Request, 
         });
     }
 
-    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Bag finished.")}`);
+    res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Bag finished.")}`);
 });
 
 router.post("/:id/inventory/:inventoryId/delete", async function (req: Request, res: Response) {
@@ -1640,7 +1670,7 @@ router.post("/:id/inventory/:inventoryId/delete", async function (req: Request, 
         });
     });
 
-    res.redirect(`/coffee-beans/${id}?message=${encodeURIComponent("Inventory bag deleted. Any linked brew sessions were kept and unlinked from this bag.")}`);
+    res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Inventory bag deleted. Any linked brew sessions were kept and unlinked from this bag.")}`);
 });
 
 router.get("/:id/edit", async function (req: Request, res: Response) {
