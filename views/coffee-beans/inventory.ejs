@@ -156,21 +156,26 @@
                                 </div>
                             </td>
                             <td data-label="Status">
-                                <% if (bag.isFinished) { %>
-                                    <span class="badge text-bg-secondary">Finished</span>
-                                <% } else if (inventorySummary.currentItem && inventorySummary.currentItem.id === bag.id) { %>
-                                    <div class="inventory-current-progress" title="Current bag: <%= bagRemainingPercent %>% remaining">
-                                        <div class="d-flex justify-content-between align-items-center small mb-1">
-                                            <span class="fw-semibold text-success">Current</span>
-                                            <span class="text-muted"><%= bagRemainingPercent %>%</span>
-                                        </div>
-                                        <div class="progress inventory-bag-progress" role="progressbar" aria-label="Current bag remaining" aria-valuenow="<%= bagRemainingPercent %>" aria-valuemin="0" aria-valuemax="100">
-                                            <div class="progress-bar bg-success" style="width: <%= bagRemainingPercent %>%"></div>
-                                        </div>
+                                <%
+                                    const bagStatusLabel = bag.isFinished
+                                        ? "Finished"
+                                        : (inventorySummary.currentItem && inventorySummary.currentItem.id === bag.id ? "Current" : "Next");
+                                    const bagStatusTextClass = bag.isFinished
+                                        ? "text-muted"
+                                        : (bagStatusLabel === "Current" ? "text-success" : "text-primary");
+                                    const bagProgressClass = bag.isFinished
+                                        ? "bg-secondary"
+                                        : (bagStatusLabel === "Current" ? "bg-success" : "bg-primary");
+                                %>
+                                <div class="inventory-status-progress" title="<%= bagStatusLabel %>: <%= bagRemainingPercent %>% remaining">
+                                    <div class="d-flex justify-content-between align-items-center small mb-1">
+                                        <span class="fw-semibold <%= bagStatusTextClass %>"><%= bagStatusLabel %></span>
+                                        <span class="text-muted"><%= bagRemainingPercent %>%</span>
                                     </div>
-                                <% } else { %>
-                                    <span class="badge text-bg-light border">Next</span>
-                                <% } %>
+                                    <div class="progress inventory-bag-progress" role="progressbar" aria-label="<%= bagStatusLabel %> bag remaining" aria-valuenow="<%= bagRemainingPercent %>" aria-valuemin="0" aria-valuemax="100">
+                                        <div class="progress-bar <%= bagProgressClass %>" style="width: <%= bagRemainingPercent %>%"></div>
+                                    </div>
+                                </div>
                             </td>
                             <td class="text-end fw-semibold" data-label="Remaining"><%= formatInventoryGrams(bag.remainingGrams) %>g</td>
                             <td class="text-end" data-label="Brewed"><%= formatInventoryGrams(bag.brewedGrams) %>g</td>

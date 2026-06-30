@@ -742,7 +742,7 @@ main.container {
     }
 }
 
-.inventory-current-progress {
+.inventory-status-progress {
     min-width: 8rem;
 }
 
@@ -752,7 +752,7 @@ main.container {
 }
 
 @media (max-width: 767.98px) {
-    .inventory-current-progress {
+    .inventory-status-progress {
         min-width: 10rem;
     }
 }
