@@ -5,6 +5,14 @@
     const brewerOptions = typeof brewers !== "undefined" ? brewers : [];
     const filterValues = typeof filters !== "undefined" ? filters : {};
     const pageInfo = typeof pagination !== "undefined" ? pagination : { currentPage: 1, totalPages: 1, totalItems: sessions.length, hasPreviousPage: false, hasNextPage: false, previousPageHref: "#", nextPageHref: "#", pageLinks: [] };
+    const activeFilterCount = [
+        filterValues.coffeeBeanId,
+        filterValues.grinderId,
+        filterValues.brewerId,
+        filterValues.minRating
+    ].filter(function (value) {
+        return value !== null && value !== undefined && String(value).trim() !== "";
+    }).length;
 
     function getSessionBeanName(session) {
         return session.coffeeBeanName || session.beanName || "";
@@ -156,13 +164,47 @@
 </style>
 
 <div class="card mb-3">
-    <div class="card-header">
-        <i class="bi bi-funnel me-1"></i>
-        Filters
+    <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <div>
+            <i class="bi bi-funnel me-1"></i>
+            Filters
+            <% if (activeFilterCount > 0) { %>
+                <span class="badge text-bg-primary ms-2"><%= activeFilterCount %> active</span>
+            <% } %>
+        </div>
+
+        <button
+            class="btn btn-sm btn-outline-secondary"
+            type="button"
+            id="brewSessionFiltersToggle"
+            data-bs-toggle="collapse"
+            data-bs-target="#brewSessionFilters"
+            aria-expanded="false"
+            aria-controls="brewSessionFilters">
+            <i class="bi bi-sliders me-1"></i>
+            <span class="brew-session-filter-toggle-text">Show Filters</span>
+        </button>
     </div>
 
-    <div class="card-body">
-        <form method="get" action="/brew-sessions">
+    <% if (activeFilterCount > 0) { %>
+        <div class="card-body border-bottom py-2">
+            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                <span class="text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <%= activeFilterCount %> filter(s) currently applied.
+                </span>
+
+                <a href="/brew-sessions" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i>
+                    Clear Filters
+                </a>
+            </div>
+        </div>
+    <% } %>
+
+    <div class="collapse" id="brewSessionFilters">
+        <div class="card-body">
+            <form method="get" action="/brew-sessions">
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label for="coffeeBeanId" class="form-label">Coffee Bean</label>
@@ -229,7 +271,8 @@
                     </div>
                 </div>
             </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -370,6 +413,20 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        const filterPanel = document.getElementById("brewSessionFilters");
+        const filterToggle = document.getElementById("brewSessionFiltersToggle");
+        const filterToggleText = filterToggle ? filterToggle.querySelector(".brew-session-filter-toggle-text") : null;
+
+        if (filterPanel && filterToggleText) {
+            filterPanel.addEventListener("shown.bs.collapse", function () {
+                filterToggleText.textContent = "Hide Filters";
+            });
+
+            filterPanel.addEventListener("hidden.bs.collapse", function () {
+                filterToggleText.textContent = "Show Filters";
+            });
+        }
+
         document.querySelectorAll(".brew-session-clickable-row[data-href]").forEach(function (row) {
             row.addEventListener("click", function (event) {
                 if (event.target.closest("a, button, input, select, textarea, label, form, .dropdown, .dropdown-menu")) {
