@@ -129,6 +129,28 @@ main.container {
     white-space: nowrap;
 }
 
+
+.rating-stars-gold,
+.rating-stars-gold .bi,
+.rating-stars-gold i,
+.readonly-rating-stars,
+.readonly-rating-stars .bi,
+.readonly-rating-stars i,
+.bean-rating-stars,
+.bean-rating-stars .bi,
+.bean-rating-stars i {
+    color: #f5b301 !important;
+    -webkit-text-fill-color: #f5b301 !important;
+}
+
+.rating-stars-gold,
+.readonly-rating-display,
+.readonly-rating-stars,
+.bean-rating-stars {
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+}
+
 .analytics-total-box {
     display: inline-flex;
     flex-direction: column;

@@ -54,9 +54,15 @@
                                     Grind: <%= grinder.defaultGrindSizeRange %>
                                 </div>
                             <% } %>
-                            <% if (grinder.locationName) { %>
+                            <% if (grinder.locationName || (grinder.latitude !== null && grinder.longitude !== null)) { %>
+                                <% const grinderMobileMapUrl = grinder.latitude !== null && grinder.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(grinder.latitude) + "," + String(grinder.longitude)) : ""; %>
                                 <div class="small text-muted d-md-none">
-                                    <i class="bi bi-geo-alt me-1"></i><%= grinder.locationName %>
+                                    <i class="bi bi-geo-alt me-1"></i>
+                                    <% if (grinderMobileMapUrl) { %>
+                                        <a href="<%= grinderMobileMapUrl %>" target="_blank" rel="noopener noreferrer"><%= grinder.locationName || "Open map" %></a>
+                                    <% } else { %>
+                                        <%= grinder.locationName %>
+                                    <% } %>
                                 </div>
                             <% } %>
                         </td>
@@ -72,15 +78,13 @@
                         <td class="d-none d-lg-table-cell"><%= grinder.defaultGrindSizeRange || "" %></td>
                         <td class="d-none d-md-table-cell">
                             <% if (grinder.locationName || (grinder.latitude !== null && grinder.longitude !== null)) { %>
-                                <div><%= grinder.locationName || "Saved location" %></div>
-                                <% if (grinder.latitude !== null && grinder.longitude !== null) { %>
-                                    <% const grinderMapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(grinder.latitude) + "," + String(grinder.longitude)); %>
-                                    <div class="small text-muted">
-                                        <a href="<%= grinderMapUrl %>" target="_blank" rel="noopener noreferrer">
-                                            <i class="bi bi-geo-alt me-1"></i>
-                                            <%= Number(grinder.latitude).toFixed(5) %>, <%= Number(grinder.longitude).toFixed(5) %>
-                                        </a>
-                                    </div>
+                                <% const grinderMapUrl = grinder.latitude !== null && grinder.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(grinder.latitude) + "," + String(grinder.longitude)) : ""; %>
+                                <% if (grinderMapUrl) { %>
+                                    <a href="<%= grinderMapUrl %>" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                        <i class="bi bi-geo-alt me-1"></i><%= grinder.locationName || "Open map" %>
+                                    </a>
+                                <% } else { %>
+                                    <%= grinder.locationName %>
                                 <% } %>
                             <% } %>
                         </td>

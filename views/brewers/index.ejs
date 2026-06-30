@@ -48,9 +48,15 @@
                             <% if (brewer.brewerType) { %>
                                 <div class="small text-muted d-md-none"><%= brewer.brewerType %></div>
                             <% } %>
-                            <% if (brewer.locationName) { %>
+                            <% if (brewer.locationName || (brewer.latitude !== null && brewer.longitude !== null)) { %>
+                                <% const brewerMobileMapUrl = brewer.latitude !== null && brewer.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(brewer.latitude) + "," + String(brewer.longitude)) : ""; %>
                                 <div class="small text-muted d-md-none">
-                                    <i class="bi bi-geo-alt me-1"></i><%= brewer.locationName %>
+                                    <i class="bi bi-geo-alt me-1"></i>
+                                    <% if (brewerMobileMapUrl) { %>
+                                        <a href="<%= brewerMobileMapUrl %>" target="_blank" rel="noopener noreferrer"><%= brewer.locationName || "Open map" %></a>
+                                    <% } else { %>
+                                        <%= brewer.locationName %>
+                                    <% } %>
                                 </div>
                             <% } %>
                         </td>
@@ -64,15 +70,13 @@
                         </td>
                         <td class="d-none d-md-table-cell">
                             <% if (brewer.locationName || (brewer.latitude !== null && brewer.longitude !== null)) { %>
-                                <div><%= brewer.locationName || "Saved location" %></div>
-                                <% if (brewer.latitude !== null && brewer.longitude !== null) { %>
-                                    <% const brewerMapUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(brewer.latitude) + "," + String(brewer.longitude)); %>
-                                    <div class="small text-muted">
-                                        <a href="<%= brewerMapUrl %>" target="_blank" rel="noopener noreferrer">
-                                            <i class="bi bi-geo-alt me-1"></i>
-                                            <%= Number(brewer.latitude).toFixed(5) %>, <%= Number(brewer.longitude).toFixed(5) %>
-                                        </a>
-                                    </div>
+                                <% const brewerMapUrl = brewer.latitude !== null && brewer.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(brewer.latitude) + "," + String(brewer.longitude)) : ""; %>
+                                <% if (brewerMapUrl) { %>
+                                    <a href="<%= brewerMapUrl %>" target="_blank" rel="noopener noreferrer" class="text-decoration-none">
+                                        <i class="bi bi-geo-alt me-1"></i><%= brewer.locationName || "Open map" %>
+                                    </a>
+                                <% } else { %>
+                                    <%= brewer.locationName %>
                                 <% } %>
                             <% } %>
                         </td>
