@@ -54,6 +54,7 @@
                         <div class="col-12">
                             <label for="reason" class="form-label">Reason</label>
                             <select class="form-select" id="reason" name="reason">
+                                <option value="BREWED_NOT_LOGGED" <%= formData.reason === "BREWED_NOT_LOGGED" ? "selected" : "" %>>Brewed but not logged</option>
                                 <option value="CORRECTION" <%= formData.reason === "CORRECTION" ? "selected" : "" %>>Measurement correction</option>
                                 <option value="DISCARDED" <%= formData.reason === "DISCARDED" ? "selected" : "" %>>Discarded</option>
                                 <option value="FINISHED_LEFTOVER" <%= formData.reason === "FINISHED_LEFTOVER" ? "selected" : "" %>>Finished / mixed with another bean</option>
@@ -100,7 +101,7 @@
                                         </div>
                                         <div class="small text-muted"><%= formatDateUs(adjustment.createdAt) %></div>
                                     </div>
-                                    <div class="small text-muted"><%= adjustment.reason.replace(/_/g, " ") %></div>
+                                    <div class="small text-muted"><%= adjustment.reason === "BREWED_NOT_LOGGED" ? "Brewed but not logged" : adjustment.reason.replace(/_/g, " ") %></div>
                                     <% if (adjustment.notes) { %>
                                         <div class="small mt-1"><%= adjustment.notes %></div>
                                     <% } %>

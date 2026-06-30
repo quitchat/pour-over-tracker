@@ -198,6 +198,7 @@ enum BeanWeightUnit {
 }
 
 enum BeanInventoryAdjustmentReason {
+  BREWED_NOT_LOGGED
   FINISHED_LEFTOVER
   DISCARDED
   CORRECTION

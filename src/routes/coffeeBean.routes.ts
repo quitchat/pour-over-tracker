@@ -542,7 +542,7 @@ function validateOpeningBalanceForm(formValues: ReturnType<typeof getOpeningBala
 function getAdjustmentFormValues(req: Request) {
     return {
         adjustmentGrams: String(req.body.adjustmentGrams || "").trim(),
-        reason: String(req.body.reason || "CORRECTION").trim(),
+        reason: String(req.body.reason || "BREWED_NOT_LOGGED").trim(),
         notes: String(req.body.notes || "").trim()
     };
 }
@@ -550,7 +550,7 @@ function getAdjustmentFormValues(req: Request) {
 function validateAdjustmentForm(formValues: ReturnType<typeof getAdjustmentFormValues>): string[] {
     const errors: string[] = [];
     const adjustmentGrams = Number(formValues.adjustmentGrams);
-    const validReasons = ["FINISHED_LEFTOVER", "DISCARDED", "CORRECTION", "OTHER"];
+    const validReasons = ["BREWED_NOT_LOGGED", "FINISHED_LEFTOVER", "DISCARDED", "CORRECTION", "OTHER"];
 
     if (!formValues.adjustmentGrams || Number.isNaN(adjustmentGrams) || adjustmentGrams === 0) {
         errors.push("Adjustment grams must be a non-zero number.");
@@ -1459,7 +1459,7 @@ router.get("/:id/inventory/:inventoryId/adjust", async function (req: Request, r
         errors: [],
         formData: {
             adjustmentGrams: "",
-            reason: "CORRECTION",
+            reason: "BREWED_NOT_LOGGED",
             notes: ""
         }
     });
@@ -1693,7 +1693,7 @@ router.post("/:id/inventory/:inventoryId/finish", async function (req: Request, 
     const usage = getInventoryUsage(inventory);
     const reason = String(req.body.reason || "FINISHED_LEFTOVER").trim();
     const notes = String(req.body.notes || "").trim();
-    const validReasons = ["FINISHED_LEFTOVER", "DISCARDED", "CORRECTION", "OTHER"];
+    const validReasons = ["BREWED_NOT_LOGGED", "FINISHED_LEFTOVER", "DISCARDED", "CORRECTION", "OTHER"];
 
     if (!validReasons.includes(reason)) {
         res.status(400).render("coffee-beans/inventory-finish-form", {

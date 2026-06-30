@@ -1,0 +1,1 @@
+ALTER TYPE "BeanInventoryAdjustmentReason" ADD VALUE IF NOT EXISTS 'BREWED_NOT_LOGGED';

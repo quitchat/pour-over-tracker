@@ -139,7 +139,7 @@
                                                                 <div class="fw-semibold"><%= Number(adjustment.adjustmentGrams) >= 0 ? "+" : "" %><%= formatInventoryGrams(adjustment.adjustmentGrams) %>g</div>
                                                                 <div class="small text-muted"><%= formatDateUs(adjustment.createdAt) %></div>
                                                             </div>
-                                                            <div class="small text-muted"><%= adjustment.reason.replace(/_/g, " ") %></div>
+                                                            <div class="small text-muted"><%= adjustment.reason === "BREWED_NOT_LOGGED" ? "Brewed but not logged" : adjustment.reason.replace(/_/g, " ") %></div>
                                                             <% if (adjustment.notes) { %>
                                                                 <div class="small"><%= adjustment.notes %></div>
                                                             <% } %>
@@ -212,7 +212,7 @@
                                                             <div class="fw-semibold"><%= Number(adjustment.adjustmentGrams) >= 0 ? "+" : "" %><%= formatInventoryGrams(adjustment.adjustmentGrams) %>g</div>
                                                             <div class="small text-muted"><%= formatDateUs(adjustment.createdAt) %></div>
                                                         </div>
-                                                        <div class="small text-muted"><%= adjustment.reason.replace(/_/g, " ") %></div>
+                                                        <div class="small text-muted"><%= adjustment.reason === "BREWED_NOT_LOGGED" ? "Brewed but not logged" : adjustment.reason.replace(/_/g, " ") %></div>
                                                         <% if (adjustment.notes) { %>
                                                             <div class="small"><%= adjustment.notes %></div>
                                                         <% } %>
