@@ -51,7 +51,7 @@
 - Multi-bag purchase support with shared order-level cost details
 - Bag size entry in grams or ounces with normalized gram calculations
 - Purchase cost tracking with currency, subtotal, discount, shipping, tax, and total paid fields
-- Effective cost per bag and effective cost per gram reporting
+- Effective cost per bag reporting for inventory cost analytics
 - Inventory remaining-weight calculation from starting grams, linked brew doses, and adjustment history
 - Read-only remaining inventory link on bean detail that opens a dedicated inventory maintenance screen
 - Dedicated bean inventory screen for listing and maintaining bags, replenishments, opening balances, and adjustments
@@ -104,6 +104,8 @@
 
 - Dashboard summary view
 - Brew statistics and analytics views
+- Cost Analytics for inventory-linked purchase cost, consumed coffee cost, purchased coffee cost, average cost per brew, cost by bean, cost by roaster, best value beans, and most expensive brews
+- Currency-aware cost reporting with separate subtotals when multiple purchase currencies are present
 - Brew comparison interface
 - Chart.js-based visualizations
 - Radar diagram for tasting/scoring characteristics
