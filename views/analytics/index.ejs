@@ -204,7 +204,7 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-md-4">
         <a href="/brew-sessions" class="card h-100 text-decoration-none text-reset analytics-summary-card">
             <div class="card-body">
                 <div class="text-muted small">Total Brews</div>
@@ -214,7 +214,7 @@
         </a>
     </div>
 
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-md-4">
         <div class="card h-100">
             <div class="card-body">
                 <div class="text-muted small">Average Rating</div>
@@ -225,7 +225,7 @@
     </div>
 
 
-    <div class="col-6 col-lg-3">
+    <div class="col-12 col-md-4">
         <a href="/coffee-beans" class="card h-100 text-decoration-none text-reset analytics-summary-card">
             <div class="card-body">
                 <div class="text-muted small">Beans</div>
@@ -252,6 +252,12 @@
             <button class="nav-link" id="cost-analytics-tab" data-bs-toggle="tab" data-bs-target="#cost-analytics-pane" type="button" role="tab" aria-controls="cost-analytics-pane" aria-selected="false">
                 <i class="bi bi-cash-coin me-1"></i>
                 Cost Analytics
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="brew-summary-tab" data-bs-toggle="tab" data-bs-target="#brew-summary-pane" type="button" role="tab" aria-controls="brew-summary-pane" aria-selected="false">
+                <i class="bi bi-cup-hot me-1"></i>
+                Brew Summary
             </button>
         </li>
     </ul>
@@ -800,9 +806,8 @@
     </div>
 </div>
         </div>
-    </div>
-</div>
 
+        <div class="tab-pane fade" id="brew-summary-pane" role="tabpanel" aria-labelledby="brew-summary-tab" tabindex="0">
 <div class="row g-3 mb-4">
     <div class="col-lg-8">
         <div class="card h-100">
@@ -998,6 +1003,9 @@
         </table>
     </div>
 </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
@@ -1028,76 +1036,94 @@
     });
 
     const analyticsChartData = <%- JSON.stringify(analyticsChartData) %>;
+    let monthlyBrewChart = null;
+    let tastingRadarChart = null;
 
-    const monthlyBrewChartElement = document.getElementById("monthlyBrewChart");
+    function initializeBrewSummaryCharts() {
+        const monthlyBrewChartElement = document.getElementById("monthlyBrewChart");
 
-    if (monthlyBrewChartElement) {
-        new Chart(monthlyBrewChartElement, {
-            type: "bar",
-            data: {
-                labels: analyticsChartData.monthlyLabels,
-                datasets: [
-                    {
-                        label: "Brews",
-                        data: analyticsChartData.monthlyBrewCounts
-                    },
-                    {
-                        label: "Avg Rating",
-                        data: analyticsChartData.monthlyAverageRatings,
-                        type: "line",
-                        yAxisID: "rating"
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
+        if (monthlyBrewChartElement && !monthlyBrewChart) {
+            monthlyBrewChart = new Chart(monthlyBrewChartElement, {
+                type: "bar",
+                data: {
+                    labels: analyticsChartData.monthlyLabels,
+                    datasets: [
+                        {
+                            label: "Brews",
+                            data: analyticsChartData.monthlyBrewCounts
+                        },
+                        {
+                            label: "Avg Rating",
+                            data: analyticsChartData.monthlyAverageRatings,
+                            type: "line",
+                            yAxisID: "rating"
                         }
-                    },
-                    rating: {
-                        beginAtZero: true,
-                        max: 5,
-                        position: "right",
-                        grid: {
-                            drawOnChartArea: false
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        },
+                        rating: {
+                            beginAtZero: true,
+                            max: 5,
+                            position: "right",
+                            grid: {
+                                drawOnChartArea: false
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
+
+        const tastingRadarChartElement = document.getElementById("tastingRadarChart");
+
+        if (tastingRadarChartElement && !tastingRadarChart) {
+            tastingRadarChart = new Chart(tastingRadarChartElement, {
+                type: "radar",
+                data: {
+                    labels: analyticsChartData.tastingLabels,
+                    datasets: [
+                        {
+                            label: "Average Score",
+                            data: analyticsChartData.tastingAverages
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: 5,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 
-    const tastingRadarChartElement = document.getElementById("tastingRadarChart");
+    const brewSummaryPane = document.getElementById("brew-summary-pane");
 
-    if (tastingRadarChartElement) {
-        new Chart(tastingRadarChartElement, {
-            type: "radar",
-            data: {
-                labels: analyticsChartData.tastingLabels,
-                datasets: [
-                    {
-                        label: "Average Score",
-                        data: analyticsChartData.tastingAverages
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    r: {
-                        beginAtZero: true,
-                        min: 0,
-                        max: 5,
-                        ticks: {
-                            stepSize: 1
-                        }
-                    }
-                }
-            }
+    if (brewSummaryPane && brewSummaryPane.classList.contains("show")) {
+        initializeBrewSummaryCharts();
+    }
+
+    const brewSummaryTab = document.getElementById("brew-summary-tab");
+
+    if (brewSummaryTab) {
+        brewSummaryTab.addEventListener("shown.bs.tab", function () {
+            initializeBrewSummaryCharts();
         });
     }
 </script>
