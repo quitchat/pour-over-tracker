@@ -751,21 +751,7 @@ router.get("/new", async function (req: Request, res: Response) {
         formAction: "/coffee-beans",
         submitButtonText: "Save Coffee Bean",
         errors: [],
-        formData: {
-            skipInitialInventory: false,
-            initialQuantity: "1",
-            initialBagSize: "",
-            initialBagSizeUnit: getCurrentWeightUnit(res),
-            initialRoastDate: "",
-            initialPurchaseDate: getTodayInputDate(),
-            initialCurrencyCode: getCurrentCurrencyCode(res),
-            initialItemSubtotal: "",
-            initialDiscount: "",
-            initialShipping: "",
-            initialTax: "",
-            initialTotalPaid: "",
-            initialBagNotes: ""
-        },
+formData: {},
         roasterSuggestions: roasterSuggestions,
         isEdit: false
     });
@@ -927,8 +913,7 @@ router.post("/", async function (req: Request, res: Response) {
     const resizeErrors = uploadErrors.length === 0 ? await resizeUploadedCoffeeBeanImage(req) : [];
     const allUploadErrors = uploadErrors.concat(resizeErrors);
     const formValues = getCoffeeBeanFormValues(req);
-    const initialInventoryValues = getInitialInventoryFormValues(req);
-    const errors = validateCoffeeBeanForm(formValues).concat(validateInitialInventoryForm(initialInventoryValues)).concat(allUploadErrors);
+    const errors = validateCoffeeBeanForm(formValues).concat(allUploadErrors);
     const uploadedBagImageUrl = getUploadedCoffeeBeanImageUrl(req);
     const existingUploadedBagImageUrl = getExistingUploadedCoffeeBeanImageUrl(formValues.bagImageUrl);
 
@@ -944,7 +929,6 @@ router.post("/", async function (req: Request, res: Response) {
             errors: errors,
             formData: {
                 ...formValues,
-                ...initialInventoryValues,
                 bagImageUrl: existingUploadedBagImageUrl
             },
             roasterSuggestions: roasterSuggestions,
@@ -974,44 +958,6 @@ router.post("/", async function (req: Request, res: Response) {
                 isActive: true
             }
         });
-
-        if (!initialInventoryValues.skipInitialInventory) {
-            const quantity = Number(initialInventoryValues.initialQuantity || "1");
-            const bagSizeOriginalValue = Number(initialInventoryValues.initialBagSize);
-            const bagSizeGrams = roundGrams(convertToGrams(bagSizeOriginalValue, initialInventoryValues.initialBagSizeUnit));
-            const purchase = await tx.beanPurchase.create({
-                data: {
-                    beanId: bean.id,
-                    purchaseDate: parseDateInput(initialInventoryValues.initialPurchaseDate),
-                    quantity: quantity,
-                    currencyCode: initialInventoryValues.initialCurrencyCode,
-                    itemSubtotal: parseOptionalDecimal(initialInventoryValues.initialItemSubtotal),
-                    discount: parseOptionalDecimal(initialInventoryValues.initialDiscount),
-                    shipping: parseOptionalDecimal(initialInventoryValues.initialShipping),
-                    tax: parseOptionalDecimal(initialInventoryValues.initialTax),
-                    totalPaid: parseOptionalDecimal(initialInventoryValues.initialTotalPaid),
-                    notes: initialInventoryValues.initialBagNotes || null,
-                    createdByUserId: userId
-                }
-            });
-
-            for (let index = 0; index < quantity; index++) {
-                await tx.beanInventory.create({
-                    data: {
-                        beanId: bean.id,
-                        beanPurchaseId: purchase.id,
-                        inventoryType: "PURCHASE",
-                        startingGrams: new Prisma.Decimal(bagSizeGrams.toFixed(2)),
-                        bagSizeGrams: new Prisma.Decimal(bagSizeGrams.toFixed(2)),
-                        bagSizeOriginalValue: new Prisma.Decimal(bagSizeOriginalValue.toString()),
-                        bagSizeOriginalUnit: initialInventoryValues.initialBagSizeUnit,
-                        roastDate: parseDateInput(initialInventoryValues.initialRoastDate),
-                        purchaseDate: parseDateInput(initialInventoryValues.initialPurchaseDate),
-                        notes: initialInventoryValues.initialBagNotes || null
-                    }
-                });
-            }
-        }
 
         return bean;
     });

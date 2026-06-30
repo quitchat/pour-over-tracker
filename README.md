@@ -44,7 +44,7 @@
   - Total grams brewed
   - Brew count
 - Bean inventory and replenishment tracking under reusable coffee bean records
-- New-bean creation with optional initial bag/purchase creation
+- Low-friction new-bean creation focused on coffee identity, with inventory added later from the dedicated inventory screen
 - Add Replenishment workflow for repeat purchases of the same bean
 - Set Current Inventory / Opening Balance workflow for partially used beans
 - Multi-bag purchase support with shared order-level cost details
