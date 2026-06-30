@@ -93,18 +93,9 @@
 
 <form method="post" action="<%= formAction %>" id="coffeeBeanForm" enctype="multipart/form-data">
     <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>
-                <i class="bi bi-cup-hot me-1"></i>
-                Bean Info
-            </span>
-
-            <% if (userCanUseAi) { %>
-                <button type="button" class="btn btn-sm btn-outline-success" id="getCoffeeInfoButton">
-                    <i class="bi bi-stars me-1"></i>
-                    Get Coffee Information
-                </button>
-            <% } %>
+        <div class="card-header">
+            <i class="bi bi-cup-hot me-1"></i>
+            Bean Info
         </div>
 
         <div class="card-body">
@@ -211,12 +202,30 @@
 
                 <div class="col-md-6">
                     <label for="beanName" class="form-label">Coffee Name</label>
-                    <input
-                        type="text"
-                        class="form-control"
-                        id="beanName"
-                        name="beanName"
-                        value="<%= formData.beanName || "" %>">
+
+                    <% if (userCanUseAi) { %>
+                        <div class="input-group">
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="beanName"
+                                name="beanName"
+                                value="<%= formData.beanName || "" %>">
+
+                            <button type="button" class="btn btn-outline-success" id="getCoffeeInfoButton">
+                                <i class="bi bi-stars me-1"></i>
+                                <span class="d-none d-lg-inline">Get Bean Info</span>
+                                <span class="d-inline d-lg-none">AI Info</span>
+                            </button>
+                        </div>
+                    <% } else { %>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="beanName"
+                            name="beanName"
+                            value="<%= formData.beanName || "" %>">
+                    <% } %>
                 </div>
 
                 <div class="col-md-6">
@@ -575,7 +584,8 @@
                 getCoffeeInfoButton.disabled = false;
                 getCoffeeInfoButton.innerHTML =
                     '<i class="bi bi-stars me-1"></i>' +
-                    'Get Coffee Information';
+                    '<span class="d-none d-lg-inline">Get Bean Info</span>' +
+                    '<span class="d-inline d-lg-none">AI Info</span>';
             }
         }
 
