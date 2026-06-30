@@ -1131,8 +1131,8 @@ router.get("/new", async function (req: Request, res: Response) {
         : "";
 
     res.render("brew-sessions/form", {
-        title: "Add Brew Session",
-        pageHeading: "Add Brew Session",
+        title: "Add Brew",
+        pageHeading: "Add Brew",
         formAction: "/brew-sessions",
         submitButtonText: "Save Brew Session",
         errors: [],
@@ -1487,8 +1487,8 @@ router.post("/", async function (req: Request, res: Response) {
         const formOptions = await getFormOptions(userId, selectedCoffeeBeanId);
 
         res.status(400).render("brew-sessions/form", {
-            title: "Add Brew Session",
-            pageHeading: "Add Brew Session",
+            title: "Add Brew",
+            pageHeading: "Add Brew",
             formAction: "/brew-sessions",
             submitButtonText: "Save Brew Session",
             errors: allErrors,
