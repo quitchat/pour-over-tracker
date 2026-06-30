@@ -203,9 +203,9 @@
 
 </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-12 col-md-4">
-        <a href="/brew-sessions" class="card h-100 text-decoration-none text-reset analytics-summary-card">
+<div class="row g-2 g-md-3 mb-4 analytics-top-summary-row">
+    <div class="col-4">
+        <a href="/brew-sessions" class="card h-100 text-decoration-none text-reset analytics-summary-card analytics-top-summary-card">
             <div class="card-body">
                 <div class="text-muted small">Total Brews</div>
                 <div class="display-6 fw-semibold"><%= summaryValue.totalBrews %></div>
@@ -214,8 +214,8 @@
         </a>
     </div>
 
-    <div class="col-12 col-md-4">
-        <div class="card h-100">
+    <div class="col-4">
+        <div class="card h-100 analytics-top-summary-card">
             <div class="card-body">
                 <div class="text-muted small">Average Rating</div>
                 <div class="display-6 fw-semibold"><%= summaryValue.averageRating %></div>
@@ -225,8 +225,8 @@
     </div>
 
 
-    <div class="col-12 col-md-4">
-        <a href="/coffee-beans" class="card h-100 text-decoration-none text-reset analytics-summary-card">
+    <div class="col-4">
+        <a href="/coffee-beans" class="card h-100 text-decoration-none text-reset analytics-summary-card analytics-top-summary-card">
             <div class="card-body">
                 <div class="text-muted small">Beans</div>
                 <div class="display-6 fw-semibold"><%= summaryValue.totalBeans %></div>
@@ -266,7 +266,7 @@
         <div class="tab-pane fade show active" id="inventory-summary-pane" role="tabpanel" aria-labelledby="inventory-summary-tab" tabindex="0">
         <div class="row g-3 mb-4">
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 bg-light border-0">
+                <div class="card h-100 analytics-stat-card">
                     <div class="card-body">
                         <div class="text-muted small">Total Coffee On Hand</div>
                         <div class="h4 fw-semibold mb-1"><%= formatNumber(inventoryAnalyticsValue.summary.totalCoffeeOnHandGrams, 1) %>g</div>
@@ -276,7 +276,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 bg-light border-0">
+                <div class="card h-100 analytics-stat-card">
                     <div class="card-body">
                         <div class="text-muted small">Beans Running Low</div>
                         <div class="h4 fw-semibold mb-1"><%= inventoryAnalyticsValue.summary.lowBeanCount %> beans low</div>
@@ -288,7 +288,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 bg-light border-0">
+                <div class="card h-100 analytics-stat-card">
                     <div class="card-body">
                         <div class="text-muted small">Oldest Inventory</div>
                         <% if (inventoryAnalyticsValue.summary.oldestInventory) { %>
@@ -310,7 +310,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 bg-light border-0">
+                <div class="card h-100 analytics-stat-card">
                     <div class="card-body">
                         <div class="text-muted small">Inventory Value Estimate</div>
                         <div class="h4 fw-semibold mb-1"><%- renderCostDisplay(inventoryAnalyticsValue.summary.inventoryValueEstimate, 2) %></div>
@@ -320,7 +320,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 bg-light border-0">
+                <div class="card h-100 analytics-stat-card">
                     <div class="card-body">
                         <div class="text-muted small">Coffee Consumed This Month</div>
                         <div class="h4 fw-semibold mb-1"><%= formatNumber(inventoryAnalyticsValue.summary.coffeeConsumedThisMonthGrams, 1) %>g</div>
@@ -330,7 +330,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 bg-light border-0">
+                <div class="card h-100 analytics-stat-card">
                     <div class="card-body">
                         <div class="text-muted small">Most Recently Replenished</div>
                         <% if (inventoryAnalyticsValue.summary.mostRecentlyReplenished) { %>
@@ -562,7 +562,7 @@
         </div>
         <div class="row g-3 mb-4">
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 bg-light border-0">
+                <div class="card h-100 analytics-stat-card">
                     <div class="card-body">
                         <div class="text-muted small">Coffee Cost</div>
                         <div class="h4 fw-semibold mb-1"><%- renderCostDisplay(costAnalyticsValue.summary.coffeeCost, 2) %></div>
@@ -572,7 +572,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 bg-light border-0">
+                <div class="card h-100 analytics-stat-card">
                     <div class="card-body">
                         <div class="text-muted small">Coffee Purchased</div>
                         <div class="h4 fw-semibold mb-1"><%- renderCostDisplay(costAnalyticsValue.summary.coffeePurchased, 2) %></div>
@@ -582,7 +582,7 @@
             </div>
 
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 bg-light border-0">
+                <div class="card h-100 analytics-stat-card">
                     <div class="card-body">
                         <div class="text-muted small">Average Cost per Brew</div>
                         <div class="h4 fw-semibold mb-1"><%- renderCostDisplay(costAnalyticsValue.summary.averageCostPerBrew, 2) %></div>
