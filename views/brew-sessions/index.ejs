@@ -39,13 +39,6 @@
         return `Ratio 1:${session.brewRatio}`;
     }
 
-    function getGrinderDisplayText(session) {
-        const grinderName = session.grinderName || "-";
-        const grindSize = session.grindSize ? ` | ${session.grindSize}` : "";
-
-        return `${grinderName}${grindSize}`;
-    }
-
     function isBrewUnrated(session) {
         if (!session || session.overallRating === null || session.overallRating === undefined || session.overallRating === "") {
             return true;
@@ -314,6 +307,7 @@
                     <th>Brew Date</th>
                     <th>Bean</th>
                     <th>Grinder</th>
+                    <th>Grind Size</th>
                     <th>Brewer</th>
                     <th>Brew</th>
                     <th>Rating</th>
@@ -324,7 +318,7 @@
             <tbody>
                 <% if (sessions.length === 0) { %>
                     <tr>
-                        <td colspan="7" class="text-muted text-center py-4">
+                        <td colspan="8" class="text-muted text-center py-4">
                             No brew sessions found.
                         </td>
                     </tr>
@@ -351,7 +345,12 @@
 
                         <td>
                             <div class="brew-mobile-label">Grinder</div>
-                            <%= getGrinderDisplayText(session) %>
+                            <%= session.grinderName || "-" %>
+                        </td>
+
+                        <td>
+                            <div class="brew-mobile-label">Grind Size</div>
+                            <%= session.grindSize || "-" %>
                         </td>
 
                         <td>
