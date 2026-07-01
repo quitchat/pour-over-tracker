@@ -451,42 +451,15 @@ input:-ms-input-placeholder {
 .inventory-summary-card-header {
     align-items: center;
     display: flex;
-    gap: 1rem;
-    justify-content: space-between;
 }
 
 .inventory-summary-card-title {
     min-width: 0;
 }
 
-.inventory-summary-header-metrics {
-    align-items: center;
-    display: flex;
-    flex: 0 0 auto;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: flex-end;
-}
 
-.inventory-summary-header-pill {
-    align-items: baseline;
-    background: var(--bs-body-bg);
-    border: 1px solid var(--bs-border-color);
-    border-radius: 999px;
-    display: inline-flex;
-    gap: 0.35rem;
-    padding: 0.35rem 0.65rem;
-    white-space: nowrap;
-}
 
-.inventory-summary-header-value {
-    font-weight: 700;
-}
 
-.inventory-summary-header-label {
-    color: var(--bs-secondary-color);
-    font-size: 0.8rem;
-}
 
 @media (min-width: 992px) {
     .inventory-header-actions {
@@ -508,15 +481,6 @@ input:-ms-input-placeholder {
     .inventory-summary-card-header {
         align-items: stretch;
         flex-direction: column;
-    }
-
-    .inventory-summary-header-metrics {
-        justify-content: flex-start;
-    }
-
-    .inventory-summary-header-pill {
-        flex: 1 1 auto;
-        justify-content: center;
     }
 }
 

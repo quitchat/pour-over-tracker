@@ -47,17 +47,6 @@
                 Inventory Summary
             </span>
         </div>
-
-        <div class="inventory-summary-header-metrics">
-            <span class="inventory-summary-header-pill">
-                <span class="inventory-summary-header-value"><%= formatInventoryGrams(inventorySummary.totalAvailableGrams) %>g</span>
-                <span class="inventory-summary-header-label">available</span>
-            </span>
-            <span class="inventory-summary-header-pill">
-                <span class="inventory-summary-header-value"><%= inventorySummary.items.length %></span>
-                <span class="inventory-summary-header-label">record<%= inventorySummary.items.length === 1 ? "" : "s" %></span>
-            </span>
-        </div>
     </div>
 
     <div class="card-body">
