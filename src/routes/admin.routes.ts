@@ -865,6 +865,71 @@ router.post("/brew-suggestion-ai-prompt", async function (req: Request, res: Res
 });
 
 
+async function getOrphanedBeanPurchases() {
+    return await prisma.beanPurchase.findMany({
+        where: {
+            inventories: {
+                none: {}
+            }
+        },
+        include: {
+            bean: {
+                select: {
+                    id: true,
+                    beanName: true,
+                    roasterName: true
+                }
+            }
+        },
+        orderBy: {
+            createdAt: "desc"
+        }
+    });
+}
+
+router.get("/orphan-purchases", async function (req: Request, res: Response) {
+    const orphanedPurchases = await getOrphanedBeanPurchases();
+
+    res.render("admin/orphan-purchases", {
+        title: "Admin - Orphaned Replenishments",
+        orphanedPurchases: orphanedPurchases.map(function (purchase) {
+            return {
+                id: purchase.id,
+                beanId: purchase.beanId,
+                beanName: purchase.bean.beanName,
+                roasterName: purchase.bean.roasterName || "",
+                purchaseDate: formatDateTime(purchase.purchaseDate),
+                quantity: purchase.quantity,
+                currencyCode: purchase.currencyCode,
+                totalPaid: purchase.totalPaid === null ? "" : purchase.totalPaid.toString(),
+                createdAt: formatDateTime(purchase.createdAt)
+            };
+        }),
+        message: String(req.query.message || ""),
+        error: String(req.query.error || "")
+    });
+});
+
+router.post("/orphan-purchases/delete", async function (req: Request, res: Response) {
+    const confirmDelete = String(req.body.confirmDelete || "");
+
+    if (confirmDelete !== "DELETE") {
+        res.redirect("/admin/orphan-purchases?error=Type%20DELETE%20to%20confirm%20orphaned%20replenishment%20cleanup.");
+        return;
+    }
+
+    const result = await prisma.beanPurchase.deleteMany({
+        where: {
+            inventories: {
+                none: {}
+            }
+        }
+    });
+
+    res.redirect(`/admin/orphan-purchases?message=${encodeURIComponent(`${result.count} orphaned replenish record${result.count === 1 ? "" : "s"} deleted.`)}`);
+});
+
+
 router.get("/database", function (req: Request, res: Response) {
     const databaseInfo = getDatabaseBackupInfo();
 

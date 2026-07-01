@@ -136,6 +136,7 @@
 - Admin Database section
 - Admin-only PostgreSQL backup creation
 - Downloadable database backup from the admin area
+- Admin-only orphaned replenishment cleanup screen
 - Backup-focused database administration without database editing tools
 
 ## AI Logging, Costing, and Administration
