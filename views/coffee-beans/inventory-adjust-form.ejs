@@ -3,6 +3,7 @@
     const submitText = typeof submitLabel !== "undefined" ? submitLabel : "Save Adjustment";
     const adjustmentRows = typeof adjustmentHistory !== "undefined" && adjustmentHistory ? adjustmentHistory : (inventory.adjustments || []);
     const currentEditingAdjustmentId = typeof editingAdjustmentId !== "undefined" ? editingAdjustmentId : null;
+    const remainingNowAdjustmentValue = 0 - Number(remainingGrams || 0);
     function displayAdjustmentGrams(value) {
         const numberValue = Number(value || 0);
         if (Math.abs(numberValue - Math.round(numberValue)) < 0.005) {
@@ -47,11 +48,6 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label for="adjustmentGrams" class="form-label">Adjustment Grams</label>
-                            <input type="number" step="0.01" class="form-control" id="adjustmentGrams" name="adjustmentGrams" value="<%= formData.adjustmentGrams || "" %>">
-                            <div class="form-text">Use positive or negative grams, for example +20 or -8.</div>
-                        </div>
-                        <div class="col-12">
                             <label for="reason" class="form-label">Reason</label>
                             <select class="form-select" id="reason" name="reason">
                                 <option value="BREWED_NOT_LOGGED" <%= formData.reason === "BREWED_NOT_LOGGED" ? "selected" : "" %>>Brewed but not logged</option>
@@ -60,6 +56,11 @@
                                 <option value="FINISHED_LEFTOVER" <%= formData.reason === "FINISHED_LEFTOVER" ? "selected" : "" %>>Finished / mixed with another bean</option>
                                 <option value="OTHER" <%= formData.reason === "OTHER" ? "selected" : "" %>>Other</option>
                             </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="adjustmentGrams" class="form-label">Adjustment Grams</label>
+                            <input type="number" step="0.01" class="form-control" id="adjustmentGrams" name="adjustmentGrams" value="<%= formData.adjustmentGrams || "" %>" data-finished-adjustment-grams="<%= displayAdjustmentGrams(remainingNowAdjustmentValue) %>">
+                            <div class="form-text">Use positive or negative grams, for example +20 or -8.</div>
                         </div>
                         <div class="col-12">
                             <label for="notes" class="form-label">Notes</label>
@@ -123,3 +124,26 @@
         </div>
     </div>
 </div>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const reasonSelect = document.getElementById("reason");
+        const adjustmentInput = document.getElementById("adjustmentGrams");
+
+        if (!reasonSelect || !adjustmentInput) {
+            return;
+        }
+
+        reasonSelect.addEventListener("change", function () {
+            if (reasonSelect.value !== "FINISHED_LEFTOVER") {
+                return;
+            }
+
+            adjustmentInput.value = adjustmentInput.dataset.finishedAdjustmentGrams || "";
+            adjustmentInput.dispatchEvent(new Event("input", { bubbles: true }));
+            adjustmentInput.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+    });
+</script>
+
