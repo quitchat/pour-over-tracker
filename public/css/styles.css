@@ -168,13 +168,19 @@ input:-ms-input-placeholder {
     transform: translateY(-2px);
 }
 
+.dashboard-summary-card,
+.analytics-summary-card,
 .recent-brew-clickable-row,
-.analytics-recent-brew-clickable-row {
+.analytics-recent-brew-clickable-row,
+.analytics-cost-clickable-row,
+.analytics-inventory-clickable-row {
     cursor: pointer;
 }
 
 .recent-brew-clickable-row:focus,
-.analytics-recent-brew-clickable-row:focus {
+.analytics-recent-brew-clickable-row:focus,
+.analytics-cost-clickable-row:focus,
+.analytics-inventory-clickable-row:focus {
     outline: 2px solid var(--bs-primary);
     outline-offset: -2px;
 }
