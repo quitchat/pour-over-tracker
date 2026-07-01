@@ -131,7 +131,7 @@
             background: #fff;
         }
 
-        .radar-score-value-pill span {
+        .radar-score-value-pill .radar-score-label {
             display: block;
             color: #6c757d;
             font-size: 0.85rem;
@@ -140,6 +140,11 @@
         .radar-score-value-pill strong {
             display: block;
             font-size: 1rem;
+            white-space: nowrap;
+        }
+
+        .radar-score-value-pill .radar-score-current {
+            display: inline;
         }
 
         @media (max-width: 575.98px) {
@@ -191,28 +196,28 @@
                     <div class="col-lg-5">
                         <div class="radar-score-value-grid">
                             <div class="radar-score-value-pill">
-                                <span>Richness</span>
-                                <strong><span id="richnessValue"><%= formData.richness || '3' %></span> / 5</strong>
+                                <span class="radar-score-label">Richness</span>
+                                <strong><span class="radar-score-current" id="richnessValue"><%= formData.richness || '3' %></span>/5</strong>
                             </div>
 
                             <div class="radar-score-value-pill">
-                                <span>Sweetness</span>
-                                <strong><span id="sweetnessValue"><%= formData.sweetness || '3' %></span> / 5</strong>
+                                <span class="radar-score-label">Sweetness</span>
+                                <strong><span class="radar-score-current" id="sweetnessValue"><%= formData.sweetness || '3' %></span>/5</strong>
                             </div>
 
                             <div class="radar-score-value-pill">
-                                <span>Aftertaste</span>
-                                <strong><span id="aftertasteValue"><%= formData.aftertaste || '3' %></span> / 5</strong>
+                                <span class="radar-score-label">Aftertaste</span>
+                                <strong><span class="radar-score-current" id="aftertasteValue"><%= formData.aftertaste || '3' %></span>/5</strong>
                             </div>
 
                             <div class="radar-score-value-pill">
-                                <span>Aroma</span>
-                                <strong><span id="aromaValue"><%= formData.aroma || '3' %></span> / 5</strong>
+                                <span class="radar-score-label">Aroma</span>
+                                <strong><span class="radar-score-current" id="aromaValue"><%= formData.aroma || '3' %></span>/5</strong>
                             </div>
 
                             <div class="radar-score-value-pill">
-                                <span>Acidity</span>
-                                <strong><span id="acidityValue"><%= formData.acidity || '3' %></span> / 5</strong>
+                                <span class="radar-score-label">Acidity</span>
+                                <strong><span class="radar-score-current" id="acidityValue"><%= formData.acidity || '3' %></span>/5</strong>
                             </div>
                         </div>
 
