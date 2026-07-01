@@ -262,89 +262,105 @@
 
     <div class="tab-content" id="analyticsDetailTabContent">
         <div class="tab-pane fade show active" id="inventory-summary-pane" role="tabpanel" aria-labelledby="inventory-summary-tab" tabindex="0">
-        <div class="row g-3 mb-4">
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 analytics-stat-card">
-                    <div class="card-body">
-                        <div class="text-muted small">Total Coffee On Hand</div>
-                        <div class="h4 fw-semibold mb-1"><%= formatNumber(inventoryAnalyticsValue.summary.totalCoffeeOnHandGrams, 1) %>g</div>
-                        <div class="small text-muted">Across <%= inventoryAnalyticsValue.summary.beanCountWithInventory %> beans</div>
+        <div class="inventory-summary-header mb-4">
+            <div class="row g-3 g-lg-4 mb-3 inventory-summary-feature-row">
+                <div class="col-12 col-lg-7">
+                    <div class="card h-100 analytics-stat-card inventory-summary-card inventory-summary-feature-card">
+                        <div class="card-body">
+                            <div class="inventory-summary-kicker">Current inventory</div>
+                            <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+                                <div>
+                                    <div class="text-muted small mb-1">Total Coffee On Hand</div>
+                                    <div class="inventory-summary-primary-value"><%= formatNumber(inventoryAnalyticsValue.summary.totalCoffeeOnHandGrams, 1) %>g</div>
+                                </div>
+                                <div class="inventory-summary-meta-box">
+                                    <span class="inventory-summary-meta-value"><%= inventoryAnalyticsValue.summary.beanCountWithInventory %></span>
+                                    <span class="inventory-summary-meta-label">beans</span>
+                                </div>
+                            </div>
+                            <div class="small text-muted mt-2">Across all current inventory bags and balances.</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 analytics-stat-card">
-                    <div class="card-body">
-                        <div class="text-muted small">Beans Running Low</div>
-                        <div class="h4 fw-semibold mb-1"><%= inventoryAnalyticsValue.summary.lowBeanCount %> beans low</div>
-                        <div class="small text-muted">
-                            ≤ <%= inventoryAnalyticsValue.lowStockThresholdGrams %>g, plus <%= inventoryAnalyticsValue.summary.outOfStockBeanCount %> out of stock
+                <div class="col-12 col-lg-5">
+                    <div class="card h-100 analytics-stat-card inventory-summary-card inventory-summary-feature-card">
+                        <div class="card-body">
+                            <div class="inventory-summary-kicker">Estimated value</div>
+                            <div class="text-muted small mb-1">Inventory Value Estimate</div>
+                            <div class="inventory-summary-primary-value"><%- renderCostDisplay(inventoryAnalyticsValue.summary.inventoryValueEstimate, 2) %></div>
+                            <div class="mt-2">
+                                <%- renderInventoryValueCoverage(inventoryAnalyticsValue.summary.inventoryValueEstimate) %>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 analytics-stat-card">
-                    <div class="card-body">
-                        <div class="text-muted small">Oldest Inventory</div>
-                        <% if (inventoryAnalyticsValue.summary.oldestInventory) { %>
-                            <div class="fw-semibold mb-1">
-                                <a href="/coffee-beans/<%= inventoryAnalyticsValue.summary.oldestInventory.beanId %>/inventory" class="text-decoration-none">
-                                    <%= inventoryAnalyticsValue.summary.oldestInventory.beanName %>
-                                </a>
-                            </div>
+            <div class="row g-3 inventory-summary-secondary-row">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 analytics-stat-card inventory-summary-card">
+                        <div class="card-body">
+                            <div class="text-muted small">Beans Running Low</div>
+                            <div class="inventory-summary-secondary-value"><%= inventoryAnalyticsValue.summary.lowBeanCount %> beans low</div>
                             <div class="small text-muted">
-                                <% if (inventoryAnalyticsValue.summary.oldestInventory.roasterName) { %><%= inventoryAnalyticsValue.summary.oldestInventory.roasterName %> · <% } %>
-                                <%= formatAge(inventoryAnalyticsValue.summary.oldestInventory.ageDays) %> · <%= formatNumber(inventoryAnalyticsValue.summary.oldestInventory.remainingGrams, 1) %>g left
+                                ≤ <%= inventoryAnalyticsValue.lowStockThresholdGrams %>g, plus <%= inventoryAnalyticsValue.summary.outOfStockBeanCount %> out of stock
                             </div>
-                        <% } else { %>
-                            <div class="h4 fw-semibold mb-1 text-muted">—</div>
-                            <div class="small text-muted">No current inventory</div>
-                        <% } %>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 analytics-stat-card">
-                    <div class="card-body">
-                        <div class="text-muted small">Inventory Value Estimate</div>
-                        <div class="h4 fw-semibold mb-1"><%- renderCostDisplay(inventoryAnalyticsValue.summary.inventoryValueEstimate, 2) %></div>
-                        <%- renderInventoryValueCoverage(inventoryAnalyticsValue.summary.inventoryValueEstimate) %>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 analytics-stat-card inventory-summary-card">
+                        <div class="card-body">
+                            <div class="text-muted small">Coffee Consumed This Month</div>
+                            <div class="inventory-summary-secondary-value"><%= formatNumber(inventoryAnalyticsValue.summary.coffeeConsumedThisMonthGrams, 1) %>g</div>
+                            <div class="small text-muted">All brews this month</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 analytics-stat-card">
-                    <div class="card-body">
-                        <div class="text-muted small">Coffee Consumed This Month</div>
-                        <div class="h4 fw-semibold mb-1"><%= formatNumber(inventoryAnalyticsValue.summary.coffeeConsumedThisMonthGrams, 1) %>g</div>
-                        <div class="small text-muted">All brews this month</div>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 analytics-stat-card inventory-summary-card">
+                        <div class="card-body">
+                            <div class="text-muted small">Oldest Inventory</div>
+                            <% if (inventoryAnalyticsValue.summary.oldestInventory) { %>
+                                <div class="inventory-summary-secondary-value inventory-summary-link-value">
+                                    <a href="/coffee-beans/<%= inventoryAnalyticsValue.summary.oldestInventory.beanId %>/inventory" class="text-decoration-none">
+                                        <%= inventoryAnalyticsValue.summary.oldestInventory.beanName %>
+                                    </a>
+                                </div>
+                                <div class="small text-muted">
+                                    <% if (inventoryAnalyticsValue.summary.oldestInventory.roasterName) { %><%= inventoryAnalyticsValue.summary.oldestInventory.roasterName %> · <% } %>
+                                    <%= formatAge(inventoryAnalyticsValue.summary.oldestInventory.ageDays) %> · <%= formatNumber(inventoryAnalyticsValue.summary.oldestInventory.remainingGrams, 1) %>g left
+                                </div>
+                            <% } else { %>
+                                <div class="inventory-summary-secondary-value text-muted">—</div>
+                                <div class="small text-muted">No current inventory</div>
+                            <% } %>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-12 col-md-6 col-xl-4">
-                <div class="card h-100 analytics-stat-card">
-                    <div class="card-body">
-                        <div class="text-muted small">Most Recently Replenished</div>
-                        <% if (inventoryAnalyticsValue.summary.mostRecentlyReplenished) { %>
-                            <div class="fw-semibold mb-1">
-                                <a href="/coffee-beans/<%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.beanId %>/inventory" class="text-decoration-none">
-                                    <%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.beanName %>
-                                </a>
-                            </div>
-                            <div class="small text-muted">
-                                <% if (inventoryAnalyticsValue.summary.mostRecentlyReplenished.roasterName) { %><%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.roasterName %> · <% } %>
-                                added <%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.replenishedDate %>
-                            </div>
-                        <% } else { %>
-                            <div class="h4 fw-semibold mb-1 text-muted">—</div>
-                            <div class="small text-muted">No replenishments yet</div>
-                        <% } %>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <div class="card h-100 analytics-stat-card inventory-summary-card">
+                        <div class="card-body">
+                            <div class="text-muted small">Most Recently Replenished</div>
+                            <% if (inventoryAnalyticsValue.summary.mostRecentlyReplenished) { %>
+                                <div class="inventory-summary-secondary-value inventory-summary-link-value">
+                                    <a href="/coffee-beans/<%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.beanId %>/inventory" class="text-decoration-none">
+                                        <%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.beanName %>
+                                    </a>
+                                </div>
+                                <div class="small text-muted">
+                                    <% if (inventoryAnalyticsValue.summary.mostRecentlyReplenished.roasterName) { %><%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.roasterName %> · <% } %>
+                                    added <%= inventoryAnalyticsValue.summary.mostRecentlyReplenished.replenishedDate %>
+                                </div>
+                            <% } else { %>
+                                <div class="inventory-summary-secondary-value text-muted">—</div>
+                                <div class="small text-muted">No replenishments yet</div>
+                            <% } %>
+                        </div>
                     </div>
                 </div>
             </div>
