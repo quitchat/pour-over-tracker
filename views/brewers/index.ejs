@@ -47,15 +47,7 @@
                                 <%= brewer.name %>
                                 <% if (brewer.locationName || (brewer.latitude !== null && brewer.longitude !== null)) { %>
                                     <% const brewerMapUrl = brewer.latitude !== null && brewer.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(brewer.latitude) + "," + String(brewer.longitude)) : ""; %>
-                                    <span class="fw-normal text-muted">
-                                        (
-                                        <% if (brewerMapUrl) { %>
-                                            <i class="bi bi-geo-alt-fill me-1" aria-hidden="true"></i><a href="<%= brewerMapUrl %>" target="_blank" rel="noopener noreferrer" class="text-muted"><%= brewer.locationName || "Open map" %></a>
-                                        <% } else { %>
-                                            <%= brewer.locationName %>
-                                        <% } %>
-                                        )
-                                    </span>
+                                    <span class="fw-normal equipment-location-inline">(<% if (brewerMapUrl) { %><a href="<%= brewerMapUrl %>" target="_blank" rel="noopener noreferrer"><i class="bi bi-geo-alt-fill me-1" aria-hidden="true"></i><%= brewer.locationName || "Open map" %></a><% } else { %><%= brewer.locationName %><% } %>)</span>
                                 <% } %>
                             </div>
                             <% if (brewer.brewerType) { %>

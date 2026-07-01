@@ -47,15 +47,7 @@
                                 <%= grinder.name %>
                                 <% if (grinder.locationName || (grinder.latitude !== null && grinder.longitude !== null)) { %>
                                     <% const grinderMapUrl = grinder.latitude !== null && grinder.longitude !== null ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(grinder.latitude) + "," + String(grinder.longitude)) : ""; %>
-                                    <span class="fw-normal text-muted">
-                                        (
-                                        <% if (grinderMapUrl) { %>
-                                            <i class="bi bi-geo-alt-fill me-1" aria-hidden="true"></i><a href="<%= grinderMapUrl %>" target="_blank" rel="noopener noreferrer" class="text-muted"><%= grinder.locationName || "Open map" %></a>
-                                        <% } else { %>
-                                            <%= grinder.locationName %>
-                                        <% } %>
-                                        )
-                                    </span>
+                                    <span class="fw-normal equipment-location-inline">(<% if (grinderMapUrl) { %><a href="<%= grinderMapUrl %>" target="_blank" rel="noopener noreferrer"><i class="bi bi-geo-alt-fill me-1" aria-hidden="true"></i><%= grinder.locationName || "Open map" %></a><% } else { %><%= grinder.locationName %><% } %>)</span>
                                 <% } %>
                             </div>
                             <div class="small text-muted d-md-none">

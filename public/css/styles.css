@@ -951,3 +951,20 @@ input:-ms-input-placeholder {
         line-height: 1.15;
     }
 }
+
+
+.equipment-location-inline {
+    color: var(--bs-link-color);
+    white-space: nowrap;
+}
+
+.equipment-location-inline a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.equipment-location-inline a:hover,
+.equipment-location-inline a:focus {
+    color: var(--bs-link-hover-color);
+    text-decoration: underline;
+}
