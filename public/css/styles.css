@@ -38,6 +38,42 @@ main.container {
     font-weight: 500;
 }
 
+/* Global placeholder / hint text */
+.form-control::placeholder,
+.form-select::placeholder,
+textarea::placeholder,
+input::placeholder {
+    color: rgba(var(--bs-secondary-color-rgb), 0.42);
+    opacity: 1;
+}
+
+.form-control::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder,
+input::-webkit-input-placeholder {
+    color: rgba(var(--bs-secondary-color-rgb), 0.42);
+    opacity: 1;
+}
+
+.form-control::-moz-placeholder,
+textarea::-moz-placeholder,
+input::-moz-placeholder {
+    color: rgba(var(--bs-secondary-color-rgb), 0.42);
+    opacity: 1;
+}
+
+.form-control:-ms-input-placeholder,
+textarea:-ms-input-placeholder,
+input:-ms-input-placeholder {
+    color: rgba(var(--bs-secondary-color-rgb), 0.42);
+    opacity: 1;
+}
+
+.form-text,
+.text-hint {
+    color: rgba(var(--bs-secondary-color-rgb), 0.72) !important;
+}
+
+
 .min-width-0 {
     min-width: 0;
 }
