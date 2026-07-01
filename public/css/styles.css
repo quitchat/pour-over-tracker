@@ -437,6 +437,17 @@ input:-ms-input-placeholder {
     flex: 1 1 auto;
 }
 
+
+.inventory-bean-name-line {
+    max-width: 100%;
+}
+
+.inventory-bean-name-link {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+
 .inventory-summary-card-header {
     align-items: center;
     display: flex;
