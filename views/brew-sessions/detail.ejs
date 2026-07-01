@@ -20,6 +20,19 @@
 
 
 
+    function getGrinderDisplayText(session) {
+        if (!session) {
+            return "-";
+        }
+
+        const grinderName = session.grinderName || "-";
+        const grindSize = session.grindSize ? " | " + session.grindSize : "";
+
+        return grinderName + grindSize;
+    }
+
+
+
     function getBrewSummaryText(session) {
         const dose = session.coffeeDoseGrams ? `${session.coffeeDoseGrams}g` : "-";
         const totalYield = session.totalYieldGrams ? `${session.totalYieldGrams}g` : "-";
@@ -161,7 +174,7 @@
                         <dd class="col-sm-8"><%= formatDisplayValue(session.brewDate) %></dd>
 
                         <dt class="col-sm-4">Grinder</dt>
-                        <dd class="col-sm-8"><%= formatDisplayValue(session.grinderName) %></dd>
+                        <dd class="col-sm-8"><%= getGrinderDisplayText(session) %></dd>
 
                         <dt class="col-sm-4">Brewer</dt>
                         <dd class="col-sm-8"><%= formatDisplayValue(session.brewerName) %></dd>
@@ -173,9 +186,6 @@
                                 <div class="text-muted small"><%= getBrewSummarySubtext(session) %></div>
                             <% } %>
                         </dd>
-
-                        <dt class="col-sm-4">Grind Size</dt>
-                        <dd class="col-sm-8"><%= formatDisplayValue(session.grindSize) %></dd>
 
                         <dt class="col-sm-4">Overall Rating</dt>
                         <dd class="col-sm-8"><%- buildRatingStars(session.overallRating) %></dd>
