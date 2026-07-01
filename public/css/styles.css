@@ -774,6 +774,12 @@ main.container {
     box-shadow: 0 0.125rem 0.35rem rgba(0, 0, 0, 0.04);
 }
 
+
+.analytics-top-summary-number {
+    font-size: 3rem;
+    line-height: 1;
+}
+
 @media (max-width: 767.98px) {
     .analytics-top-summary-row {
         flex-wrap: nowrap;
@@ -788,9 +794,9 @@ main.container {
         text-align: center;
     }
 
-    .analytics-top-summary-card .display-6 {
-        font-size: 1.35rem;
-        line-height: 1.15;
+    .analytics-top-summary-card .analytics-top-summary-number {
+        font-size: 1.75rem;
+        line-height: 1.05;
     }
 
     .analytics-top-summary-card .small {

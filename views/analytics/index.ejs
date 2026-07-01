@@ -208,8 +208,7 @@
         <a href="/brew-sessions" class="card h-100 text-decoration-none text-reset analytics-summary-card analytics-top-summary-card">
             <div class="card-body">
                 <div class="text-muted small">Total Brews</div>
-                <div class="display-6 fw-semibold"><%= summaryValue.totalBrews %></div>
-                <div class="small text-primary">View brews</div>
+                <div class="display-6 fw-semibold analytics-top-summary-number"><%= summaryValue.totalBrews %></div>
             </div>
         </a>
     </div>
@@ -218,7 +217,7 @@
         <div class="card h-100 analytics-top-summary-card">
             <div class="card-body">
                 <div class="text-muted small">Average Rating</div>
-                <div class="display-6 fw-semibold"><%= summaryValue.averageRating %></div>
+                <div class="display-6 fw-semibold analytics-top-summary-number"><%= summaryValue.averageRating %></div>
                 <div class="text-muted small">out of 5</div>
             </div>
         </div>
@@ -229,11 +228,10 @@
         <a href="/coffee-beans" class="card h-100 text-decoration-none text-reset analytics-summary-card analytics-top-summary-card">
             <div class="card-body">
                 <div class="text-muted small">Beans</div>
-                <div class="display-6 fw-semibold"><%= summaryValue.totalBeans %></div>
+                <div class="display-6 fw-semibold analytics-top-summary-number"><%= summaryValue.totalBeans %></div>
                 <div class="text-muted small">
                     <%= summaryValue.activeBeans %> active / <%= summaryValue.inactiveBeans %> inactive
                 </div>
-                <div class="small text-primary">View beans</div>
             </div>
         </a>
     </div>
