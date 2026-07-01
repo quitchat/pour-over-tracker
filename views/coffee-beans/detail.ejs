@@ -114,6 +114,26 @@
         font-size: 0.875rem;
     }
 
+    .bean-detail-actions .btn,
+    .bean-detail-actions button {
+        white-space: nowrap;
+    }
+
+    @media (min-width: 992px) {
+        .bean-detail-actions {
+            align-items: center;
+            flex-wrap: nowrap !important;
+            justify-content: flex-end;
+            margin-left: auto;
+        }
+
+        .bean-detail-actions form {
+            display: inline-flex;
+            flex: 0 0 auto;
+            margin: 0;
+        }
+    }
+
     @media (max-width: 991.98px) {
         .bean-detail-header {
             align-items: stretch !important;
@@ -168,7 +188,7 @@
         </p>
     </div>
 
-    <div class="d-flex gap-2 flex-wrap bean-detail-actions">
+    <div class="d-flex gap-2 flex-wrap flex-lg-nowrap justify-content-lg-end bean-detail-actions">
         <% if (coffeeBean.isActive) { %>
             <a href="/brew-sessions/new?coffeeBeanId=<%= coffeeBean.id %>" class="btn btn-outline-success">
                 <i class="bi bi-plus-circle me-1"></i>
