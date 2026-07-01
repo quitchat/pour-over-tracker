@@ -153,6 +153,16 @@ input:-ms-input-placeholder {
     align-items: center;
 }
 
+
+.analytics-help-label {
+    cursor: help;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+    text-decoration: underline dotted;
+    text-underline-offset: 0.2rem;
+}
+
 /* Dashboard / Analytics clickable cards */
 .dashboard-summary-card,
 .analytics-summary-card {
