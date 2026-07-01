@@ -1,10 +1,10 @@
-<div class="d-flex justify-content-between align-items-center mb-3 gap-3 flex-column flex-lg-row">
-    <div>
+<div class="inventory-page-header d-flex justify-content-between align-items-start align-items-lg-center mb-4 gap-3 flex-column flex-lg-row">
+    <div class="inventory-page-title min-width-0">
         <h1 class="h3 mb-1">
             <i class="bi bi-box-seam me-2"></i>
             Inventory
         </h1>
-        <p class="text-muted mb-0">
+        <p class="text-muted mb-0 text-truncate">
             <a href="/coffee-beans/<%= coffeeBean.id %>" class="text-decoration-none">
                 <%= coffeeBean.roasterName ? coffeeBean.roasterName + " - " : "" %><%= coffeeBean.beanName %>
             </a>
@@ -40,15 +40,24 @@
 <% } %>
 
 <div class="card mb-4 inventory-section-card">
-    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
+    <div class="card-header inventory-summary-card-header">
+        <div class="inventory-summary-card-title">
             <span class="fw-semibold">
                 <i class="bi bi-box-seam me-1"></i>
                 Inventory Summary
             </span>
-            <div class="small text-muted">
-                <%= formatInventoryGrams(inventorySummary.totalAvailableGrams) %>g available · <%= inventorySummary.items.length %> record<%= inventorySummary.items.length === 1 ? "" : "s" %>
-            </div>
+            <div class="small text-muted">Current bean inventory snapshot.</div>
+        </div>
+
+        <div class="inventory-summary-header-metrics">
+            <span class="inventory-summary-header-pill">
+                <span class="inventory-summary-header-value"><%= formatInventoryGrams(inventorySummary.totalAvailableGrams) %>g</span>
+                <span class="inventory-summary-header-label">available</span>
+            </span>
+            <span class="inventory-summary-header-pill">
+                <span class="inventory-summary-header-value"><%= inventorySummary.items.length %></span>
+                <span class="inventory-summary-header-label">record<%= inventorySummary.items.length === 1 ? "" : "s" %></span>
+            </span>
         </div>
     </div>
 
