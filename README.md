@@ -196,3 +196,5 @@ npm run inventory:backfill-links:apply
 ```
 
 Optional filters are available through the underlying script, such as `--user-id=<id>`, `--bean-id=<id>`, and `--overwrite`.
+
+Local development is managed with VS Code on Windows.
