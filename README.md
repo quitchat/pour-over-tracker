@@ -92,6 +92,7 @@
 - Tasting note tracking
 - Free-form brew comments saved with each brew session
 - Brew-session scoring separate from bean-level rating
+- Rating-only workflow for saved unrated brews
 - Radar-chart tasting visualization
 - Brew session duplication workflow
 - Brew detail previous/next navigation with mobile swipe support

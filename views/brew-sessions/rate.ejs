@@ -1,0 +1,701 @@
+<%
+    const errorsValue = typeof errors !== "undefined" ? errors : [];
+    const session = typeof brewSession !== "undefined" ? brewSession : null;
+
+    function getBrewSummaryText(session) {
+        const dose = session.coffeeDoseGrams ? `${session.coffeeDoseGrams}g` : "-";
+        const totalYield = session.totalYieldGrams ? `${session.totalYieldGrams}g` : "-";
+        const waterTemperature = session.waterTemperatureC ? ` @ ${session.waterTemperatureC}${session.waterTemperatureUnit || "°C"}` : "";
+        const totalBrewTime = session.totalBrewTime ? ` over ${session.totalBrewTime}` : "";
+
+        if (dose === "-" && totalYield === "-" && !waterTemperature && !totalBrewTime) {
+            return "-";
+        }
+
+        return `${dose} → ${totalYield}${waterTemperature}${totalBrewTime}`;
+    }
+%>
+
+<% if (!session) { %>
+    <div class="alert alert-danger">
+        Brew session was not found.
+    </div>
+<% } else { %>
+    <div class="d-flex justify-content-between align-items-start align-items-md-center mb-3 gap-3 flex-column flex-md-row">
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="bi bi-star me-2"></i>
+                Rate Brew
+            </h1>
+            <p class="text-muted mb-0">
+                <%= session.coffeeBeanName %> · <%= session.brewDate %> · <%= getBrewSummaryText(session) %>
+            </p>
+        </div>
+
+        <a href="/brew-sessions/<%= session.id %>" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>
+            Back to Brew
+        </a>
+    </div>
+
+    <% if (errorsValue && errorsValue.length > 0) { %>
+        <div class="alert alert-danger">
+            <strong>Please fix the following:</strong>
+            <ul class="mb-0">
+                <% errorsValue.forEach(function (error) { %>
+                    <li><%= error %></li>
+                <% }); %>
+            </ul>
+        </div>
+    <% } %>
+
+    <style>
+        .star-rating-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.15rem;
+        }
+
+        .star-rating-button {
+            position: relative;
+            width: 2.1rem;
+            height: 2.1rem;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .star-rating-button:focus-visible {
+            outline: 2px solid var(--bs-primary);
+            outline-offset: 2px;
+            border-radius: 0.35rem;
+        }
+
+        .star-rating-empty,
+        .star-rating-filled {
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-size: 2rem;
+        }
+
+        .star-rating-empty {
+            color: #dee2e6;
+        }
+
+        .star-rating-filled {
+            color: #ffc107;
+            width: var(--star-fill-width, 0%);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .star-rating-button:hover .star-rating-empty {
+            color: #f8e9b0;
+        }
+
+        .radar-score-editor {
+            position: relative;
+            max-width: 520px;
+            margin: 0 auto;
+            touch-action: none;
+        }
+
+        .radar-score-editor canvas {
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .radar-score-editor.is-radar-dragging canvas {
+            cursor: grabbing;
+        }
+
+        .radar-score-editor canvas:focus-visible {
+            outline: 2px solid var(--bs-primary);
+            outline-offset: 4px;
+            border-radius: 0.5rem;
+        }
+
+        .radar-score-value-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        .radar-score-value-pill {
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            background: #fff;
+        }
+
+        .radar-score-value-pill span {
+            display: block;
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+
+        .radar-score-value-pill strong {
+            display: block;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 575.98px) {
+            .star-rating-button {
+                width: 1.85rem;
+                height: 1.85rem;
+            }
+
+            .star-rating-empty,
+            .star-rating-filled {
+                font-size: 1.75rem;
+            }
+
+            .radar-score-value-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <form method="post" action="<%= formAction %>">
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-activity me-1"></i>
+                Brew Rating
+            </div>
+
+            <div class="card-body">
+                <p class="text-muted">
+                    Score this specific brew from 1 to 5 by clicking or dragging directly on the pentagon radar chart.
+                </p>
+
+                <input type="hidden" class="tasting-score-input" id="richness" name="richness" value="<%= formData.richness || '3' %>">
+                <input type="hidden" class="tasting-score-input" id="sweetness" name="sweetness" value="<%= formData.sweetness || '3' %>">
+                <input type="hidden" class="tasting-score-input" id="aftertaste" name="aftertaste" value="<%= formData.aftertaste || '3' %>">
+                <input type="hidden" class="tasting-score-input" id="aroma" name="aroma" value="<%= formData.aroma || '3' %>">
+                <input type="hidden" class="tasting-score-input" id="acidity" name="acidity" value="<%= formData.acidity || '3' %>">
+
+                <div class="row g-4 align-items-center">
+                    <div class="col-lg-7">
+                        <div class="radar-score-editor" id="brewCharacteristicsRadarEditor">
+                            <canvas
+                                id="brewCharacteristicsRadarChart"
+                                height="260"
+                                tabindex="0"
+                                aria-label="Interactive brew characteristics pentagon radar score editor"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-5">
+                        <div class="radar-score-value-grid">
+                            <div class="radar-score-value-pill">
+                                <span>Richness</span>
+                                <strong><span id="richnessValue"><%= formData.richness || '3' %></span> / 5</strong>
+                            </div>
+
+                            <div class="radar-score-value-pill">
+                                <span>Sweetness</span>
+                                <strong><span id="sweetnessValue"><%= formData.sweetness || '3' %></span> / 5</strong>
+                            </div>
+
+                            <div class="radar-score-value-pill">
+                                <span>Aftertaste</span>
+                                <strong><span id="aftertasteValue"><%= formData.aftertaste || '3' %></span> / 5</strong>
+                            </div>
+
+                            <div class="radar-score-value-pill">
+                                <span>Aroma</span>
+                                <strong><span id="aromaValue"><%= formData.aroma || '3' %></span> / 5</strong>
+                            </div>
+
+                            <div class="radar-score-value-pill">
+                                <span>Acidity</span>
+                                <strong><span id="acidityValue"><%= formData.acidity || '3' %></span> / 5</strong>
+                            </div>
+                        </div>
+
+                        <div class="form-text mt-3">
+                            Tip: tap near an axis to set that score. Drag a blue point to fine-tune it.
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="row g-3 align-items-start">
+                    <div class="col-lg-5">
+                        <label class="form-label d-flex justify-content-between align-items-center" for="overallRating">
+                            <span>Overall Rating</span>
+                            <span class="text-muted small" id="overallRatingDisplay">No rating</span>
+                        </label>
+
+                        <input
+                            type="hidden"
+                            id="overallRating"
+                            name="overallRating"
+                            value="<%= formData.overallRating || "" %>">
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="star-rating-control" id="overallRatingStars" role="radiogroup" aria-label="Overall rating">
+                                <% [1, 2, 3, 4, 5].forEach(function (starNumber) { %>
+                                    <button
+                                        type="button"
+                                        class="star-rating-button"
+                                        data-star-number="<%= starNumber %>"
+                                        aria-label="Rate <%= starNumber %> star">
+                                        <i class="bi bi-star-fill star-rating-empty"></i>
+                                        <i class="bi bi-star-fill star-rating-filled"></i>
+                                    </button>
+                                <% }); %>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearOverallRatingButton">
+                                Clear
+                            </button>
+                        </div>
+
+                        <div class="form-text">
+                            Click the left half of a star for a half-star rating, or the right half for a full star.
+                        </div>
+                    </div>
+
+                    <div class="col-lg-7">
+                        <label for="brewComments" class="form-label">Brew Comments</label>
+                        <textarea
+                            class="form-control"
+                            id="brewComments"
+                            name="brewComments"
+                            rows="4"
+                            placeholder="Your tasting notes, what you liked, what felt off, or anything to remember about this brew."><%= formData.brewComments || "" %></textarea>
+                        <div class="form-text">
+                            Your comments are saved with this brew and included as context for future AI recipe suggestions.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i>
+                Save Rating
+            </button>
+
+            <a href="/brew-sessions/<%= session.id %>" class="btn btn-outline-secondary">
+                Cancel
+            </a>
+        </div>
+    </form>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const radarScoreFields = [
+                { id: "richness", label: "Richness", outputId: "richnessValue" },
+                { id: "sweetness", label: "Sweetness", outputId: "sweetnessValue" },
+                { id: "aftertaste", label: "Aftertaste", outputId: "aftertasteValue" },
+                { id: "aroma", label: "Aroma", outputId: "aromaValue" },
+                { id: "acidity", label: "Acidity", outputId: "acidityValue" }
+            ];
+
+            const radarChartElement = document.getElementById("brewCharacteristicsRadarChart");
+            let brewCharacteristicsRadarChart = null;
+            let isDraggingRadarScore = false;
+
+            function clampRadarScore(value) {
+                const parsed = Number(value);
+
+                if (Number.isNaN(parsed)) {
+                    return 3;
+                }
+
+                return Math.max(1, Math.min(5, Math.round(parsed)));
+            }
+
+            function getRadarScoreValues() {
+                return radarScoreFields.map(function (field) {
+                    const input = document.getElementById(field.id);
+                    return clampRadarScore(input ? input.value : 3);
+                });
+            }
+
+            function updateRadarScoreEditor() {
+                radarScoreFields.forEach(function (field) {
+                    const input = document.getElementById(field.id);
+                    const output = document.getElementById(field.outputId);
+                    const value = clampRadarScore(input ? input.value : 3);
+
+                    if (input) {
+                        input.value = String(value);
+                    }
+
+                    if (output) {
+                        output.textContent = String(value);
+                    }
+                });
+
+                if (brewCharacteristicsRadarChart) {
+                    brewCharacteristicsRadarChart.data.datasets[0].data = getRadarScoreValues();
+                    brewCharacteristicsRadarChart.update("none");
+                }
+            }
+
+            function setRadarScoreValue(fieldId, value) {
+                const input = document.getElementById(fieldId);
+                const score = clampRadarScore(value);
+
+                if (input) {
+                    input.value = String(score);
+                }
+
+                updateRadarScoreEditor();
+            }
+
+            function getRadarAxisAngle(index) {
+                return (-90 + index * 72) * Math.PI / 180;
+            }
+
+            function getNearestRadarFieldIndex(point, radialScale) {
+                const dx = point.x - radialScale.xCenter;
+                const dy = point.y - radialScale.yCenter;
+                let bestIndex = 0;
+                let bestDot = -Infinity;
+
+                radarScoreFields.forEach(function (field, index) {
+                    const angle = getRadarAxisAngle(index);
+                    const dot = dx * Math.cos(angle) + dy * Math.sin(angle);
+
+                    if (dot > bestDot) {
+                        bestDot = dot;
+                        bestIndex = index;
+                    }
+                });
+
+                return bestIndex;
+            }
+
+            function isPointInsidePolygon(point, polygonPoints) {
+                let isInside = false;
+                let j = polygonPoints.length - 1;
+
+                for (let i = 0; i < polygonPoints.length; i += 1) {
+                    const xi = polygonPoints[i].x;
+                    const yi = polygonPoints[i].y;
+                    const xj = polygonPoints[j].x;
+                    const yj = polygonPoints[j].y;
+                    const intersects = ((yi > point.y) !== (yj > point.y)) &&
+                        (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+
+                    if (intersects) {
+                        isInside = !isInside;
+                    }
+
+                    j = i;
+                }
+
+                return isInside;
+            }
+
+            function getRadarMaxPolygonPoints(radialScale) {
+                if (!radialScale || typeof radialScale.getPointPositionForValue !== "function") {
+                    return [];
+                }
+
+                return radarScoreFields.map(function (field, index) {
+                    return radialScale.getPointPositionForValue(index, 5);
+                });
+            }
+
+            function getExpandedRadarPolygonPoints(radialScale, edgeTolerancePixels) {
+                const polygonPoints = getRadarMaxPolygonPoints(radialScale);
+
+                if (polygonPoints.length < 3) {
+                    return [];
+                }
+
+                return polygonPoints.map(function (polygonPoint) {
+                    const dx = polygonPoint.x - radialScale.xCenter;
+                    const dy = polygonPoint.y - radialScale.yCenter;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance <= 0) {
+                        return polygonPoint;
+                    }
+
+                    const scale = (distance + edgeTolerancePixels) / distance;
+
+                    return {
+                        x: radialScale.xCenter + dx * scale,
+                        y: radialScale.yCenter + dy * scale
+                    };
+                });
+            }
+
+            function isPointInsideRadarPentagon(point, radialScale, event) {
+                const edgeTolerancePixels = event && event.pointerType === "touch" ? 24 : 16;
+                const polygonPoints = getExpandedRadarPolygonPoints(radialScale, edgeTolerancePixels);
+
+                if (polygonPoints.length < 3) {
+                    return false;
+                }
+
+                return isPointInsidePolygon(point, polygonPoints);
+            }
+
+            function getRadarPointerPoint(event) {
+                if (!window.Chart || !window.Chart.helpers || !brewCharacteristicsRadarChart) {
+                    return null;
+                }
+
+                return window.Chart.helpers.getRelativePosition(event, brewCharacteristicsRadarChart);
+            }
+
+            function updateRadarScoreFromPointer(event) {
+                if (!brewCharacteristicsRadarChart) {
+                    return false;
+                }
+
+                const radialScale = brewCharacteristicsRadarChart.scales.r;
+                const point = getRadarPointerPoint(event);
+
+                if (!radialScale || !point || !isPointInsideRadarPentagon(point, radialScale, event)) {
+                    return false;
+                }
+
+                const fieldIndex = getNearestRadarFieldIndex(point, radialScale);
+                const angle = getRadarAxisAngle(fieldIndex);
+                const dx = point.x - radialScale.xCenter;
+                const dy = point.y - radialScale.yCenter;
+                const projectedDistance = dx * Math.cos(angle) + dy * Math.sin(angle);
+                const score = projectedDistance / radialScale.drawingArea * 5;
+
+                setRadarScoreValue(radarScoreFields[fieldIndex].id, score);
+                return true;
+            }
+
+            if (window.Chart && radarChartElement) {
+                brewCharacteristicsRadarChart = new Chart(radarChartElement, {
+                    type: "radar",
+                    data: {
+                        labels: radarScoreFields.map(function (field) {
+                            return field.label;
+                        }),
+                        datasets: [
+                            {
+                                label: "This Brew",
+                                data: getRadarScoreValues()
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                min: 0,
+                                max: 5,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+
+                function beginRadarScoreDrag(event) {
+                    const didUpdate = updateRadarScoreFromPointer(event);
+
+                    if (!didUpdate) {
+                        return false;
+                    }
+
+                    isDraggingRadarScore = true;
+
+                    const radarEditor = radarChartElement.closest(".radar-score-editor");
+
+                    if (radarEditor) {
+                        radarEditor.classList.add("is-radar-dragging");
+                    }
+
+                    if (radarChartElement.setPointerCapture) {
+                        radarChartElement.setPointerCapture(event.pointerId);
+                    }
+
+                    event.preventDefault();
+                    return true;
+                }
+
+                function endRadarScoreDrag(event) {
+                    isDraggingRadarScore = false;
+
+                    const radarEditor = radarChartElement.closest(".radar-score-editor");
+
+                    if (radarEditor) {
+                        radarEditor.classList.remove("is-radar-dragging");
+                    }
+
+                    if (event && radarChartElement.hasPointerCapture && radarChartElement.hasPointerCapture(event.pointerId)) {
+                        radarChartElement.releasePointerCapture(event.pointerId);
+                    }
+                }
+
+                radarChartElement.addEventListener("pointerdown", function (event) {
+                    beginRadarScoreDrag(event);
+                });
+
+                radarChartElement.addEventListener("pointermove", function (event) {
+                    if (isDraggingRadarScore) {
+                        updateRadarScoreFromPointer(event);
+                        event.preventDefault();
+                    }
+                });
+
+                radarChartElement.addEventListener("pointerup", function (event) {
+                    endRadarScoreDrag(event);
+                });
+
+                radarChartElement.addEventListener("pointercancel", function (event) {
+                    endRadarScoreDrag(event);
+                });
+
+                radarChartElement.addEventListener("touchmove", function (event) {
+                    if (isDraggingRadarScore) {
+                        event.preventDefault();
+                    }
+                }, { passive: false });
+
+                radarChartElement.addEventListener("touchend", function () {
+                    endRadarScoreDrag(null);
+                });
+
+                radarChartElement.addEventListener("touchcancel", function () {
+                    endRadarScoreDrag(null);
+                });
+            }
+
+            updateRadarScoreEditor();
+
+            const overallRatingInput = document.getElementById("overallRating");
+            const overallRatingDisplay = document.getElementById("overallRatingDisplay");
+            const overallRatingButtons = document.querySelectorAll(".star-rating-button");
+            const clearOverallRatingButton = document.getElementById("clearOverallRatingButton");
+
+            function normalizeRatingValue(value) {
+                if (value === null || typeof value === "undefined" || value === "") {
+                    return "";
+                }
+
+                const parsed = Number(value);
+
+                if (Number.isNaN(parsed) || parsed <= 0) {
+                    return "";
+                }
+
+                const clamped = Math.min(5, Math.max(0.5, parsed));
+                const roundedToHalf = Math.round(clamped * 2) / 2;
+
+                if (Number.isInteger(roundedToHalf)) {
+                    return String(roundedToHalf);
+                }
+
+                return roundedToHalf.toFixed(1);
+            }
+
+            function getDisplayRatingText(value) {
+                const normalized = normalizeRatingValue(value);
+
+                if (!normalized) {
+                    return "No rating";
+                }
+
+                return normalized + " / 5";
+            }
+
+            function setStarVisual(value) {
+                const normalized = normalizeRatingValue(value);
+                const rating = normalized ? Number(normalized) : 0;
+
+                overallRatingButtons.forEach(function (button) {
+                    const starNumber = Number(button.getAttribute("data-star-number") || "0");
+                    let fillWidth = 0;
+
+                    if (rating >= starNumber) {
+                        fillWidth = 100;
+                    } else if (rating >= starNumber - 0.5) {
+                        fillWidth = 50;
+                    }
+
+                    button.style.setProperty("--star-fill-width", fillWidth + "%");
+                });
+            }
+
+            function setOverallRating(value) {
+                const normalized = normalizeRatingValue(value);
+
+                if (overallRatingInput) {
+                    overallRatingInput.value = normalized;
+                }
+
+                if (overallRatingDisplay) {
+                    overallRatingDisplay.textContent = getDisplayRatingText(normalized);
+                }
+
+                setStarVisual(normalized);
+            }
+
+            function getRatingFromPointerEvent(button, event) {
+                const starNumber = Number(button.getAttribute("data-star-number") || "0");
+                const buttonRect = button.getBoundingClientRect();
+                const offsetX = event.clientX - buttonRect.left;
+                const isLeftHalf = offsetX <= buttonRect.width / 2;
+
+                if (isLeftHalf) {
+                    return starNumber - 0.5;
+                }
+
+                return starNumber;
+            }
+
+            overallRatingButtons.forEach(function (button) {
+                button.addEventListener("mousemove", function (event) {
+                    const previewRating = getRatingFromPointerEvent(button, event);
+
+                    setStarVisual(previewRating);
+
+                    if (overallRatingDisplay) {
+                        overallRatingDisplay.textContent = getDisplayRatingText(previewRating);
+                    }
+                });
+
+                button.addEventListener("mouseleave", function () {
+                    const currentValue = overallRatingInput ? overallRatingInput.value : "";
+
+                    setStarVisual(currentValue);
+
+                    if (overallRatingDisplay) {
+                        overallRatingDisplay.textContent = getDisplayRatingText(currentValue);
+                    }
+                });
+
+                button.addEventListener("click", function (event) {
+                    const selectedRating = getRatingFromPointerEvent(button, event);
+
+                    setOverallRating(selectedRating);
+                });
+            });
+
+            if (clearOverallRatingButton) {
+                clearOverallRatingButton.addEventListener("click", function () {
+                    setOverallRating("");
+                });
+            }
+
+            if (overallRatingInput) {
+                setOverallRating(overallRatingInput.value);
+            }
+        });
+    </script>
+<% } %>

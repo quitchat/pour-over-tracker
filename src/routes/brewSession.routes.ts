@@ -31,6 +31,16 @@ function getAiCallRouteUser(res: Response): AiCallRouteUser | null {
 
 const scoreFields = ["richness", "sweetness", "aftertaste", "aroma", "acidity"] as const;
 
+type BrewRatingFormValues = {
+    overallRating: string;
+    brewComments: string;
+    richness: string;
+    sweetness: string;
+    aftertaste: string;
+    aroma: string;
+    acidity: string;
+};
+
 function getCurrentTemperatureUnit(res: Response): TemperatureUnit {
     const currentUser = res.locals.currentUser as { temperatureUnit?: string } | null | undefined;
 
@@ -134,6 +144,18 @@ function getBrewSessionFormValues(req: Request) {
         pourStructure: String(req.body.pourStructure || "").trim(),
         recipeSteps: String(req.body.recipeSteps || "").trim(),
         adjustmentNotes: String(req.body.adjustmentNotes || "").trim(),
+        brewComments: String(req.body.brewComments || "").trim(),
+        richness: String(req.body.richness || "3").trim(),
+        sweetness: String(req.body.sweetness || "3").trim(),
+        aftertaste: String(req.body.aftertaste || "3").trim(),
+        aroma: String(req.body.aroma || "3").trim(),
+        acidity: String(req.body.acidity || "3").trim()
+    };
+}
+
+function getBrewRatingFormValues(req: Request): BrewRatingFormValues {
+    return {
+        overallRating: String(req.body.overallRating || "").trim(),
         brewComments: String(req.body.brewComments || "").trim(),
         richness: String(req.body.richness || "3").trim(),
         sweetness: String(req.body.sweetness || "3").trim(),
@@ -312,7 +334,7 @@ function calculateBrewRatio(coffeeDoseGrams: string, totalYieldGrams: string): P
     return new Prisma.Decimal(ratio.toFixed(3));
 }
 
-function getScoreValue(formValues: ReturnType<typeof getBrewSessionFormValues>, fieldName: ScoreField): number {
+function getScoreValue(formValues: ReturnType<typeof getBrewSessionFormValues> | BrewRatingFormValues, fieldName: ScoreField): number {
     const rawValue = formValues[fieldName];
     const parsed = Number(rawValue);
 
@@ -411,6 +433,34 @@ function validateBrewSessionForm(formValues: ReturnType<typeof getBrewSessionFor
     return errors;
 }
 
+function validateBrewRatingForm(formValues: BrewRatingFormValues): string[] {
+    const errors: string[] = [];
+    const overallRating = parseOptionalNumber(formValues.overallRating);
+
+    if (overallRating === null) {
+        errors.push("Overall rating is required.");
+    } else {
+        if (overallRating < 0.5 || overallRating > 5) {
+            errors.push("Overall rating must be between 0.5 and 5.");
+        }
+
+        if (overallRating * 2 !== Math.round(overallRating * 2)) {
+            errors.push("Overall rating must use half-star increments.");
+        }
+    }
+
+    scoreFields.forEach(function (fieldName) {
+        const rawValue = formValues[fieldName];
+        const parsed = Number(rawValue);
+
+        if (!Number.isInteger(parsed) || parsed < 1 || parsed > 5) {
+            errors.push("Bean characteristic scores must be between 1 and 5.");
+        }
+    });
+
+    return errors;
+}
+
 async function validateSelectedRecordsBelongToUser(userId: number, formValues: ReturnType<typeof getBrewSessionFormValues>, allowInactiveCoffeeBean: boolean): Promise<string[]> {
     const errors: string[] = [];
     const coffeeBeanId = parseRequiredInteger(formValues.coffeeBeanId);
@@ -461,7 +511,7 @@ async function validateSelectedRecordsBelongToUser(userId: number, formValues: R
     return errors;
 }
 
-function buildTastingScoreCreateData(formValues: ReturnType<typeof getBrewSessionFormValues>) {
+function buildTastingScoreCreateData(formValues: ReturnType<typeof getBrewSessionFormValues> | BrewRatingFormValues) {
     return {
         richness: getScoreValue(formValues, "richness"),
         sweetness: getScoreValue(formValues, "sweetness"),
@@ -472,7 +522,7 @@ function buildTastingScoreCreateData(formValues: ReturnType<typeof getBrewSessio
     };
 }
 
-function buildTastingScoreUpdateData(formValues: ReturnType<typeof getBrewSessionFormValues>) {
+function buildTastingScoreUpdateData(formValues: ReturnType<typeof getBrewSessionFormValues> | BrewRatingFormValues) {
     return {
         richness: getScoreValue(formValues, "richness"),
         sweetness: getScoreValue(formValues, "sweetness"),
@@ -550,9 +600,24 @@ function buildFormDataFromBrewSession(session: any, temperatureUnit: Temperature
         totalBrewTimeMinutes: minutes,
         totalBrewTimeSeconds: seconds,
         overallRating: getDecimalText(session.overallRating),
+        hasRating: session.overallRating !== null && typeof session.overallRating !== "undefined",
         pourStructure: session.pourStructure || "",
         recipeSteps: session.recipeSteps || "",
         adjustmentNotes: session.adjustmentNotes || "",
+        brewComments: session.notes || "",
+        richness: tastingScore ? String(tastingScore.richness) : "3",
+        sweetness: tastingScore ? String(tastingScore.sweetness) : "3",
+        aftertaste: tastingScore ? String(tastingScore.aftertaste) : "3",
+        aroma: tastingScore ? String(tastingScore.aroma) : "3",
+        acidity: tastingScore ? String(tastingScore.acidity) : "3"
+    };
+}
+
+function buildFormDataFromBrewRating(session: any): BrewRatingFormValues {
+    const tastingScore = session.tastingScore;
+
+    return {
+        overallRating: getDecimalText(session.overallRating),
         brewComments: session.notes || "",
         richness: tastingScore ? String(tastingScore.richness) : "3",
         sweetness: tastingScore ? String(tastingScore.sweetness) : "3",
@@ -642,6 +707,7 @@ function mapBrewSessionForDetail(session: any, temperatureUnit: TemperatureUnit)
         waterTemperatureUnit: getTemperatureUnitLabel(temperatureUnit),
         totalBrewTime: formatSeconds(session.totalBrewTimeSeconds),
         overallRating: getDecimalText(session.overallRating),
+        hasRating: session.overallRating !== null && typeof session.overallRating !== "undefined",
         pourStructure: session.pourStructure || "",
         recipeSteps: session.recipeSteps || "",
         adjustmentNotes: session.adjustmentNotes || "",
@@ -1597,6 +1663,91 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             id: id
         },
         data: buildBrewSessionUpdateData(formValues, temperatureUnit)
+    });
+
+    await prisma.tastingScore.upsert({
+        where: {
+            brewSessionId: id
+        },
+        update: buildTastingScoreUpdateData(formValues),
+        create: {
+            brewSessionId: id,
+            ...buildTastingScoreCreateData(formValues)
+        }
+    });
+
+    res.redirect(`/brew-sessions/${id}`);
+});
+
+router.get("/:id/rate", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid brew session ID.");
+        return;
+    }
+
+    const brewSession = await getBrewSessionForUser(userId, id);
+
+    if (!brewSession) {
+        res.status(404).send("Brew session not found.");
+        return;
+    }
+
+    if (brewSession.overallRating !== null && typeof brewSession.overallRating !== "undefined") {
+        res.redirect(`/brew-sessions/${id}`);
+        return;
+    }
+
+    res.render("brew-sessions/rate", {
+        title: "Rate Brew",
+        brewSession: mapBrewSessionForDetail(brewSession, getCurrentTemperatureUnit(res)),
+        formAction: `/brew-sessions/${id}/rate`,
+        errors: [],
+        formData: buildFormDataFromBrewRating(brewSession)
+    });
+});
+
+router.post("/:id/rate", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid brew session ID.");
+        return;
+    }
+
+    const brewSession = await getBrewSessionForUser(userId, id);
+
+    if (!brewSession) {
+        res.status(404).send("Brew session not found.");
+        return;
+    }
+
+    const formValues = getBrewRatingFormValues(req);
+    const errors = validateBrewRatingForm(formValues);
+
+    if (errors.length > 0) {
+        res.status(400).render("brew-sessions/rate", {
+            title: "Rate Brew",
+            brewSession: mapBrewSessionForDetail(brewSession, getCurrentTemperatureUnit(res)),
+            formAction: `/brew-sessions/${id}/rate`,
+            errors: errors,
+            formData: formValues
+        });
+
+        return;
+    }
+
+    await prisma.brewSession.update({
+        where: {
+            id: id
+        },
+        data: {
+            overallRating: new Prisma.Decimal(formValues.overallRating),
+            notes: formValues.brewComments || null
+        }
     });
 
     await prisma.tastingScore.upsert({
