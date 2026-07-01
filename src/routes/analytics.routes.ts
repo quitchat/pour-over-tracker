@@ -94,7 +94,6 @@ type PurchaseInventoryItem = {
     beanName: string;
     roasterName: string;
     purchaseDate: Date | null;
-    createdAt: Date;
     quantity: number;
     bagSizeGrams: number | null;
     totalGrams: number;
@@ -1147,7 +1146,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                 current.lastBrewedDate = inventory.lastBrewedDate;
             }
 
-            const replenishedDate = inventory.purchaseDate || inventory.createdAt;
+            const replenishedDate = inventory.purchaseDate;
 
             if (replenishedDate && (!current.lastReplenishedDate || replenishedDate.getTime() > current.lastReplenishedDate.getTime())) {
                 current.lastReplenishedDate = replenishedDate;
@@ -1241,7 +1240,6 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                     beanName: purchase.bean.beanName,
                     roasterName: purchase.bean.roasterName || "",
                     purchaseDate: purchase.purchaseDate,
-                    createdAt: purchase.createdAt,
                     quantity: purchase.quantity || Math.max(1, purchase.inventories.length),
                     bagSizeGrams: bagSizeGrams,
                     totalGrams: round(totalGrams, 1),
@@ -1251,10 +1249,19 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                 };
             })
             .sort(function (left, right) {
-                const leftDate = left.purchaseDate || left.createdAt;
-                const rightDate = right.purchaseDate || right.createdAt;
+                if (left.purchaseDate === null && right.purchaseDate === null) {
+                    return left.beanName.localeCompare(right.beanName);
+                }
 
-                return rightDate.getTime() - leftDate.getTime();
+                if (left.purchaseDate === null) {
+                    return 1;
+                }
+
+                if (right.purchaseDate === null) {
+                    return -1;
+                }
+
+                return right.purchaseDate.getTime() - left.purchaseDate.getTime();
             });
 
         const mostRecentlyReplenished = recentlyReplenished.length > 0 ? recentlyReplenished[0] : null;
@@ -1296,7 +1303,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                 beanId: purchase.beanId,
                 beanName: purchase.beanName,
                 roasterName: purchase.roasterName,
-                purchaseDate: formatDateOrNull(purchase.purchaseDate || purchase.createdAt),
+                purchaseDate: formatDateOrNull(purchase.purchaseDate),
                 quantity: purchase.quantity,
                 bagSizeGrams: purchase.bagSizeGrams,
                 totalGrams: purchase.totalGrams,
@@ -1361,7 +1368,7 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                         beanId: mostRecentlyReplenished.beanId,
                         beanName: mostRecentlyReplenished.beanName,
                         roasterName: mostRecentlyReplenished.roasterName,
-                        replenishedDate: formatDateOrNull(mostRecentlyReplenished.purchaseDate || mostRecentlyReplenished.createdAt)
+                        replenishedDate: formatDateOrNull(mostRecentlyReplenished.purchaseDate)
                     } : null
                 },
                 beansRunningLow: beansRunningLow,
