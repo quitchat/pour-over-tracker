@@ -702,7 +702,7 @@
                                     <th>Avg Cost/Brew</th>
                                     <th>Brews</th>
                                     <th>
-                                        <span class="analytics-help-label" title="Value Score = average brew rating divided by average cost per brew. Higher is better. Only beans with at least 2 brews that have both rating and known cost are included.">
+                                        <span class="analytics-help-label" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Value Score = average brew rating divided by average cost per brew. Higher is better. Only beans with at least 2 brews that have both rating and known cost are included." tabindex="0">
                                             Value Score
                                             <i class="bi bi-info-circle ms-1"></i>
                                         </span>
@@ -726,7 +726,7 @@
                                         <td data-label="Avg Rating"><%- renderRatingStars(item.averageRating) %></td>
                                         <td data-label="Avg Cost/Brew"><%- renderCostDisplay(item.averageCostPerBrew, 2) %></td>
                                         <td data-label="Brews"><%= item.brewCount %></td>
-                                        <td data-label="Value Score" title="Value Score = average brew rating divided by average cost per brew. Higher is better. Only beans with at least 2 brews that have both rating and known cost are included."><%= item.valueScore %></td>
+                                        <td data-label="Value Score" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Value Score = average brew rating divided by average cost per brew. Higher is better. Only beans with at least 2 brews that have both rating and known cost are included."><%= item.valueScore %></td>
                                     </tr>
                                 <% }); %>
                             </tbody>
@@ -1095,6 +1095,12 @@
     };
 
     document.addEventListener("DOMContentLoaded", function () {
+        if (window.bootstrap && bootstrap.Tooltip) {
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+                bootstrap.Tooltip.getOrCreateInstance(element);
+            });
+        }
+
         const tabParam = new URLSearchParams(window.location.search).get("tab");
 
         if (tabParam && tabTargetMap[tabParam]) {
