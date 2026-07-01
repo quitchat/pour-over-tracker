@@ -391,6 +391,43 @@ input:-ms-input-placeholder {
 
 /* Inventory maintenance */
 
+.inventory-summary-strip {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.inventory-summary-tile {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.85rem;
+    padding: 1rem;
+    background: var(--bs-body-bg);
+    min-height: 6rem;
+}
+
+.inventory-summary-tile .text-muted.small {
+    margin-bottom: 0.65rem;
+}
+
+.inventory-summary-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+@media (max-width: 767.98px) {
+    .inventory-summary-strip {
+        grid-template-columns: 1fr;
+    }
+
+    .inventory-summary-tile {
+        min-height: auto;
+        padding: 1rem;
+    }
+}
+
+
+
 .inventory-page-header {
     border-bottom: 1px solid var(--bs-border-color);
     padding-bottom: 1rem;
