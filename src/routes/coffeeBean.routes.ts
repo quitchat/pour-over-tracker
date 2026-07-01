@@ -1346,20 +1346,34 @@ router.post("/:id/inventory/purchases/:purchaseId/edit", async function (req: Re
         return;
     }
 
-    await prisma.beanPurchase.update({
-        where: {
-            id: purchaseId
-        },
-        data: {
-            purchaseDate: parseDateInput(formValues.purchaseDate),
-            currencyCode: formValues.currencyCode,
-            itemSubtotal: parseOptionalDecimal(formValues.itemSubtotal),
-            discount: parseOptionalDecimal(formValues.discount),
-            shipping: parseOptionalDecimal(formValues.shipping),
-            tax: parseOptionalDecimal(formValues.tax),
-            totalPaid: calculatePurchaseTotalPaid(formValues),
-            notes: formValues.notes || null
-        }
+    const parsedPurchaseDate = parseDateInput(formValues.purchaseDate);
+
+    await prisma.$transaction(async function (tx) {
+        await tx.beanPurchase.update({
+            where: {
+                id: purchaseId
+            },
+            data: {
+                purchaseDate: parsedPurchaseDate,
+                currencyCode: formValues.currencyCode,
+                itemSubtotal: parseOptionalDecimal(formValues.itemSubtotal),
+                discount: parseOptionalDecimal(formValues.discount),
+                shipping: parseOptionalDecimal(formValues.shipping),
+                tax: parseOptionalDecimal(formValues.tax),
+                totalPaid: calculatePurchaseTotalPaid(formValues),
+                notes: formValues.notes || null
+            }
+        });
+
+        await tx.beanInventory.updateMany({
+            where: {
+                beanId: id,
+                beanPurchaseId: purchaseId
+            },
+            data: {
+                purchaseDate: parsedPurchaseDate
+            }
+        });
     });
 
     res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Purchase cost updated.")}`);
@@ -1451,19 +1465,43 @@ router.post("/:id/inventory/:inventoryId/edit", async function (req: Request, re
     }
 
     const bagSizeGrams = formData.bagSize ? roundGrams(convertToGrams(bagSize, formData.bagSizeUnit)) : null;
+    const parsedPurchaseDate = parseDateInput(formData.purchaseDate);
 
-    await prisma.beanInventory.update({
-        where: {
-            id: inventoryId
-        },
-        data: {
-            startingGrams: new Prisma.Decimal(startingGrams.toFixed(2)),
-            bagSizeGrams: bagSizeGrams === null ? null : new Prisma.Decimal(bagSizeGrams.toFixed(2)),
-            bagSizeOriginalValue: formData.bagSize ? new Prisma.Decimal(bagSize.toString()) : null,
-            bagSizeOriginalUnit: formData.bagSize ? formData.bagSizeUnit : null,
-            roastDate: parseDateInput(formData.roastDate),
-            purchaseDate: parseDateInput(formData.purchaseDate),
-            notes: formData.notes || null
+    await prisma.$transaction(async function (tx) {
+        await tx.beanInventory.update({
+            where: {
+                id: inventoryId
+            },
+            data: {
+                startingGrams: new Prisma.Decimal(startingGrams.toFixed(2)),
+                bagSizeGrams: bagSizeGrams === null ? null : new Prisma.Decimal(bagSizeGrams.toFixed(2)),
+                bagSizeOriginalValue: formData.bagSize ? new Prisma.Decimal(bagSize.toString()) : null,
+                bagSizeOriginalUnit: formData.bagSize ? formData.bagSizeUnit : null,
+                roastDate: parseDateInput(formData.roastDate),
+                purchaseDate: parsedPurchaseDate,
+                notes: formData.notes || null
+            }
+        });
+
+        if (inventory.beanPurchaseId) {
+            await tx.beanPurchase.update({
+                where: {
+                    id: inventory.beanPurchaseId
+                },
+                data: {
+                    purchaseDate: parsedPurchaseDate
+                }
+            });
+
+            await tx.beanInventory.updateMany({
+                where: {
+                    beanId: id,
+                    beanPurchaseId: inventory.beanPurchaseId
+                },
+                data: {
+                    purchaseDate: parsedPurchaseDate
+                }
+            });
         }
     });
 
@@ -1807,6 +1845,32 @@ router.post("/:id/inventory/:inventoryId/delete", async function (req: Request, 
                 id: inventoryId
             }
         });
+
+        if (inventory.beanPurchaseId) {
+            const remainingPurchaseBagCount = await tx.beanInventory.count({
+                where: {
+                    beanId: id,
+                    beanPurchaseId: inventory.beanPurchaseId
+                }
+            });
+
+            if (remainingPurchaseBagCount === 0) {
+                await tx.beanPurchase.delete({
+                    where: {
+                        id: inventory.beanPurchaseId
+                    }
+                });
+            } else {
+                await tx.beanPurchase.update({
+                    where: {
+                        id: inventory.beanPurchaseId
+                    },
+                    data: {
+                        quantity: remainingPurchaseBagCount
+                    }
+                });
+            }
+        }
     });
 
     res.redirect(`/coffee-beans/${id}/inventory?message=${encodeURIComponent("Inventory bag deleted. Any linked brew sessions were kept and unlinked from this bag.")}`);
