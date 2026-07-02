@@ -1,15 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="60 95 380 300" role="img" aria-label="Pour over dripper icon">
-  <g fill="none" stroke="currentColor" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+  <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
     <!-- Dripper cone -->
-    <path d="M115 125 H345 L250 310 H212 Z" />
+    <path
+      d="M115 125 H345 L250 310 H212 Z"
+      stroke-width="22"
+    />
+
+    <!-- Five thin inner lines -->
+    <path d="M150 132 L210 298" stroke-width="6" />
+    <path d="M190 132 L220 298" stroke-width="6" />
+    <path d="M230 132 L230 298" stroke-width="6" />
+    <path d="M270 132 L240 298" stroke-width="6" />
+    <path d="M310 132 L250 298" stroke-width="6" />
 
     <!-- Small handle -->
-    <path d="M326 166 C370 170 394 197 386 228 C379 253 356 273 326 286" />
+    <path
+      d="M326 166 C370 170 394 197 386 228 C379 253 356 273 326 286"
+      stroke-width="22"
+    />
   </g>
 
-  <!-- Base plate touching cone -->
+  <!-- Base plate moved up by 2px -->
   <path
-    d="M80 328 H190 V310 H270 V328 H410 V360 H270 V382 H190 V360 H80 Z"
+    d="M81 312 H191 V294 H271 V312 H381 V346 H271 V370 H191 V346 H81 Z"
     fill="currentColor"
   />
 </svg>
