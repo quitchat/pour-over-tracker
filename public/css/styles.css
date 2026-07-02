@@ -968,3 +968,15 @@ input:-ms-input-placeholder {
     color: var(--bs-link-hover-color);
     text-decoration: underline;
 }
+
+.coffee-bean-icon {
+    background-color: currentColor;
+    display: inline-block;
+    flex: 0 0 auto;
+    height: 1em;
+    line-height: 1;
+    -webkit-mask: url("/icons/coffee-bean.svg") no-repeat center / contain;
+    mask: url("/icons/coffee-bean.svg") no-repeat center / contain;
+    vertical-align: -0.125em;
+    width: 1em;
+}
