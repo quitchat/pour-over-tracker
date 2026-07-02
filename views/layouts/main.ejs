@@ -196,7 +196,17 @@
                                             User Management
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item <%= isActivePath("/admin/ai") || isActivePath("/admin/ai-call-logs") || isActivePath("/admin/ai-cost-settings") || isActivePath("/admin/bean-detail-ai-prompt") || isActivePath("/admin/coffee-bag-image-identity-ai-prompt") || isActivePath("/admin/brew-suggestion-ai-prompt") %>" href="/admin/ai">
+                                            <i class="bi bi-robot me-2"></i>
+                                            AI Administration
+                                        </a>
+                                    </li>
+                                    
 
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
                                     <li>
                                         <a class="dropdown-item <%= isActivePath("/admin/database") %>" href="/admin/database">
                                             <i class="bi bi-database-down me-2"></i>
@@ -208,17 +218,6 @@
                                         <a class="dropdown-item <%= isActivePath("/admin/orphan-purchases") %>" href="/admin/orphan-purchases">
                                             <i class="bi bi-trash3 me-2"></i>
                                             Delete Orphaned Replenishments
-                                        </a>
-                                    </li>
-
-                                    <li>
-                                        <hr class="dropdown-divider">
-                                    </li>
-
-                                    <li>
-                                        <a class="dropdown-item <%= isActivePath("/admin/ai") || isActivePath("/admin/ai-call-logs") || isActivePath("/admin/ai-cost-settings") || isActivePath("/admin/bean-detail-ai-prompt") || isActivePath("/admin/coffee-bag-image-identity-ai-prompt") || isActivePath("/admin/brew-suggestion-ai-prompt") %>" href="/admin/ai">
-                                            <i class="bi bi-robot me-2"></i>
-                                            AI Administration
                                         </a>
                                     </li>
                                 </ul>
