@@ -980,3 +980,27 @@ input:-ms-input-placeholder {
     vertical-align: -0.125em;
     width: 1em;
 }
+
+.grinder-icon {
+    background-color: currentColor;
+    display: inline-block;
+    flex: 0 0 auto;
+    height: 1em;
+    line-height: 1;
+    -webkit-mask: url("/icons/grinder.svg") no-repeat center / contain;
+    mask: url("/icons/grinder.svg") no-repeat center / contain;
+    vertical-align: -0.125em;
+    width: 1em;
+}
+
+.brewer-icon {
+    background-color: currentColor;
+    display: inline-block;
+    flex: 0 0 auto;
+    height: 1em;
+    line-height: 1;
+    -webkit-mask: url("/icons/brewer.svg") no-repeat center / contain;
+    mask: url("/icons/brewer.svg") no-repeat center / contain;
+    vertical-align: -0.125em;
+    width: 1em;
+}
