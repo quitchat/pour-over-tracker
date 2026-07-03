@@ -244,7 +244,7 @@
                             </div>
 
                             <div class="radar-score-value-pill">
-                                <span class="radar-score-label">Acidity Quality</span>
+                                <span class="radar-score-label">Acidity</span>
                                 <strong><span class="radar-score-current" id="acidityValue"><%= formData.acidity || '3' %></span>/5</strong>
                             </div>
                         </div>
@@ -255,9 +255,9 @@
                     </div>
                 </div>
 
-                <div class="mt-4">
+                <div class="mt-4 text-center">
                     <label class="form-label d-block">Acidity Level</label>
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
                         <div class="btn-group acidity-level-button-group" role="radiogroup" aria-label="Acidity Level">
                             <input type="radio" class="btn-check" name="acidityLevel" id="acidityLevelLow" value="LOW" autocomplete="off" <%= formData.acidityLevel === 'LOW' ? 'checked' : '' %>>
                             <label class="btn btn-outline-primary" for="acidityLevelLow">Low</label>
