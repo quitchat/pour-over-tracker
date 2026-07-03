@@ -132,6 +132,25 @@
     }
 
 
+    .acidity-level-button-group {
+        flex-wrap: wrap;
+    }
+
+    .acidity-level-button-group .btn {
+        min-width: 5.25rem;
+    }
+
+    @media (max-width: 575.98px) {
+        .acidity-level-button-group {
+            width: 100%;
+        }
+
+        .acidity-level-button-group .btn {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+    }
+
     .brew-form-actions {
         background: var(--bs-body-bg);
         border-top: 1px solid transparent;
@@ -376,7 +395,7 @@
         <div class="card-header d-flex justify-content-between align-items-center gap-2">
             <span>
                 <i class="bi bi-activity me-1"></i>
-                Brew Characteristics
+                Taste Quality
             </span>
 
             <button
@@ -392,8 +411,11 @@
 
         <div class="collapse show d-md-block" id="brewCharacteristicsCollapse">
             <div class="card-body">
-                <p class="text-muted">
+                <p class="text-muted mb-2">
                     Score this specific brew from 1 to 5 by clicking or dragging directly on the pentagon radar chart.
+                </p>
+                <p class="text-muted small mb-3">
+                    Scores reflect how pleasant and balanced each attribute is, not how strong it is. For example, a high acidity score means the acidity is enjoyable and well-balanced, not necessarily very acidic.
                 </p>
 
                 <input type="hidden" class="tasting-score-input" id="richness" name="richness" value="<%= formData.richness || '3' %>">
@@ -436,7 +458,7 @@
                             </div>
 
                             <div class="radar-score-value-pill">
-                                <span>Acidity</span>
+                                <span>Acidity Quality</span>
                                 <strong><span id="acidityValue"><%= formData.acidity || '3' %></span> / 5</strong>
                             </div>
                         </div>
@@ -445,6 +467,25 @@
                             Tip: tap near an axis to set that score. Drag a blue point to fine-tune it.
                         </div>
                     </div>
+                </div>
+
+                <div class="mt-4">
+                    <label class="form-label d-block">Acidity Level</label>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="btn-group acidity-level-button-group" role="radiogroup" aria-label="Acidity Level">
+                            <input type="radio" class="btn-check" name="acidityLevel" id="acidityLevelLow" value="LOW" autocomplete="off" <%= formData.acidityLevel === 'LOW' ? 'checked' : '' %>>
+                            <label class="btn btn-outline-primary" for="acidityLevelLow">Low</label>
+
+                            <input type="radio" class="btn-check" name="acidityLevel" id="acidityLevelMedium" value="MEDIUM" autocomplete="off" <%= formData.acidityLevel === 'MEDIUM' ? 'checked' : '' %>>
+                            <label class="btn btn-outline-primary" for="acidityLevelMedium">Medium</label>
+
+                            <input type="radio" class="btn-check" name="acidityLevel" id="acidityLevelHigh" value="HIGH" autocomplete="off" <%= formData.acidityLevel === 'HIGH' ? 'checked' : '' %>>
+                            <label class="btn btn-outline-primary" for="acidityLevelHigh">High</label>
+                        </div>
+
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-clear-acidity-level>Clear</button>
+                    </div>
+                    <div class="form-text">Optional intensity: how acidic or bright the cup tastes, separate from acidity quality.</div>
                 </div>
 
                 <hr class="my-4">
@@ -1102,6 +1143,14 @@
                 endRadarScoreDrag(null);
             });
         }
+
+        document.querySelectorAll("[data-clear-acidity-level]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                document.querySelectorAll("input[name='acidityLevel']").forEach(function (input) {
+                    input.checked = false;
+                });
+            });
+        });
 
         updateRadarScoreEditor();
 

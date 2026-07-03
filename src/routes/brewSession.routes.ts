@@ -30,6 +30,8 @@ function getAiCallRouteUser(res: Response): AiCallRouteUser | null {
 }
 
 const scoreFields = ["richness", "sweetness", "aftertaste", "aroma", "acidity"] as const;
+const acidityLevels = ["LOW", "MEDIUM", "HIGH"] as const;
+type AcidityLevel = typeof acidityLevels[number];
 
 type BrewRatingFormValues = {
     overallRating: string;
@@ -39,6 +41,7 @@ type BrewRatingFormValues = {
     aftertaste: string;
     aroma: string;
     acidity: string;
+    acidityLevel: string;
 };
 
 function getCurrentTemperatureUnit(res: Response): TemperatureUnit {
@@ -149,7 +152,8 @@ function getBrewSessionFormValues(req: Request) {
         sweetness: String(req.body.sweetness || "3").trim(),
         aftertaste: String(req.body.aftertaste || "3").trim(),
         aroma: String(req.body.aroma || "3").trim(),
-        acidity: String(req.body.acidity || "3").trim()
+        acidity: String(req.body.acidity || "3").trim(),
+        acidityLevel: String(req.body.acidityLevel || "").trim().toUpperCase()
     };
 }
 
@@ -161,7 +165,8 @@ function getBrewRatingFormValues(req: Request): BrewRatingFormValues {
         sweetness: String(req.body.sweetness || "3").trim(),
         aftertaste: String(req.body.aftertaste || "3").trim(),
         aroma: String(req.body.aroma || "3").trim(),
-        acidity: String(req.body.acidity || "3").trim()
+        acidity: String(req.body.acidity || "3").trim(),
+        acidityLevel: String(req.body.acidityLevel || "").trim().toUpperCase()
     };
 }
 
@@ -186,7 +191,8 @@ function getDefaultFormData(preselectedCoffeeBeanId: string, preselectedGrinderI
         sweetness: "3",
         aftertaste: "3",
         aroma: "3",
-        acidity: "3"
+        acidity: "3",
+        acidityLevel: ""
     };
 }
 
@@ -353,6 +359,43 @@ function getScoreValue(formValues: ReturnType<typeof getBrewSessionFormValues> |
     return parsed;
 }
 
+function parseOptionalAcidityLevel(value: string): AcidityLevel | null {
+    const normalizedValue = String(value || "").trim().toUpperCase();
+
+    if (!normalizedValue) {
+        return null;
+    }
+
+    if (!acidityLevels.includes(normalizedValue as typeof acidityLevels[number])) {
+        return null;
+    }
+
+    return normalizedValue as AcidityLevel;
+}
+
+function isInvalidAcidityLevel(value: string): boolean {
+    const normalizedValue = String(value || "").trim().toUpperCase();
+
+    if (!normalizedValue) {
+        return false;
+    }
+
+    return !acidityLevels.includes(normalizedValue as typeof acidityLevels[number]);
+}
+
+function getAcidityLevelLabel(value: AcidityLevel | string | null | undefined): string {
+    switch (value) {
+        case "LOW":
+            return "Low";
+        case "MEDIUM":
+            return "Medium";
+        case "HIGH":
+            return "High";
+        default:
+            return "";
+    }
+}
+
 function buildTotalBrewTimeSeconds(formValues: ReturnType<typeof getBrewSessionFormValues>): number | null {
     const minutes = parseOptionalInteger(formValues.totalBrewTimeMinutes);
     const seconds = parseOptionalInteger(formValues.totalBrewTimeSeconds);
@@ -430,6 +473,10 @@ function validateBrewSessionForm(formValues: ReturnType<typeof getBrewSessionFor
         }
     });
 
+    if (isInvalidAcidityLevel(formValues.acidityLevel)) {
+        errors.push("Acidity Level must be Low, Medium, High, or blank.");
+    }
+
     return errors;
 }
 
@@ -457,6 +504,10 @@ function validateBrewRatingForm(formValues: BrewRatingFormValues): string[] {
             errors.push("Bean characteristic scores must be between 1 and 5.");
         }
     });
+
+    if (isInvalidAcidityLevel(formValues.acidityLevel)) {
+        errors.push("Acidity Level must be Low, Medium, High, or blank.");
+    }
 
     return errors;
 }
@@ -554,6 +605,7 @@ function buildBrewSessionCreateData(userId: number, formValues: ReturnType<typeo
         pourStructure: formValues.pourStructure || null,
         recipeSteps: formValues.recipeSteps || null,
         adjustmentNotes: formValues.adjustmentNotes || null,
+        acidityLevel: parseOptionalAcidityLevel(formValues.acidityLevel),
         tastingScore: {
             create: buildTastingScoreCreateData(formValues)
         }
@@ -578,7 +630,8 @@ function buildBrewSessionUpdateData(formValues: ReturnType<typeof getBrewSession
         notes: formValues.brewComments || null,
         pourStructure: formValues.pourStructure || null,
         recipeSteps: formValues.recipeSteps || null,
-        adjustmentNotes: formValues.adjustmentNotes || null
+        adjustmentNotes: formValues.adjustmentNotes || null,
+        acidityLevel: parseOptionalAcidityLevel(formValues.acidityLevel)
     };
 }
 
@@ -609,7 +662,8 @@ function buildFormDataFromBrewSession(session: any, temperatureUnit: Temperature
         sweetness: tastingScore ? String(tastingScore.sweetness) : "3",
         aftertaste: tastingScore ? String(tastingScore.aftertaste) : "3",
         aroma: tastingScore ? String(tastingScore.aroma) : "3",
-        acidity: tastingScore ? String(tastingScore.acidity) : "3"
+        acidity: tastingScore ? String(tastingScore.acidity) : "3",
+        acidityLevel: session.acidityLevel || ""
     };
 }
 
@@ -623,7 +677,8 @@ function buildFormDataFromBrewRating(session: any): BrewRatingFormValues {
         sweetness: tastingScore ? String(tastingScore.sweetness) : "3",
         aftertaste: tastingScore ? String(tastingScore.aftertaste) : "3",
         aroma: tastingScore ? String(tastingScore.aroma) : "3",
-        acidity: tastingScore ? String(tastingScore.acidity) : "3"
+        acidity: tastingScore ? String(tastingScore.acidity) : "3",
+        acidityLevel: session.acidityLevel || ""
     };
 }
 
@@ -652,7 +707,8 @@ function buildDuplicateFormDataFromBrewSession(session: any, temperatureUnit: Te
         sweetness: "3",
         aftertaste: "3",
         aroma: "3",
-        acidity: "3"
+        acidity: "3",
+        acidityLevel: ""
     };
 }
 
@@ -708,6 +764,8 @@ function mapBrewSessionForDetail(session: any, temperatureUnit: TemperatureUnit)
         totalBrewTime: formatSeconds(session.totalBrewTimeSeconds),
         overallRating: getDecimalText(session.overallRating),
         hasRating: session.overallRating !== null && typeof session.overallRating !== "undefined",
+        acidityLevel: session.acidityLevel || "",
+        acidityLevelLabel: getAcidityLevelLabel(session.acidityLevel),
         pourStructure: session.pourStructure || "",
         recipeSteps: session.recipeSteps || "",
         adjustmentNotes: session.adjustmentNotes || "",
@@ -861,7 +919,8 @@ async function getRecentMatchingBrewsForSuggestion(userId: number, coffeeBeanId:
             sweetness: brew.tastingScore ? brew.tastingScore.sweetness : null,
             aftertaste: brew.tastingScore ? brew.tastingScore.aftertaste : null,
             aroma: brew.tastingScore ? brew.tastingScore.aroma : null,
-            acidity: brew.tastingScore ? brew.tastingScore.acidity : null
+            acidity: brew.tastingScore ? brew.tastingScore.acidity : null,
+            acidityLevel: brew.acidityLevel || null
         };
     });
 }
@@ -1746,7 +1805,8 @@ router.post("/:id/rate", async function (req: Request, res: Response) {
         },
         data: {
             overallRating: new Prisma.Decimal(formValues.overallRating),
-            notes: formValues.brewComments || null
+            notes: formValues.brewComments || null,
+            acidityLevel: parseOptionalAcidityLevel(formValues.acidityLevel)
         }
     });
 

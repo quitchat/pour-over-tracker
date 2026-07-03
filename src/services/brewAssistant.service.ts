@@ -27,6 +27,7 @@ export type RecentMatchingBrewForSuggestion = {
     aftertaste: number | null;
     aroma: number | null;
     acidity: number | null;
+    acidityLevel: string | null;
 };
 
 export type BrewAssistantInput = {
@@ -72,7 +73,15 @@ export const DEFAULT_BREW_SUGGESTION_AI_PROMPT = [
     "Create a practical brewing recipe for the selected coffee bean, grinder, brewer, and dose.",
     "If recent matching brew history is provided, use it as the most important context for the recommendation.",
     "When previous brews have ratings and tasting scores, suggest a next recipe that learns from what worked and avoids repeating what did not work.",
-    "The pentagon tasting scores are structured tasting feedback. The user's brew comments are free-form tasting notes and observations when available.",
+    "The pentagon/radar tasting scores represent quality, pleasantness, and balance, not raw intensity.",
+    "A high Acidity score means the acidity was pleasant and well-balanced, not necessarily high in intensity.",
+    "Acidity Level, when provided, represents perceived acidity intensity: Low, Medium, or High. Use both fields together when interpreting prior brew results.",
+    "High acidity quality + high acidity level means the cup was bright and the user liked that brightness; preserve acidity unless other notes suggest otherwise.",
+    "Low acidity quality + high acidity level means the cup may have been sour, sharp, or unpleasantly acidic; consider adjustments that reduce harsh acidity or improve extraction balance.",
+    "High acidity quality + low acidity level means the user liked a mellow, balanced cup; do not assume more acidity is needed.",
+    "Low acidity quality + low acidity level may mean the cup was flat, dull, or lacking structure depending on overall rating and brew comments.",
+    "Do not interpret low Acidity quality as automatically meaning not acidic enough. Do not interpret high Acidity quality as automatically meaning too acidic.",
+    "The user's brew comments are free-form tasting notes and observations when available.",
     "Use web search when helpful to find brewing guidance for the brewer, coffee, roaster, or brew method.",
     "Do not invent exact roaster-specific instructions unless supported by search results or common brewing practice.",
     "Prefer practical home-brewing guidance over competition recipes.",
@@ -134,7 +143,7 @@ function formatRecentMatchingBrewHistory(recentMatchingBrews: RecentMatchingBrew
             brew.sweetness === null ? "" : `Sweetness ${brew.sweetness}/5`,
             brew.aftertaste === null ? "" : `Aftertaste ${brew.aftertaste}/5`,
             brew.aroma === null ? "" : `Aroma ${brew.aroma}/5`,
-            brew.acidity === null ? "" : `Acidity ${brew.acidity}/5`
+            brew.acidity === null ? "" : `Acidity Quality ${brew.acidity}/5`
         ].filter(function (value) {
             return value;
         }).join(", ");
@@ -149,7 +158,8 @@ function formatRecentMatchingBrewHistory(recentMatchingBrews: RecentMatchingBrew
             `Water temp: ${brew.waterTemperature || "Unknown"} ${brew.temperatureUnit || ""}`.trim(),
             `Total brew time seconds: ${brew.totalBrewTimeSeconds === null ? "Unknown" : brew.totalBrewTimeSeconds}`,
             `Overall rating: ${brew.overallRating || "Unknown"}`,
-            `Scores: ${scoreParts || "Unknown"}`,
+            `Quality scores: ${scoreParts || "Unknown"}`,
+            `Acidity level / intensity: ${brew.acidityLevel || "Unknown"}`,
             `Previous pour structure: ${brew.pourStructure || "None"}`,
             `Previous recipe steps: ${brew.recipeSteps || "None"}`,
             `User brew comments: ${brew.brewComments || "None"}`
@@ -215,9 +225,13 @@ export async function suggestBrewingRecipe(input: BrewAssistantInput): Promise<A
         "",
         "Use the recent matching brew history to improve the suggestion when it is available.",
         "If the recent brews were highly rated, preserve the working parts of those recipes.",
-        "If the recent brews had lower ratings or low pentagon tasting scores, suggest practical adjustments to avoid those issues.",
+        "If the recent brews had lower ratings or low pentagon tasting quality scores, suggest practical adjustments to avoid those issues.",
         `Return waterTemperature as a number in ${input.temperatureUnit || "°C"}. Do not return the other temperature unit.`,
-        "The user's structured tasting feedback is captured by the pentagon scores: richness, sweetness, aftertaste, aroma, and acidity.",
+        "The user's structured tasting feedback is captured by pentagon/radar quality scores: richness, sweetness, aftertaste, aroma, and acidity quality.",
+        "These quality scores mean pleasantness, balance, and execution, not raw intensity.",
+        "Acidity Level is a separate optional intensity field: Low, Medium, or High.",
+        "Use overall brew rating, pentagon/radar quality scores, acidity level, brew comments, recipe parameters, and previous brew history together.",
+        "Do not interpret low Acidity quality as automatically meaning not acidic enough, and do not interpret high Acidity quality as automatically meaning too acidic.",
         "The user's free-form brew comments may include tasting notes, issues, preferences, or reminders. Use those comments when they are available.",
         "Suggest a balanced recipe that highlights the coffee bean characteristics."
     ].join("\n");

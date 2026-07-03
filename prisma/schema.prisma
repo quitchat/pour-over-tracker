@@ -205,6 +205,12 @@ enum BeanInventoryAdjustmentReason {
   OTHER
 }
 
+enum AcidityLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model BeanPurchase {
   id              Int             @id @default(autoincrement())
   beanId          Int
@@ -340,6 +346,7 @@ model BrewSession {
   pourStructure         String?
   recipeSteps           String?
   adjustmentNotes       String?
+  acidityLevel          AcidityLevel?
 
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt

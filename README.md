@@ -92,6 +92,8 @@
 - Tasting note tracking
 - Free-form brew comments saved with each brew session
 - Brew-session scoring separate from bean-level rating
+- Brew tasting quality scores that clarify pleasantness, balance, and execution rather than raw intensity
+- Optional Acidity Level tracking for perceived acidity intensity separate from acidity quality
 - Rating-only workflow for saved unrated brews
 - Radar-chart tasting visualization
 - Brew session duplication workflow
@@ -100,6 +102,7 @@
 - AI suggestion support through adjustment notes
 - Previous-brew comments included in AI recipe suggestion context
 - Temperature-aware AI recipe prompts and structured recipe output
+- AI brew suggestion context that distinguishes tasting-score quality from acidity intensity
 
 ## Dashboard, Analytics, and Visualization
 
@@ -110,7 +113,7 @@
 - Currency-aware cost reporting with separate subtotals when multiple purchase currencies are present
 - Brew comparison interface
 - Chart.js-based visualizations
-- Radar diagram for tasting/scoring characteristics
+- Radar diagram for tasting/scoring characteristics with quality/balance scoring guidance
 - Derived usage statistics for beans and grinders
 - Date formatting and display normalization
 
