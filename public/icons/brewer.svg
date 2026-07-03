@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="60 95 380 300" role="img" aria-label="Pour over dripper icon">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="80 95 330 300" role="img" aria-label="Pour over dripper icon">
   <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
     <!-- Dripper cone -->
     <path
@@ -22,7 +22,7 @@
 
   <!-- Base plate moved up by 2px -->
   <path
-    d="M81 312 H191 V294 H271 V312 H381 V346 H271 V370 H191 V346 H81 Z"
+    d="M90 312 H191 V294 H271 V312 H381 V346 H271 V370 H191 V346 H90 Z"
     fill="currentColor"
   />
 </svg>
