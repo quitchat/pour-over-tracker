@@ -225,17 +225,17 @@
         const title = group.region ? group.country + " · " + group.region : group.country;
         const matchText = group.matchLevel === "REGION" ? "Region-level match" : "Country-level fallback";
         const beanItems = group.beans.slice(0, 8).map(function (bean) {
-            const roaster = bean.roasterName ? " <span class=\"text-muted\">(" + escapeHtml(bean.roasterName) + ")</span>" : "";
-            return "<li><a href=\"/coffee-beans/" + bean.id + "\">" + escapeHtml(bean.beanName) + "</a>" + roaster + "</li>";
+            const roaster = bean.roasterName ? ' <span class="text-muted">(' + escapeHtml(bean.roasterName) + ')</span>' : '';
+            return '<li><a href="/coffee-beans/' + bean.id + '">' + escapeHtml(bean.beanName) + '</a>' + roaster + '</li>';
         }).join("");
-        const extraCount = group.beans.length > 8 ? "<div class=\"small text-muted mt-1\">+" + (group.beans.length - 8) + " more</div>" : "";
+        const extraCount = group.beans.length > 8 ? '<div class="small text-muted mt-1">+' + (group.beans.length - 8) + ' more</div>' : '';
 
-        return "<div class=\"origin-map-popup\">" +
-            "<div class=\"origin-map-popup-title\">" + escapeHtml(title) + "</div>" +
-            "<div class=\"origin-map-popup-meta\">" + matchText + " · " + group.beanCount + " bean" + (group.beanCount === 1 ? "" : "s") + "</div>" +
-            "<ul class=\"origin-map-popup-list\">" + beanItems + "</ul>" +
+        return '<div class="origin-map-popup">' +
+            '<div class="origin-map-popup-title">' + escapeHtml(title) + '</div>' +
+            '<div class="origin-map-popup-meta">' + matchText + ' · ' + group.beanCount + ' bean' + (group.beanCount === 1 ? '' : 's') + '</div>' +
+            '<ul class="origin-map-popup-list">' + beanItems + '</ul>' +
             extraCount +
-            "</div>";
+            '</div>';
     }
 
     document.addEventListener("DOMContentLoaded", function () {
