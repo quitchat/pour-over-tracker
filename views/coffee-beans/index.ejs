@@ -305,7 +305,7 @@
 
                             <% if (bean.country || bean.origin || bean.process) { %>
                                 <div>
-                                    <%- getCountryFlagHtml(bean.country) || getOriginCountryFlagHtml(bean.origin) %><%= bean.country ? bean.country : (bean.origin || "-") %><% if (bean.country && bean.origin) { %><span class="text-muted"> · <%= bean.origin %></span><% } %>
+                                    <%- getCountryFlagHtml(bean.country) || getOriginCountryFlagHtml(bean.origin) %><%= bean.country ? bean.country : (bean.origin || "-") %><% if (bean.country && bean.origin) { %><span class="text-muted"> · <%= bean.origin %></span><% } %><% if (bean.country || bean.origin) { %><a href="/analytics/origin-map?beanId=<%= bean.id %>" class="ms-2 text-decoration-none align-baseline" title="Show this origin on the map" aria-label="Show this origin on the map"><i class="bi bi-geo"></i></a><% } %>
                                 </div>
 
                                 <div class="bean-secondary-line">
