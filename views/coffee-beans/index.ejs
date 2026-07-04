@@ -305,7 +305,7 @@
 
                             <% if (bean.origin || bean.process) { %>
                                 <div>
-                                    <%= bean.origin || "-" %>
+                                    <%- getOriginCountryFlagHtml(bean.origin) %><%= bean.origin || "-" %>
                                 </div>
 
                                 <div class="bean-secondary-line">

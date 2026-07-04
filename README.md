@@ -37,6 +37,7 @@
 - Bean image/photo upload workflow
 - Icon-based photo upload control
 - Paginated coffee bean list
+- Mini country flag image display next to single-origin bean origin/region text when a country can be inferred
 - Bean-level 0–5 star rating
 - Bean Info field for factual/structured bean information
 - Bean Notes field for user-entered personal notes

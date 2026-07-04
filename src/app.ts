@@ -9,6 +9,7 @@ import expressLayouts from "express-ejs-layouts";
 import { prisma } from "./lib/prisma";
 import { getRequiredUserId, loadCurrentUser, requireAuth } from "./middleware/auth";
 import { formatDateUs, formatDateTimeUs, formatDateOnlyUs } from "./utils/dateFormat";
+import { getOriginCountryFlagHtml } from "./utils/countryFlag";
 
 import authRoutes from "./routes/auth.routes";
 import profileRoutes from "./routes/profile.routes";
@@ -67,6 +68,7 @@ app.use(function (req: Request, res: Response, next: NextFunction) {
     res.locals.errorMessage = "";
     res.locals.formatDateUs = formatDateUs;
     res.locals.formatDateTimeUs = formatDateTimeUs;
+    res.locals.getOriginCountryFlagHtml = getOriginCountryFlagHtml;
     next();
 });
 

@@ -1004,3 +1004,13 @@ input:-ms-input-placeholder {
     vertical-align: -0.125em;
     width: 1em;
 }
+
+.origin-country-flag {
+    border-radius: 0.125rem;
+    display: inline-block;
+    height: 0.875rem;
+    margin-right: 0.25rem;
+    object-fit: cover;
+    vertical-align: -0.1em;
+    width: 1.15rem;
+}

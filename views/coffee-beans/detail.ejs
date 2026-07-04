@@ -284,7 +284,7 @@
 
                     <% if (coffeeBean.origin) { %>
                         <dt class="col-sm-4">Origin</dt>
-                        <dd class="col-sm-8"><%= coffeeBean.origin %></dd>
+                        <dd class="col-sm-8"><%- getOriginCountryFlagHtml(coffeeBean.origin) %><%= coffeeBean.origin %></dd>
                     <% } %>
 
                     <% if (coffeeBean.process) { %>
