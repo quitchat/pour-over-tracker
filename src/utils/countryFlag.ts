@@ -106,15 +106,15 @@ function hasMultipleOrigins(origin: string): boolean {
     return /\s(?:and|&)\s|\s\/\s|\s\+\s|,|;/.test(normalized);
 }
 
-export function getCountryFlag(country: string | null | undefined): { code: string; label: string } | null {
-    if (!country) {
+function findCountryFlag(value: string | null | undefined): { code: string; label: string } | null {
+    if (!value) {
         return null;
     }
 
-    const normalized = normalizeOriginText(country);
+    const normalized = normalizeOriginText(value);
 
     for (const countryName of Object.keys(countryFlagByName)) {
-        const countryPattern = new RegExp(`(^|\\b)${escapeRegExp(countryName)}(\\b|$)`, "i");
+        const countryPattern = new RegExp(`(^|\b)${escapeRegExp(countryName)}(\b|$)`, "i");
 
         if (countryPattern.test(normalized)) {
             return countryFlagByName[countryName];
@@ -124,6 +124,41 @@ export function getCountryFlag(country: string | null | undefined): { code: stri
     return null;
 }
 
+function splitCountryValues(country: string): string[] {
+    return country
+        .split(/[;,]/)
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+}
+
+export function getCountryFlags(country: string | null | undefined): { code: string; label: string }[] {
+    if (!country) {
+        return [];
+    }
+
+    const parts = splitCountryValues(country);
+    const valuesToMatch = parts.length > 0 ? parts : [country];
+    const flags: { code: string; label: string }[] = [];
+    const seenCodes = new Set<string>();
+
+    for (const value of valuesToMatch) {
+        const flagInfo = findCountryFlag(value);
+
+        if (flagInfo && !seenCodes.has(flagInfo.code)) {
+            flags.push(flagInfo);
+            seenCodes.add(flagInfo.code);
+        }
+    }
+
+    return flags;
+}
+
+export function getCountryFlag(country: string | null | undefined): { code: string; label: string } | null {
+    const flags = getCountryFlags(country);
+
+    return flags.length > 0 ? flags[0] : null;
+}
+
 export function getOriginCountryFlag(origin: string | null | undefined): { code: string; label: string } | null {
     if (!origin || hasMultipleOrigins(origin)) {
         return null;
@@ -131,12 +166,10 @@ export function getOriginCountryFlag(origin: string | null | undefined): { code:
 
     const normalized = normalizeOriginText(origin);
 
-    for (const countryName of Object.keys(countryFlagByName)) {
-        const countryPattern = new RegExp(`(^|\\b)${escapeRegExp(countryName)}(\\b|$)`, "i");
+    const countryFlag = findCountryFlag(normalized);
 
-        if (countryPattern.test(normalized)) {
-            return countryFlagByName[countryName];
-        }
+    if (countryFlag) {
+        return countryFlag;
     }
 
     for (const alias of Object.keys(regionCountryAliases)) {
@@ -158,8 +191,12 @@ function buildCountryFlagHtml(flagInfo: { code: string; label: string } | null):
     return `<img class="origin-country-flag" src="https://flagcdn.com/24x18/${flagInfo.code}.png" srcset="https://flagcdn.com/48x36/${flagInfo.code}.png 2x" width="24" height="18" alt="${flagInfo.label} flag" title="${flagInfo.label}" loading="lazy">`;
 }
 
+function buildCountryFlagsHtml(flagInfos: { code: string; label: string }[]): string {
+    return flagInfos.map((flagInfo) => buildCountryFlagHtml(flagInfo)).join("");
+}
+
 export function getCountryFlagHtml(country: string | null | undefined): string {
-    return buildCountryFlagHtml(getCountryFlag(country));
+    return buildCountryFlagsHtml(getCountryFlags(country));
 }
 
 export function getOriginCountryFlagHtml(origin: string | null | undefined): string {

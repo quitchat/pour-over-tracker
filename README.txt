@@ -125,7 +125,7 @@
 - Official roaster website preference for bean data sourcing
 - Retailer, review, Reddit, blog, and marketplace fallback avoidance unless necessary
 - Structured bean detail extraction:
-  - Country
+  - Country / countries
   - Origin / region
   - Process
   - Roast level
@@ -133,6 +133,7 @@
   - Source URL
   - Confirmed factual bean notes
 - Official product page URL storage
+- Bean country display supports one or more countries separated by comma or semicolon, with matching country flag images when recognized
 - Null/empty-value handling for unsupported fields
 - Admin-managed Bean Detail AI prompt
 - Per-user AI feature availability controls
