@@ -286,6 +286,14 @@ function buildAverageCostDisplay(map: Map<string, CostBucket>, denominatorSelect
 }
 
 
+function formatDateOnlyForSort(value: Date): string {
+    const year = value.getUTCFullYear();
+    const month = String(value.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(value.getUTCDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
 function formatDateOrNull(value: Date | null | undefined): string {
     if (!value) {
         return "";
@@ -1317,7 +1325,13 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
         const recentBrews = brewSessions
             .slice()
             .sort(function (a, b) {
-                return b.brewDate.getTime() - a.brewDate.getTime();
+                const brewDateCompare = formatDateOnlyForSort(b.brewDate).localeCompare(formatDateOnlyForSort(a.brewDate));
+
+                if (brewDateCompare !== 0) {
+                    return brewDateCompare;
+                }
+
+                return b.createdAt.getTime() - a.createdAt.getTime();
             })
             .slice(0, 8)
             .map(function (session) {
