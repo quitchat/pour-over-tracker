@@ -4,6 +4,7 @@ import { getRequiredUserId, requireAuth } from "../middleware/auth";
 import { buildLastMonthKeys, formatDateOnlyUs, formatMonthKeyFromDateOnly, getTodayDateForInput, parseDateOnlyToUtcDate, parseDateOnlyToUtcEndOfDay } from "../utils/dateFormat";
 import { normalizeTimeZone } from "../utils/timeZone";
 import { getEffectiveTotalCost, getInventoryUsage } from "../services/beanInventory.service";
+import { resolveOriginMapPoints, OriginMapPoint } from "../utils/originMap";
 
 const router = Router();
 
@@ -1414,6 +1415,188 @@ router.get("/", async function (req: Request, res: Response, next: NextFunction)
                     tastingAverages.acidity
                 ]
             }
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+
+type OriginMapBeanItem = {
+    id: number;
+    beanName: string;
+    roasterName: string;
+    country: string;
+    origin: string;
+    isActive: boolean;
+    latestPurchaseDate: string;
+};
+
+type OriginMapGroup = OriginMapPoint & {
+    key: string;
+    beanCount: number;
+    activeBeanCount: number;
+    beans: OriginMapBeanItem[];
+};
+
+function getLatestBeanPurchaseDateText(bean: {
+    createdAt: Date;
+    beanInventories?: Array<{ purchaseDate: Date | null; createdAt: Date }>;
+    beanPurchases?: Array<{ purchaseDate: Date | null; createdAt: Date }>;
+}): string {
+    let latestDate: Date | null = bean.createdAt;
+
+    const candidateDates: Date[] = [];
+
+    if (bean.beanInventories) {
+        for (const inventory of bean.beanInventories) {
+            candidateDates.push(inventory.purchaseDate || inventory.createdAt);
+        }
+    }
+
+    if (bean.beanPurchases) {
+        for (const purchase of bean.beanPurchases) {
+            candidateDates.push(purchase.purchaseDate || purchase.createdAt);
+        }
+    }
+
+    for (const candidateDate of candidateDates) {
+        if (!latestDate || candidateDate.getTime() > latestDate.getTime()) {
+            latestDate = candidateDate;
+        }
+    }
+
+    return latestDate ? formatDateOnlyUs(latestDate) : "";
+}
+
+function buildOriginMapGroupKey(point: OriginMapPoint): string {
+    return `${point.countryCode}|${point.region || "country"}|${point.matchLevel}`;
+}
+
+router.get("/origin-map", async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        const userId = getRequiredUserId(req);
+        const coffeeBeans = await prisma.coffeeBean.findMany({
+            where: {
+                userId: userId
+            },
+            select: {
+                id: true,
+                beanName: true,
+                roasterName: true,
+                country: true,
+                origin: true,
+                isActive: true,
+                createdAt: true,
+                beanInventories: {
+                    select: {
+                        purchaseDate: true,
+                        createdAt: true
+                    }
+                },
+                beanPurchases: {
+                    select: {
+                        purchaseDate: true,
+                        createdAt: true
+                    }
+                }
+            },
+            orderBy: [
+                { isActive: "desc" },
+                { createdAt: "desc" }
+            ]
+        });
+
+        const groupMap = new Map<string, OriginMapGroup>();
+        const unmatchedBeans: OriginMapBeanItem[] = [];
+
+        for (const bean of coffeeBeans) {
+            const points = resolveOriginMapPoints(bean.country, bean.origin);
+            const beanItem: OriginMapBeanItem = {
+                id: bean.id,
+                beanName: bean.beanName,
+                roasterName: bean.roasterName || "",
+                country: bean.country || "",
+                origin: bean.origin || "",
+                isActive: bean.isActive,
+                latestPurchaseDate: getLatestBeanPurchaseDateText(bean)
+            };
+
+            if (points.length === 0) {
+                if (bean.country || bean.origin) {
+                    unmatchedBeans.push(beanItem);
+                }
+
+                continue;
+            }
+
+            for (const point of points) {
+                const key = buildOriginMapGroupKey(point);
+                let group = groupMap.get(key);
+
+                if (!group) {
+                    group = {
+                        key: key,
+                        country: point.country,
+                        countryCode: point.countryCode,
+                        region: point.region,
+                        lat: point.lat,
+                        lng: point.lng,
+                        matchLevel: point.matchLevel,
+                        beanCount: 0,
+                        activeBeanCount: 0,
+                        beans: []
+                    };
+                    groupMap.set(key, group);
+                }
+
+                group.beans.push(beanItem);
+            }
+        }
+
+        const originMapGroups = Array.from(groupMap.values())
+            .map(function (group) {
+                group.beans.sort(function (left, right) {
+                    if (left.isActive !== right.isActive) {
+                        return left.isActive ? -1 : 1;
+                    }
+
+                    return left.beanName.localeCompare(right.beanName);
+                });
+                group.beanCount = group.beans.length;
+                group.activeBeanCount = group.beans.filter(function (bean) {
+                    return bean.isActive;
+                }).length;
+
+                return group;
+            })
+            .sort(function (left, right) {
+                if (right.beanCount !== left.beanCount) {
+                    return right.beanCount - left.beanCount;
+                }
+
+                const leftLabel = `${left.country} ${left.region || ""}`.trim();
+                const rightLabel = `${right.country} ${right.region || ""}`.trim();
+
+                return leftLabel.localeCompare(rightLabel);
+            });
+
+        unmatchedBeans.sort(function (left, right) {
+            if (left.isActive !== right.isActive) {
+                return left.isActive ? -1 : 1;
+            }
+
+            return left.beanName.localeCompare(right.beanName);
+        });
+
+        res.render("analytics/origin-map", {
+            title: "Origin Map",
+            originMapGroups: originMapGroups,
+            unmatchedBeans: unmatchedBeans,
+            totalBeanCount: coffeeBeans.length,
+            mappedBeanCount: originMapGroups.reduce(function (sum, group) {
+                return sum + group.beanCount;
+            }, 0)
         });
     } catch (error) {
         next(error);
