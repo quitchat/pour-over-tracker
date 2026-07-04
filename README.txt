@@ -118,6 +118,7 @@
 - Interactive coffee origin world map using bean country/countries and origin/region data
 - Origin map geocoding that tries country plus region first, then falls back to country-level pins and caches resolved coordinates
 - Multi-country origin map support for countries separated by comma or semicolon
+- Bean detail origin map link for opening the map focused on that bean's country/region location
 - Radar diagram for tasting/scoring characteristics with quality/balance scoring guidance
 - Derived usage statistics for beans and grinders
 - Date formatting and display normalization

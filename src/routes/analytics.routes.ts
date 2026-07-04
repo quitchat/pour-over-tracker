@@ -1453,6 +1453,16 @@ type OriginMapGroup = OriginMapPoint & {
     beans: OriginMapBeanItem[];
 };
 
+function toOptionalPositiveInt(value: unknown): number | null {
+    const numericValue = Number(value);
+
+    if (!Number.isInteger(numericValue) || numericValue <= 0) {
+        return null;
+    }
+
+    return numericValue;
+}
+
 function getLatestBeanPurchaseDateText(bean: {
     createdAt: Date;
     beanInventories?: Array<{ purchaseDate: Date | null; createdAt: Date }>;
@@ -1490,6 +1500,7 @@ function buildOriginMapGroupKey(point: OriginMapPoint): string {
 router.get("/origin-map", async function (req: Request, res: Response, next: NextFunction) {
     try {
         const userId = getRequiredUserId(req);
+        const focusedBeanId = toOptionalPositiveInt(req.query.beanId);
         const coffeeBeans = await prisma.coffeeBean.findMany({
             where: {
                 userId: userId
@@ -1568,6 +1579,17 @@ router.get("/origin-map", async function (req: Request, res: Response, next: Nex
             }
         }
 
+        let focusedOriginKey = "";
+
+        if (focusedBeanId) {
+            for (const group of groupMap.values()) {
+                if (group.beans.some(function (bean) { return bean.id === focusedBeanId; })) {
+                    focusedOriginKey = group.key;
+                    break;
+                }
+            }
+        }
+
         const originMapGroups = Array.from(groupMap.values())
             .map(function (group) {
                 group.beans.sort(function (left, right) {
@@ -1610,7 +1632,9 @@ router.get("/origin-map", async function (req: Request, res: Response, next: Nex
             totalBeanCount: coffeeBeans.length,
             mappedBeanCount: originMapGroups.reduce(function (sum, group) {
                 return sum + group.beanCount;
-            }, 0)
+            }, 0),
+            focusedBeanId: focusedBeanId,
+            focusedOriginKey: focusedOriginKey
         });
     } catch (error) {
         next(error);

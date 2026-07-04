@@ -284,7 +284,12 @@
 
                     <% if (coffeeBean.country) { %>
                         <dt class="col-sm-4">Country / Countries</dt>
-                        <dd class="col-sm-8"><%- getCountryFlagHtml(coffeeBean.country) %><%= coffeeBean.country %></dd>
+                        <dd class="col-sm-8">
+                            <%- getCountryFlagHtml(coffeeBean.country) %><%= coffeeBean.country %>
+                            <a href="/analytics/origin-map?beanId=<%= coffeeBean.id %>" class="btn btn-sm btn-outline-primary ms-2 py-0 px-2 align-baseline" title="Show this origin on the map" aria-label="Show this origin on the map">
+                                <i class="bi bi-geo-alt-fill"></i>
+                            </a>
+                        </dd>
                     <% } %>
 
                     <% if (coffeeBean.origin) { %>

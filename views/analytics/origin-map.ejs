@@ -2,6 +2,8 @@
     const groups = typeof originMapGroups !== "undefined" ? originMapGroups : [];
     const unmatched = typeof unmatchedBeans !== "undefined" ? unmatchedBeans : [];
     const totalBeans = typeof totalBeanCount !== "undefined" ? totalBeanCount : 0;
+    const focusedKey = typeof focusedOriginKey !== "undefined" ? focusedOriginKey : "";
+    const focusedBean = typeof focusedBeanId !== "undefined" ? focusedBeanId : null;
 
     function flagUrl(countryCode) {
         if (!countryCode) {
@@ -23,6 +25,12 @@
         <p class="text-muted mb-0">
             Coffee bean origins are geocoded by country plus region first, then fall back to country-level pins. Resolved locations are cached.
         </p>
+        <% if (focusedBean && focusedKey) { %>
+            <div class="small text-primary mt-1">
+                <i class="bi bi-geo-alt-fill me-1"></i>
+                Focused from bean detail.
+            </div>
+        <% } %>
     </div>
 
     <div class="d-flex gap-2">
@@ -95,7 +103,7 @@
                 <% } %>
 
                 <% groups.forEach(function (group) { %>
-                    <div class="list-group-item">
+                    <div class="list-group-item<%= focusedKey && group.key === focusedKey ? " border-start border-primary border-3" : "" %>">
                         <div class="d-flex justify-content-between align-items-start gap-3 flex-column flex-md-row">
                             <div>
                                 <div class="fw-semibold">
@@ -207,6 +215,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
     window.originMapGroups = <%- JSON.stringify(groups) %>;
+    window.focusedOriginKey = <%- JSON.stringify(focusedKey) %>;
 </script>
 
 <% scripts = (typeof scripts !== "undefined" ? scripts : "") + `
@@ -267,7 +276,13 @@
             bounds.push([group.lat, group.lng]);
         });
 
-        if (bounds.length === 1) {
+        const focusedKey = window.focusedOriginKey || "";
+        const focusedMarker = focusedKey ? markerMap[focusedKey] : null;
+
+        if (focusedMarker) {
+            map.setView(focusedMarker.getLatLng(), 6);
+            focusedMarker.openPopup();
+        } else if (bounds.length === 1) {
             map.setView(bounds[0], 5);
         } else if (bounds.length > 1) {
             map.fitBounds(bounds, {
