@@ -383,3 +383,22 @@ model TastingScore {
 
   brewSession   BrewSession @relation(fields: [brewSessionId], references: [id], onDelete: Cascade)
 }
+
+model OriginMapGeocodeCache {
+  id         Int      @id @default(autoincrement())
+  cacheKey   String   @unique
+  query      String
+  matchLevel String
+  status     String
+  country    String?
+  countryCode String?
+  region     String?
+  lat        Float?
+  lng        Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([matchLevel])
+  @@index([status])
+  @@index([countryCode])
+}

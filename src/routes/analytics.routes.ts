@@ -1511,7 +1511,7 @@ router.get("/origin-map", async function (req: Request, res: Response, next: Nex
         const unmatchedBeans: OriginMapBeanItem[] = [];
 
         for (const bean of coffeeBeans) {
-            const points = resolveOriginMapPoints(bean.country, bean.origin);
+            const points = await resolveOriginMapPoints(prisma, bean.country, bean.origin);
             const beanItem: OriginMapBeanItem = {
                 id: bean.id,
                 beanName: bean.beanName,

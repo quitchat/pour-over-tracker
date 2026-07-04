@@ -116,7 +116,7 @@
 - Brew comparison interface
 - Chart.js-based visualizations
 - Interactive coffee origin world map using bean country/countries and origin/region data
-- Origin map matching that tries country plus region first, then falls back to country-level pins
+- Origin map geocoding that tries country plus region first, then falls back to country-level pins and caches resolved coordinates
 - Multi-country origin map support for countries separated by comma or semicolon
 - Radar diagram for tasting/scoring characteristics with quality/balance scoring guidance
 - Derived usage statistics for beans and grinders
