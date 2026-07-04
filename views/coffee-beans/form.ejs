@@ -229,13 +229,25 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label for="origin" class="form-label">Origin</label>
+                    <label for="country" class="form-label">Country</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="country"
+                        name="country"
+                        value="<%= formData.country || "" %>"
+                        placeholder="Ethiopia">
+                </div>
+
+                <div class="col-md-6">
+                    <label for="origin" class="form-label">Origin / Region</label>
                     <input
                         type="text"
                         class="form-control"
                         id="origin"
                         name="origin"
-                        value="<%= formData.origin || "" %>">
+                        value="<%= formData.origin || "" %>"
+                        placeholder="Yirgacheffe, Huila, Nyeri, etc.">
                 </div>
 
                 <div class="col-md-6">
@@ -638,6 +650,7 @@
                 setElementValue("beanName", formData.beanName);
             }
 
+            setElementValue("country", formData.country);
             setElementValue("origin", formData.origin);
             setElementValue("process", formData.process);
             setElementValue("roastLevel", formData.roastLevel);
@@ -803,6 +816,7 @@
             const body = new URLSearchParams();
             body.set("roasterName", roasterName);
             body.set("beanName", beanName);
+            body.set("country", getElementValue("country"));
             body.set("origin", getElementValue("origin"));
             body.set("process", getElementValue("process"));
             body.set("roastLevel", getElementValue("roastLevel"));

@@ -13,6 +13,7 @@ export type AiServiceResult<T> = {
 export type CoffeeInformationResult = {
     beanName: string | null;
     roasterName: string | null;
+    country: string | null;
     origin: string | null;
     process: string | null;
     roastLevel: "Light" | "Medium" | "Dark" | null;
@@ -84,11 +85,15 @@ export const DEFAULT_BEAN_DETAIL_AI_PROMPT = [
     "",
     "confirmedNotes should be short factual notes that would help a coffee drinker understand the bean.",
     "",
-    "Good confirmedNotes examples include region, farm, producer, cooperative, variety/cultivar, elevation, harvest season, blend components, decaf method, roast style, processing details, certification, recommended brewing notes, or a roaster's own description of the coffee.",
+    "Good confirmedNotes examples include country, region, farm, producer, cooperative, variety/cultivar, elevation, harvest season, blend components, decaf method, roast style, processing details, certification, recommended brewing notes, or a roaster's own description of the coffee.",
     "",
     "Return 3 to 8 confirmedNotes if the official source supports that much information.",
     "",
-    "Do not duplicate the exact same information already returned in origin, process, roastLevel, or flavorNotes unless the note adds more detail.",
+    "For country, return the bean's producing country when clearly supported, such as Ethiopia, Colombia, Kenya, or Costa Rica. Return null for blends, multi-country coffees, or unclear origins.",
+    "",
+    "For origin, return the more specific origin or region/farm/cooperative text when clearly supported, without duplicating the country name. For example, if the source says Ethiopia Yirgacheffe, return country as Ethiopia and origin as Yirgacheffe. If only the country is known, return country and set origin to null.",
+    "",
+    "Do not duplicate the exact same information already returned in country, origin, process, roastLevel, or flavorNotes unless the note adds more detail.",
     "",
     "Do not include statements about missing data.",
     "",
@@ -96,7 +101,7 @@ export const DEFAULT_BEAN_DETAIL_AI_PROMPT = [
     "",
     "If there are no extra confirmed facts, return an empty confirmedNotes array.",
     "",
-    "Return text facts only: origin, process, roast level, flavor notes, source URL, and confirmed notes."
+    "Return text facts only: country, origin/region, process, roast level, flavor notes, source URL, and confirmed notes."
 ].join("\n");
 
 function getOpenAIClient() {
@@ -157,6 +162,7 @@ function parseCoffeeInformationJson(outputText: string): CoffeeInformationResult
     return {
         beanName: parsed.beanName || null,
         roasterName: parsed.roasterName || null,
+        country: parsed.country || null,
         origin: parsed.origin || null,
         process: parsed.process || null,
         roastLevel: parsed.roastLevel || null,
@@ -227,6 +233,9 @@ export async function getCoffeeInformationFromOpenAI(roasterName: string, beanNa
                         roasterName: {
                             type: ["string", "null"]
                         },
+                        country: {
+                            type: ["string", "null"]
+                        },
                         origin: {
                             type: ["string", "null"]
                         },
@@ -256,6 +265,7 @@ export async function getCoffeeInformationFromOpenAI(roasterName: string, beanNa
                     required: [
                         "beanName",
                         "roasterName",
+                        "country",
                         "origin",
                         "process",
                         "roastLevel",

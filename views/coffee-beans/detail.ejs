@@ -282,9 +282,14 @@
                         <dd class="col-sm-8"><%= coffeeBean.beanName %></dd>
                     <% } %>
 
+                    <% if (coffeeBean.country) { %>
+                        <dt class="col-sm-4">Country</dt>
+                        <dd class="col-sm-8"><%- getCountryFlagHtml(coffeeBean.country) %><%= coffeeBean.country %></dd>
+                    <% } %>
+
                     <% if (coffeeBean.origin) { %>
-                        <dt class="col-sm-4">Origin</dt>
-                        <dd class="col-sm-8"><%- getOriginCountryFlagHtml(coffeeBean.origin) %><%= coffeeBean.origin %></dd>
+                        <dt class="col-sm-4">Origin / Region</dt>
+                        <dd class="col-sm-8"><% if (!coffeeBean.country) { %><%- getOriginCountryFlagHtml(coffeeBean.origin) %><% } %><%= coffeeBean.origin %></dd>
                     <% } %>
 
                     <% if (coffeeBean.process) { %>

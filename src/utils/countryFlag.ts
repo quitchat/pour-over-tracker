@@ -106,6 +106,24 @@ function hasMultipleOrigins(origin: string): boolean {
     return /\s(?:and|&)\s|\s\/\s|\s\+\s|,|;/.test(normalized);
 }
 
+export function getCountryFlag(country: string | null | undefined): { code: string; label: string } | null {
+    if (!country) {
+        return null;
+    }
+
+    const normalized = normalizeOriginText(country);
+
+    for (const countryName of Object.keys(countryFlagByName)) {
+        const countryPattern = new RegExp(`(^|\\b)${escapeRegExp(countryName)}(\\b|$)`, "i");
+
+        if (countryPattern.test(normalized)) {
+            return countryFlagByName[countryName];
+        }
+    }
+
+    return null;
+}
+
 export function getOriginCountryFlag(origin: string | null | undefined): { code: string; label: string } | null {
     if (!origin || hasMultipleOrigins(origin)) {
         return null;
@@ -132,12 +150,20 @@ export function getOriginCountryFlag(origin: string | null | undefined): { code:
     return null;
 }
 
-export function getOriginCountryFlagHtml(origin: string | null | undefined): string {
-    const flagInfo = getOriginCountryFlag(origin);
-
+function buildCountryFlagHtml(flagInfo: { code: string; label: string } | null): string {
     if (!flagInfo) {
         return "";
     }
 
     return `<img class="origin-country-flag" src="https://flagcdn.com/24x18/${flagInfo.code}.png" srcset="https://flagcdn.com/48x36/${flagInfo.code}.png 2x" width="24" height="18" alt="${flagInfo.label} flag" title="${flagInfo.label}" loading="lazy">`;
+}
+
+export function getCountryFlagHtml(country: string | null | undefined): string {
+    return buildCountryFlagHtml(getCountryFlag(country));
+}
+
+export function getOriginCountryFlagHtml(origin: string | null | undefined): string {
+    const flagInfo = getOriginCountryFlag(origin);
+
+    return buildCountryFlagHtml(flagInfo);
 }

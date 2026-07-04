@@ -158,6 +158,7 @@ model CoffeeBean {
   userId        Int?
   beanName      String
   roasterName   String?
+  country       String?
   origin        String?
   process       String?
   roastLevel    String?

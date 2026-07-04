@@ -37,7 +37,8 @@
 - Bean image/photo upload workflow
 - Icon-based photo upload control
 - Paginated coffee bean list
-- Mini country flag image display next to single-origin bean origin/region text when a country can be inferred
+- Separate bean country and origin/region fields
+- Mini country flag image display next to bean country when available
 - Bean-level 0–5 star rating
 - Bean Info field for factual/structured bean information
 - Bean Notes field for user-entered personal notes
@@ -124,7 +125,8 @@
 - Official roaster website preference for bean data sourcing
 - Retailer, review, Reddit, blog, and marketplace fallback avoidance unless necessary
 - Structured bean detail extraction:
-  - Origin
+  - Country
+  - Origin / region
   - Process
   - Roast level
   - Flavor notes

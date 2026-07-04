@@ -216,6 +216,7 @@ function getCoffeeBeanFormValues(req: Request) {
     return {
         beanName: String(req.body.beanName || "").trim(),
         roasterName: String(req.body.roasterName || "").trim(),
+        country: String(req.body.country || "").trim(),
         origin: String(req.body.origin || "").trim(),
         process: String(req.body.process || "").trim(),
         roastLevel: String(req.body.roastLevel || "").trim(),
@@ -265,6 +266,7 @@ function buildCoffeeInfoFormData(currentValues: any, coffeeInfo: CoffeeInformati
     const confirmedNotesText = buildConfirmedNotesText(coffeeInfo.confirmedNotes);
 
     return {
+        country: coffeeInfo.country || currentValues.country || "",
         origin: coffeeInfo.origin || currentValues.origin || "",
         process: coffeeInfo.process || currentValues.process || "",
         roastLevel: coffeeInfo.roastLevel || currentValues.roastLevel || "",
@@ -787,6 +789,7 @@ router.get("/", async function (req: Request, res: Response) {
             id: bean.id,
             beanName: bean.beanName,
             roasterName: bean.roasterName || "",
+            country: bean.country || "",
             origin: bean.origin || "",
             process: bean.process || "",
             roastLevel: bean.roastLevel || "",
@@ -1022,6 +1025,7 @@ router.post("/", async function (req: Request, res: Response) {
                 userId: userId,
                 beanName: formValues.beanName,
                 roasterName: formValues.roasterName || null,
+                country: formValues.country || null,
                 origin: formValues.origin || null,
                 process: formValues.process || null,
                 roastLevel: formValues.roastLevel || null,
@@ -1903,6 +1907,7 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
         formData: {
             beanName: coffeeBean.beanName,
             roasterName: coffeeBean.roasterName || "",
+            country: coffeeBean.country || "",
             origin: coffeeBean.origin || "",
             process: coffeeBean.process || "",
             roastLevel: coffeeBean.roastLevel || "",
@@ -1986,6 +1991,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
         data: {
             beanName: formValues.beanName,
             roasterName: formValues.roasterName || null,
+            country: formValues.country || null,
             origin: formValues.origin || null,
             process: formValues.process || null,
             roastLevel: formValues.roastLevel || null,
@@ -2156,6 +2162,7 @@ router.get("/:id", async function (req: Request, res: Response) {
             id: coffeeBean.id,
             beanName: coffeeBean.beanName,
             roasterName: coffeeBean.roasterName || "",
+            country: coffeeBean.country || "",
             origin: coffeeBean.origin || "",
             process: coffeeBean.process || "",
             roastLevel: coffeeBean.roastLevel || "",
