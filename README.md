@@ -34,6 +34,7 @@
 - Persistent roaster catalog
 - Roaster autosuggest/autocomplete during bean entry
 - Free-text roaster entry for new roaster names
+- User-level roaster consolidation tool for merging duplicate or variant roaster names across that user's beans, saving old names as aliases to the preferred name
 - Bean image/photo upload workflow
 - Icon-based photo upload control
 - Paginated coffee bean list

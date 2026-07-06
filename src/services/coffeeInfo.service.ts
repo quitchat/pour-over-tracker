@@ -104,7 +104,7 @@ export const DEFAULT_BEAN_DETAIL_AI_PROMPT = [
     "",
     "If there are no extra confirmed facts, return an empty confirmedNotes array.",
     "",
-    "Return text facts only: country, origin/region, process, roast level, decaf status, flavor notes, source URL, and confirmed notes."
+    "Return text facts only: roaster name, country, origin/region, process, roast level, decaf status, flavor notes, source URL, and confirmed notes."
 ].join("\n");
 
 function getOpenAIClient() {

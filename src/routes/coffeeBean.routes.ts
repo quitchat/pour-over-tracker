@@ -686,13 +686,190 @@ async function getRoasterSuggestions(userId: number): Promise<string[]> {
         }
     });
 
-    return roasters
+    const aliases = await (prisma as any).roasterAlias.findMany({
+        where: {
+            userId: userId
+        },
+        select: {
+            preferredName: true
+        },
+        orderBy: {
+            preferredName: "asc"
+        }
+    });
+
+    const suggestionNames = roasters
         .map(function (roaster) {
             return roaster.roasterName || "";
+        })
+        .concat(aliases.map(function (alias) {
+            return alias.preferredName || "";
+        }))
+        .map(function (roasterName) {
+            return roasterName.trim();
         })
         .filter(function (roasterName) {
             return roasterName.length > 0;
         });
+
+    return Array.from(new Set(suggestionNames)).sort(function (left, right) {
+        return left.localeCompare(right);
+    });
+}
+
+
+type RoasterConsolidationOption = {
+    roasterName: string;
+    beanCount: number;
+    normalizedName: string;
+};
+
+type RoasterAliasOption = {
+    aliasName: string;
+    preferredName: string;
+};
+
+function normalizeRoasterNameForGrouping(roasterName: string): string {
+    return roasterName
+        .trim()
+        .toLowerCase()
+        .replace(/&/g, "and")
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\b(coffee|coffees|roaster|roasters|roastery|roasting|company|co|llc|inc)\b/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function normalizeRoasterAliasKey(roasterName: string): string {
+    return normalizeRoasterNameForGrouping(roasterName);
+}
+
+async function getPreferredRoasterName(userId: number, roasterName: string | null | undefined): Promise<string> {
+    const trimmedRoasterName = String(roasterName || "").trim();
+
+    if (!trimmedRoasterName) {
+        return "";
+    }
+
+    const normalizedAlias = normalizeRoasterAliasKey(trimmedRoasterName);
+
+    if (!normalizedAlias) {
+        return trimmedRoasterName;
+    }
+
+    const roasterAlias = await (prisma as any).roasterAlias.findUnique({
+        where: {
+            userId_normalizedAlias: {
+                userId: userId,
+                normalizedAlias: normalizedAlias
+            }
+        }
+    });
+
+    return roasterAlias ? roasterAlias.preferredName : trimmedRoasterName;
+}
+
+async function upsertRoasterAlias(tx: Prisma.TransactionClient, userId: number, aliasName: string, preferredName: string): Promise<void> {
+    const trimmedAliasName = aliasName.trim();
+    const trimmedPreferredName = preferredName.trim();
+    const normalizedAlias = normalizeRoasterAliasKey(trimmedAliasName);
+
+    if (!trimmedAliasName || !trimmedPreferredName || !normalizedAlias) {
+        return;
+    }
+
+    await (tx as any).roasterAlias.upsert({
+        where: {
+            userId_normalizedAlias: {
+                userId: userId,
+                normalizedAlias: normalizedAlias
+            }
+        },
+        create: {
+            userId: userId,
+            aliasName: trimmedAliasName,
+            preferredName: trimmedPreferredName,
+            normalizedAlias: normalizedAlias
+        },
+        update: {
+            aliasName: trimmedAliasName,
+            preferredName: trimmedPreferredName
+        }
+    });
+}
+
+
+async function getRoasterConsolidationOptions(userId: number): Promise<RoasterConsolidationOption[]> {
+    const beans = await prisma.coffeeBean.findMany({
+        where: {
+            userId: userId,
+            roasterName: {
+                not: null
+            }
+        },
+        select: {
+            roasterName: true
+        }
+    });
+
+    const roasterCounts = new Map<string, number>();
+
+    beans.forEach(function (bean) {
+        const roasterName = (bean.roasterName || "").trim();
+
+        if (!roasterName) {
+            return;
+        }
+
+        roasterCounts.set(roasterName, (roasterCounts.get(roasterName) || 0) + 1);
+    });
+
+    return Array.from(roasterCounts.entries())
+        .map(function (entry) {
+            return {
+                roasterName: entry[0],
+                beanCount: entry[1],
+                normalizedName: normalizeRoasterNameForGrouping(entry[0])
+            };
+        })
+        .sort(function (left, right) {
+            return left.roasterName.localeCompare(right.roasterName);
+        });
+}
+
+async function getRoasterAliasOptions(userId: number): Promise<RoasterAliasOption[]> {
+    const aliases = await (prisma as any).roasterAlias.findMany({
+        where: {
+            userId: userId
+        },
+        select: {
+            aliasName: true,
+            preferredName: true
+        },
+        orderBy: [
+            {
+                preferredName: "asc"
+            },
+            {
+                aliasName: "asc"
+            }
+        ]
+    });
+
+    return aliases;
+}
+
+function getSelectedRoasterNames(value: unknown): string[] {
+    const rawValues = Array.isArray(value) ? value : [value];
+    const selectedNames = rawValues
+        .map(function (item) {
+            return String(item || "").trim();
+        })
+        .filter(function (item) {
+            return item.length > 0;
+        });
+
+    return Array.from(new Set(selectedNames));
 }
 
 router.get("/", async function (req: Request, res: Response) {
@@ -825,6 +1002,88 @@ router.get("/", async function (req: Request, res: Response) {
     });
 });
 
+router.get("/roasters/consolidate", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const roasterOptions = await getRoasterConsolidationOptions(userId);
+    const roasterAliases = await getRoasterAliasOptions(userId);
+
+    res.render("coffee-beans/roaster-consolidate", {
+        title: "Consolidate Roasters",
+        roasterOptions: roasterOptions,
+        roasterAliases: roasterAliases,
+        formData: {
+            canonicalRoasterName: "",
+            sourceRoasterNames: []
+        },
+        errors: [],
+        message: String(req.query.message || "")
+    });
+});
+
+router.post("/roasters/consolidate", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const roasterOptions = await getRoasterConsolidationOptions(userId);
+    const roasterAliases = await getRoasterAliasOptions(userId);
+    const availableRoasterNames = new Set(roasterOptions.map(function (option) {
+        return option.roasterName;
+    }));
+
+    const canonicalRoasterName = String(req.body.canonicalRoasterName || "").trim();
+    const sourceRoasterNames = getSelectedRoasterNames(req.body.sourceRoasterNames);
+    const errors: string[] = [];
+
+    if (!canonicalRoasterName) {
+        errors.push("Canonical roaster name is required.");
+    }
+
+    if (sourceRoasterNames.length === 0) {
+        errors.push("Select at least one roaster name to consolidate.");
+    }
+
+    sourceRoasterNames.forEach(function (roasterName) {
+        if (!availableRoasterNames.has(roasterName)) {
+            errors.push(`Roaster name '${roasterName}' was not found for your beans.`);
+        }
+    });
+
+    if (errors.length > 0) {
+        res.status(400).render("coffee-beans/roaster-consolidate", {
+            title: "Consolidate Roasters",
+            roasterOptions: roasterOptions,
+            roasterAliases: roasterAliases,
+            formData: {
+                canonicalRoasterName: canonicalRoasterName,
+                sourceRoasterNames: sourceRoasterNames
+            },
+            errors: errors,
+            message: ""
+        });
+        return;
+    }
+
+    const updateResult = await prisma.$transaction(async function (tx) {
+        for (const sourceRoasterName of sourceRoasterNames) {
+            await upsertRoasterAlias(tx, userId, sourceRoasterName, canonicalRoasterName);
+        }
+
+        await upsertRoasterAlias(tx, userId, canonicalRoasterName, canonicalRoasterName);
+
+        return await tx.coffeeBean.updateMany({
+            where: {
+                userId: userId,
+                roasterName: {
+                    in: sourceRoasterNames
+                }
+            },
+            data: {
+                roasterName: canonicalRoasterName
+            }
+        });
+    });
+
+    res.redirect(`/coffee-beans/roasters/consolidate?message=${encodeURIComponent(`${updateResult.count} bean(s) updated to ${canonicalRoasterName}. Alias links were saved for future AI lookups.`)}`);
+});
+
 router.get("/new", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
     const roasterSuggestions = await getRoasterSuggestions(userId);
@@ -866,7 +1125,16 @@ router.post("/get-info", requireAiAccess, async function (req: Request, res: Res
     try {
         const coffeeInfoResult = await getCoffeeInformationFromOpenAI(formValues.roasterName, formValues.beanName);
         const coffeeInfo = coffeeInfoResult.data;
-        const formData = buildCoffeeInfoFormData(formValues, coffeeInfo);
+        const aiReturnedRoasterName = coffeeInfo.roasterName || formValues.roasterName;
+        const preferredRoasterName = await getPreferredRoasterName(getRequiredUserId(req), aiReturnedRoasterName);
+        const lookupFormValues = {
+            ...formValues,
+            roasterName: preferredRoasterName
+        };
+        const formData = {
+            roasterName: preferredRoasterName,
+            ...buildCoffeeInfoFormData(lookupFormValues, coffeeInfo)
+        };
 
         await finishAiCallLog({
             handle: aiCallLog,
@@ -963,7 +1231,7 @@ router.post("/upload-bag-image-identify", requireAiAccess, async function (req: 
             ok: true,
             bagImageUrl: uploadedBagImageUrl,
             formData: {
-                roasterName: imageIdentity.roasterName || "",
+                roasterName: await getPreferredRoasterName(getRequiredUserId(req), imageIdentity.roasterName),
                 beanName: imageIdentity.beanName || ""
             },
             confidence: imageIdentity.confidence,
@@ -1022,12 +1290,14 @@ router.post("/", async function (req: Request, res: Response) {
         return;
     }
 
+    const preferredRoasterName = await getPreferredRoasterName(userId, formValues.roasterName);
+
     const createdBean = await prisma.$transaction(async function (tx) {
         const bean = await tx.coffeeBean.create({
             data: {
                 userId: userId,
                 beanName: formValues.beanName,
-                roasterName: formValues.roasterName || null,
+                roasterName: preferredRoasterName || null,
                 country: formValues.country || null,
                 isDecaf: formValues.isDecaf,
                 origin: formValues.origin || null,
@@ -1989,13 +2259,15 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
         bagImageUrl = uploadedBagImageUrl;
     }
 
+    const preferredRoasterName = await getPreferredRoasterName(userId, formValues.roasterName);
+
     await prisma.coffeeBean.update({
         where: {
             id: id
         },
         data: {
             beanName: formValues.beanName,
-            roasterName: formValues.roasterName || null,
+            roasterName: preferredRoasterName || null,
             country: formValues.country || null,
             isDecaf: formValues.isDecaf,
             origin: formValues.origin || null,
