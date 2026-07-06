@@ -702,7 +702,7 @@ async function getRoasterSuggestions(userId: number): Promise<string[]> {
         .map(function (roaster) {
             return roaster.roasterName || "";
         })
-        .concat(aliases.map(function (alias) {
+        .concat(aliases.map(function (alias: { preferredName: string | null }) {
             return alias.preferredName || "";
         }))
         .map(function (roasterName) {
