@@ -214,3 +214,6 @@ npm run inventory:backfill-links:apply
 Optional filters are available through the underlying script, such as `--user-id=<id>`, `--bean-id=<id>`, and `--overwrite`.
 
 Local development is managed with VS Code on Windows.
+
+
+- Guided Pour Plan controls now use responsive widths on mobile and desktop, with square row action buttons and clearer `g`/`m`/`s` labels.

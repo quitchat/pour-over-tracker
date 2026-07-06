@@ -203,9 +203,17 @@
         margin-bottom: 0.25rem;
     }
 
+    .guided-pour-row .input-group {
+        width: 100%;
+    }
+
+    .guided-pour-row [data-guided-pour-grams] {
+        min-width: 0;
+    }
+
     .guided-pour-time-group .form-control {
-        flex: 0 0 4rem;
-        max-width: 4rem;
+        flex: 1 1 0;
+        max-width: none;
         min-width: 0;
         text-align: center;
     }
@@ -215,7 +223,7 @@
         align-items: center;
         display: inline-flex;
         justify-content: center;
-        min-width: 2.25rem;
+        min-width: 2.5rem;
         text-align: center;
     }
 
@@ -227,50 +235,82 @@
         justify-content: center;
     }
 
+    .guided-pour-action-col .btn {
+        flex: 0 0 2.25rem !important;
+        height: 2.25rem;
+        padding: 0;
+        width: 2.25rem;
+    }
+
     .brew-form-actions .btn {
         min-height: calc(1.5em + 0.75rem + 2px);
     }
 
-    @media (max-width: 767.98px) {
+
+    @media (min-width: 768px) {
         .guided-pour-amount-col {
-            flex: 0 0 32%;
-            max-width: 32%;
+            flex: 0 0 18%;
+            max-width: 18%;
         }
 
         .guided-pour-time-col {
-            flex: 0 0 68%;
-            max-width: 68%;
+            flex: 0 0 26%;
+            max-width: 26%;
         }
 
         .guided-pour-method-col {
-            flex: 0 0 62%;
-            max-width: 62%;
+            flex: 1 1 0;
+            max-width: none;
         }
 
         .guided-pour-action-col {
-            flex: 0 0 38%;
-            max-width: 38%;
+            flex: 0 0 auto;
+            max-width: none;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .guided-pour-amount-col {
+            flex: 0 0 36%;
+            max-width: 36%;
+        }
+
+        .guided-pour-time-col {
+            flex: 0 0 64%;
+            max-width: 64%;
+        }
+
+        .guided-pour-method-col {
+            flex: 1 1 0;
+            max-width: none;
+        }
+
+        .guided-pour-action-col {
+            flex: 0 0 auto;
+            max-width: none;
         }
 
         .guided-pour-row .input-group-text {
-            min-width: 2.25rem;
+            min-width: 2.5rem;
             padding-left: 0.45rem;
             padding-right: 0.45rem;
         }
 
         .guided-pour-time-group .form-control {
-            flex: 0 0 3.1rem;
-            max-width: 3.1rem;
+            flex: 1 1 0;
+            max-width: none;
             min-width: 0;
-            padding-left: 0.35rem;
-            padding-right: 0.35rem;
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
             text-align: center;
         }
 
         .guided-pour-action-col .btn {
-            min-height: 2rem;
-            padding-left: 0.45rem;
-            padding-right: 0.45rem;
+            flex: 0 0 2.15rem !important;
+            height: 2.15rem;
+            min-height: 2.15rem;
+            padding: 0;
+            width: 2.15rem;
         }
 
         .pour-structure-mode-toggle {
