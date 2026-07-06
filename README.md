@@ -220,3 +220,5 @@ Local development is managed with VS Code on Windows.
 - Guided Pour Plan controls now use responsive widths on mobile and desktop, with square row action buttons and clearer `g`/`m`/`s` labels.
 
 - Guided Pour Plan action buttons now use the same fixed square size as the neighboring method control height on mobile and desktop.
+
+- User-level roaster consolidation now captures selected old names before updating beans, skips old=preferred self-aliases, and cleans invalid self-alias rows.
