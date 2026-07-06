@@ -1770,8 +1770,8 @@ router.get("/:id/entry", async function (req: Request, res: Response) {
     const formOptions = await getFormOptions(userId, brewSession.coffeeBeanId);
 
     res.render("brew-sessions/form", {
-        title: "Focused Brew Entry",
-        pageHeading: "Focused Brew Entry",
+        title: "Brew Variables",
+        pageHeading: "Brew Variables",
         formAction: `/brew-sessions/${id}/entry`,
         submitButtonText: "Save Brew Entry",
         errors: [],
@@ -1813,8 +1813,8 @@ router.post("/:id/entry", async function (req: Request, res: Response) {
         const formOptions = await getFormOptions(userId, existingSession.coffeeBeanId);
 
         res.status(400).render("brew-sessions/form", {
-            title: "Focused Brew Entry",
-            pageHeading: "Focused Brew Entry",
+            title: "Brew Variables",
+            pageHeading: "Brew Variables",
             formAction: `/brew-sessions/${id}/entry`,
             submitButtonText: "Save Brew Entry",
             errors: allErrors,
