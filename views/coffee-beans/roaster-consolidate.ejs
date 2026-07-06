@@ -71,115 +71,6 @@
 <% } else { %>
     <form method="post" action="/coffee-beans/roasters/consolidate" id="roasterConsolidateForm">
         <div class="card mb-3">
-            <div class="card-header">
-                <i class="bi bi-arrow-down-up me-1"></i>
-                Consolidation Target
-            </div>
-            <div class="card-body">
-                <div class="row g-3 align-items-end">
-                    <div class="col-12 col-lg-7">
-                        <label for="canonicalRoasterName" class="form-label">Canonical Roaster Name</label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="canonicalRoasterName"
-                            name="canonicalRoasterName"
-                            list="roasterNameOptions"
-                            value="<%= data.canonicalRoasterName || "" %>"
-                            placeholder="Final roaster name, for example Sey Coffee">
-                        <datalist id="roasterNameOptions">
-                            <% roasters.forEach(function (roaster) { %>
-                                <option value="<%= roaster.roasterName %>"></option>
-                            <% }); %>
-                        </datalist>
-                        <div class="form-text">
-                            Selected source roaster names will be updated to this exact value. Their old names will be saved as aliases.
-                        </div>
-                    </div>
-
-                    <div class="col-12 col-lg-5 text-lg-end">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check2-circle me-1"></i>
-                            Consolidate Selected Roasters
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-        <% if (aliases.length > 0) { %>
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
-                    <span>
-                        <i class="bi bi-link-45deg me-1"></i>
-                        Saved Roaster Alias Links
-                    </span>
-                    <span class="text-muted small"><%= aliases.length %> alias(es)</span>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Old / Alternate Name</th>
-                                <th>Preferred Name</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% aliases.forEach(function (alias) { %>
-                                <tr>
-                                    <td><%= alias.aliasName %></td>
-                                    <td class="fw-semibold"><%= alias.preferredName %></td>
-                                </tr>
-                            <% }); %>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="card-footer text-muted small">
-                    When bean info lookup or bag label reading sees an alternate roaster name, it uses the preferred name from this list.
-                </div>
-            </div>
-        <% } %>
-
-        <% if (suggestedGroups.length > 0) { %>
-            <div class="card mb-3">
-                <div class="card-header">
-                    <i class="bi bi-lightbulb me-1"></i>
-                    Possible Matches
-                </div>
-                <div class="card-body">
-                    <p class="text-muted small mb-3">
-                        These groups have similar normalized names. Review before selecting; nothing is changed until you submit.
-                    </p>
-
-                    <div class="d-flex flex-column gap-2">
-                        <% suggestedGroups.forEach(function (group, groupIndex) { %>
-                            <div class="border rounded p-2">
-                                <div class="d-flex justify-content-between align-items-start gap-2 flex-column flex-md-row">
-                                    <div>
-                                        <% group.forEach(function (roaster, index) { %>
-                                            <span class="badge text-bg-light border me-1 mb-1">
-                                                <%= roaster.roasterName %> · <%= roaster.beanCount %>
-                                            </span>
-                                        <% }); %>
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline-primary roaster-group-select"
-                                        data-roasters="<%= group.map(function (roaster) { return roaster.roasterName; }).join("||") %>"
-                                        data-target="<%= group.slice().sort(function (left, right) { return right.beanCount - left.beanCount; })[0].roasterName %>">
-                                        Select Group
-                                    </button>
-                                </div>
-                            </div>
-                        <% }); %>
-                    </div>
-                </div>
-            </div>
-        <% } %>
-
-        <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
                 <span>
                     <i class="bi bi-list-check me-1"></i>
@@ -231,6 +122,114 @@
                 </table>
             </div>
         </div>
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-arrow-down-up me-1"></i>
+                Consolidation Target
+            </div>
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-lg-7">
+                        <label for="canonicalRoasterName" class="form-label">Preferred Roaster Name</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="canonicalRoasterName"
+                            name="canonicalRoasterName"
+                            list="roasterNameOptions"
+                            value="<%= data.canonicalRoasterName || "" %>"
+                            placeholder="Final roaster name, for example Sey Coffee">
+                        <datalist id="roasterNameOptions">
+                            <% roasters.forEach(function (roaster) { %>
+                                <option value="<%= roaster.roasterName %>"></option>
+                            <% }); %>
+                        </datalist>
+                        <div class="form-text">
+                            Selected roaster names will be updated to this exact value. Their old names will be saved as aliases.
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-lg-5 text-lg-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check2-circle me-1"></i>
+                            Consolidate Selected Roasters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <% if (suggestedGroups.length > 0) { %>
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-lightbulb me-1"></i>
+                    Possible Matches
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        These groups have similar normalized names. Review before selecting; nothing is changed until you submit.
+                    </p>
+
+                    <div class="d-flex flex-column gap-2">
+                        <% suggestedGroups.forEach(function (group, groupIndex) { %>
+                            <div class="border rounded p-2">
+                                <div class="d-flex justify-content-between align-items-start gap-2 flex-column flex-md-row">
+                                    <div>
+                                        <% group.forEach(function (roaster, index) { %>
+                                            <span class="badge text-bg-light border me-1 mb-1">
+                                                <%= roaster.roasterName %> · <%= roaster.beanCount %>
+                                            </span>
+                                        <% }); %>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-primary roaster-group-select"
+                                        data-roasters="<%= group.map(function (roaster) { return roaster.roasterName; }).join("||") %>"
+                                        data-target="<%= group.slice().sort(function (left, right) { return right.beanCount - left.beanCount; })[0].roasterName %>">
+                                        Select Group
+                                    </button>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+
+        <% if (aliases.length > 0) { %>
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <span>
+                        <i class="bi bi-link-45deg me-1"></i>
+                        Roaster Alias Crosswalk
+                    </span>
+                    <span class="text-muted small"><%= aliases.length %> alias(es)</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Old / Alternate Name</th>
+                                <th>Preferred Name</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% aliases.forEach(function (alias) { %>
+                                <tr>
+                                    <td><%= alias.aliasName %></td>
+                                    <td class="fw-semibold"><%= alias.preferredName %></td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer text-muted small">
+                    When bean info lookup or bag label reading sees an alternate roaster name, it uses the preferred name from this list.
+                </div>
+            </div>
+        <% } %>
     </form>
 <% } %>
 
