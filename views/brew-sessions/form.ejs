@@ -207,34 +207,50 @@
         min-width: 0;
     }
 
-    .guided-pour-action-col .btn {
+    .guided-pour-row .input-group-text,
+    .brew-time-input-group .input-group-text {
+        align-items: center;
+        display: inline-flex;
+        justify-content: center;
+        min-width: 2.25rem;
+        text-align: center;
+    }
+
+    .guided-pour-action-col .btn,
+    .brew-form-actions .btn,
+    .brew-card-action-btn {
         align-items: center;
         display: inline-flex;
         justify-content: center;
     }
 
+    .brew-form-actions .btn {
+        min-height: calc(1.5em + 0.75rem + 2px);
+    }
+
     @media (max-width: 767.98px) {
         .guided-pour-amount-col {
-            flex: 0 0 36%;
-            max-width: 36%;
-        }
-
-        .guided-pour-time-col {
-            flex: 0 0 64%;
-            max-width: 64%;
-        }
-
-        .guided-pour-method-col {
-            flex: 0 0 68%;
-            max-width: 68%;
-        }
-
-        .guided-pour-action-col {
             flex: 0 0 32%;
             max-width: 32%;
         }
 
+        .guided-pour-time-col {
+            flex: 0 0 68%;
+            max-width: 68%;
+        }
+
+        .guided-pour-method-col {
+            flex: 0 0 62%;
+            max-width: 62%;
+        }
+
+        .guided-pour-action-col {
+            flex: 0 0 38%;
+            max-width: 38%;
+        }
+
         .guided-pour-row .input-group-text {
+            min-width: 2rem;
             padding-left: 0.35rem;
             padding-right: 0.35rem;
         }
@@ -454,13 +470,13 @@
 
             <% if (isEntryMode) { %>
                 <div class="d-flex gap-2 ms-md-auto flex-wrap justify-content-end">
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="loadBestBrewButton">
+                    <button type="button" class="btn btn-outline-primary btn-sm brew-card-action-btn" id="loadBestBrewButton">
                         <i class="bi bi-trophy me-1"></i>
                         Load Best Brew
                     </button>
 
                     <% if ((typeof showAiSuggestionButton === "undefined" || showAiSuggestionButton) && userCanUseAi) { %>
-                        <button type="button" class="btn btn-success btn-sm" id="suggestRecipeButton">
+                        <button type="button" class="btn btn-success btn-sm brew-card-action-btn" id="suggestRecipeButton">
                             <i class="bi bi-magic me-1"></i>
                             AI Suggestion
                         </button>
@@ -530,13 +546,7 @@
                     </div>
 
                     <div id="guidedPourStructurePanel" class="guided-pour-plan-card d-none">
-                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
-                            <div class="small text-muted">Build rows such as “Pour 50 g by 0 m 30 s — Bloom”.</div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" id="addGuidedPourRowButton">
-                                <i class="bi bi-plus-lg me-1"></i>
-                                Add Pour
-                            </button>
-                        </div>
+                        <div class="small text-muted mb-2">Build rows such as “Pour 50 g by 0 m 30 s — Bloom”.</div>
 
                         <div id="guidedPourRows" class="d-grid gap-2"></div>
 
@@ -606,7 +616,7 @@
 
                         <div class="brew-quick-field col-md-4">
                             <label class="form-label">Total Brew Time</label>
-                            <div class="input-group">
+                            <div class="input-group brew-time-input-group">
                                 <input
                                     type="number"
                                     min="0"
@@ -1520,7 +1530,6 @@
         const guidedPourStructurePanel = document.getElementById("guidedPourStructurePanel");
         const guidedPourRows = document.getElementById("guidedPourRows");
         const guidedPourRowTemplate = document.getElementById("guidedPourRowTemplate");
-        const addGuidedPourRowButton = document.getElementById("addGuidedPourRowButton");
         const shouldAutoScrollToBrewVariables = <%= autoScrollToBrewVariablesValue ? "true" : "false" %>;
 
         function setPourStructureMode(mode) {
@@ -1771,11 +1780,6 @@
             });
         }
 
-        if (addGuidedPourRowButton) {
-            addGuidedPourRowButton.addEventListener("click", function () {
-                addGuidedPourRow(null, true);
-            });
-        }
 
         if (pourStructureTextarea && guidedPourRows) {
             populateGuidedPourRowsFromText(pourStructureTextarea.value);
