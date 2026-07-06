@@ -173,6 +173,44 @@
         }
     }
 
+
+    .pour-structure-mode-toggle .btn {
+        min-height: 2.35rem;
+    }
+
+    .guided-pour-plan-card {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.75rem;
+        padding: 0.85rem;
+        background: rgba(var(--bs-secondary-rgb), 0.03);
+    }
+
+    .guided-pour-row {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+        background: var(--bs-body-bg);
+    }
+
+    .guided-pour-row .form-label {
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .guided-pour-time-group .form-control {
+        min-width: 0;
+    }
+
+    @media (max-width: 767.98px) {
+        .pour-structure-mode-toggle {
+            width: 100%;
+        }
+
+        .pour-structure-mode-toggle .btn {
+            flex: 1 1 0;
+        }
+    }
+
     .brew-form-actions {
         background: var(--bs-body-bg);
         border-top: 1px solid transparent;
@@ -452,14 +490,91 @@
                 </div>
 
                 <div class="col-12">
-                    <label for="pourStructure" class="form-label">Pour Structure</label>
-                    <textarea
-                        class="form-control"
-                        id="pourStructure"
-                        name="pourStructure"
-                        rows="4"
-                        placeholder="Example: Bloom 50 g, pour to 160 g, pour to 240 g, finish at 320 g."><%= formData.pourStructure || "" %></textarea>
-                    <div class="form-text">Short summary of the pours. AI recipe suggestions will fill this field.</div>
+                    <div class="d-flex justify-content-between align-items-start align-items-md-center gap-2 flex-column flex-md-row mb-2">
+                        <div>
+                            <label for="pourStructure" class="form-label mb-1">Pour Structure</label>
+                            <div class="form-text mt-0">Use manual notes or build a quick guided pour plan.</div>
+                        </div>
+
+                        <div class="btn-group pour-structure-mode-toggle" role="group" aria-label="Pour structure entry mode">
+                            <input type="radio" class="btn-check" name="pourStructureMode" id="pourStructureModeManual" value="manual" checked>
+                            <label class="btn btn-outline-secondary" for="pourStructureModeManual">
+                                Manual
+                            </label>
+
+                            <input type="radio" class="btn-check" name="pourStructureMode" id="pourStructureModeGuided" value="guided">
+                            <label class="btn btn-outline-secondary" for="pourStructureModeGuided">
+                                Guided Pour Plan
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="manualPourStructurePanel">
+                        <textarea
+                            class="form-control"
+                            id="pourStructure"
+                            name="pourStructure"
+                            rows="4"
+                            placeholder="Example: Bloom 50 g, pour to 160 g, pour to 240 g, finish at 320 g."><%= formData.pourStructure || "" %></textarea>
+                        <div class="form-text">Short summary of the pours. AI recipe suggestions will fill this field.</div>
+                    </div>
+
+                    <div id="guidedPourStructurePanel" class="guided-pour-plan-card d-none">
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                            <div class="small text-muted">Build rows such as “Pour 50 g by 0 m 30 s — Bloom”.</div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="addGuidedPourRowButton">
+                                <i class="bi bi-plus-lg me-1"></i>
+                                Add Pour
+                            </button>
+                        </div>
+
+                        <div id="guidedPourRows" class="d-grid gap-2"></div>
+
+                        <template id="guidedPourRowTemplate">
+                            <div class="guided-pour-row" data-guided-pour-row>
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-6 col-md-2">
+                                        <label class="form-label">Pour</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" step="0.1" min="0" class="form-control" data-guided-pour-grams placeholder="0">
+                                            <span class="input-group-text">g</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-6 col-md-3">
+                                        <label class="form-label">By</label>
+                                        <div class="input-group input-group-sm guided-pour-time-group">
+                                            <input type="number" min="0" step="1" class="form-control" data-guided-pour-minutes placeholder="m">
+                                            <span class="input-group-text">m</span>
+                                            <input type="number" min="0" max="59" step="1" class="form-control" data-guided-pour-seconds placeholder="s">
+                                            <span class="input-group-text">s</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-5">
+                                        <label class="form-label">Pour Method</label>
+                                        <select class="form-select form-select-sm" data-guided-pour-method>
+                                            <option value="Bloom">Bloom</option>
+                                            <option value="Normal pour">Normal pour</option>
+                                            <option value="Gentle pour">Gentle pour</option>
+                                            <option value="Center pour">Center pour</option>
+                                            <option value="Circular pour">Circular pour</option>
+                                            <option value="Pulse pour">Pulse pour</option>
+                                            <option value="Swirl">Swirl</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-2 d-flex justify-content-md-end">
+                                        <button type="button" class="btn btn-outline-danger btn-sm w-100 w-md-auto" data-remove-guided-pour-row aria-label="Remove pour row">
+                                            <i class="bi bi-dash-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div class="form-text mt-2">Guided rows are saved into the same Pour Structure notes field.</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -843,29 +958,6 @@
             return (distanceMeters / 1000).toFixed(1) + " km";
         }
 
-        function buildCandidateButtons(candidates, targetSelectId, label) {
-            if (!candidates || candidates.length <= 1) {
-                return "";
-            }
-
-            const buttons = candidates.slice(0, 4).map(function (candidate) {
-                const locationText = candidate.locationName ? " · " + candidate.locationName : "";
-                return "<button type=\"button\" class=\"btn btn-sm btn-outline-primary me-1 mb-1\" data-location-equipment-target=\"" + targetSelectId + "\" data-location-equipment-id=\"" + candidate.id + "\">" +
-                    escapeHtml(candidate.name + locationText + " · " + formatDistanceLabel(candidate.distanceMeters)) +
-                    "</button>";
-            }).join("");
-
-            return "<div class=\"mt-2\"><div class=\"small fw-semibold mb-1\">Other nearby " + label + " options</div>" + buttons + "</div>";
-        }
-
-        function showEquipmentLocationMessage(type, message, htmlSuffix) {
-            if (!equipmentLocationMessage) {
-                return;
-            }
-
-            equipmentLocationMessage.innerHTML = "<div class=\"alert alert-" + type + " py-2 small\">" + message + (htmlSuffix || "") + "</div>";
-        }
-
         function clearEquipmentLocationMessage() {
             if (equipmentLocationMessage) {
                 equipmentLocationMessage.innerHTML = "";
@@ -889,11 +981,7 @@
                 return;
             }
 
-            showEquipmentLocationMessage(
-                "info",
-                escapeHtml("Suggested nearby equipment: " + applied.join(" and ") + ". You can manually override this."),
-                buildCandidateButtons(data.grinderCandidates, "grinderId", "grinder") + buildCandidateButtons(data.brewerCandidates, "brewerId", "brewer")
-            );
+            clearEquipmentLocationMessage();
         }
 
         async function requestLocationEquipmentDefaults() {
@@ -951,25 +1039,6 @@
                 userManuallyChangedEquipment = true;
             });
         });
-
-        if (equipmentLocationMessage) {
-            equipmentLocationMessage.addEventListener("click", function (event) {
-                const target = event.target;
-
-                if (!target || !target.matches("[data-location-equipment-target]")) {
-                    return;
-                }
-
-                const selectId = target.getAttribute("data-location-equipment-target");
-                const equipmentId = target.getAttribute("data-location-equipment-id");
-                const select = document.getElementById(selectId);
-
-                if (select && equipmentId) {
-                    select.value = equipmentId;
-                    userManuallyChangedEquipment = true;
-                }
-            });
-        }
 
         requestLocationEquipmentDefaults();
 
@@ -1383,6 +1452,168 @@
             setOverallRating(overallRatingInput.value);
         }
 
+
+        const brewSessionForm = document.getElementById("brewSessionForm");
+        const pourStructureTextarea = document.getElementById("pourStructure");
+        const pourStructureModeManual = document.getElementById("pourStructureModeManual");
+        const pourStructureModeGuided = document.getElementById("pourStructureModeGuided");
+        const manualPourStructurePanel = document.getElementById("manualPourStructurePanel");
+        const guidedPourStructurePanel = document.getElementById("guidedPourStructurePanel");
+        const guidedPourRows = document.getElementById("guidedPourRows");
+        const guidedPourRowTemplate = document.getElementById("guidedPourRowTemplate");
+        const addGuidedPourRowButton = document.getElementById("addGuidedPourRowButton");
+
+        function setPourStructureMode(mode) {
+            const useGuidedMode = mode === "guided";
+
+            if (pourStructureModeManual) {
+                pourStructureModeManual.checked = !useGuidedMode;
+            }
+
+            if (pourStructureModeGuided) {
+                pourStructureModeGuided.checked = useGuidedMode;
+            }
+
+            if (manualPourStructurePanel) {
+                manualPourStructurePanel.classList.toggle("d-none", useGuidedMode);
+            }
+
+            if (guidedPourStructurePanel) {
+                guidedPourStructurePanel.classList.toggle("d-none", !useGuidedMode);
+            }
+
+            if (useGuidedMode && guidedPourRows && guidedPourRows.children.length === 0) {
+                addGuidedPourRow();
+            }
+        }
+
+        function addGuidedPourRow(rowData) {
+            if (!guidedPourRows || !guidedPourRowTemplate) {
+                return;
+            }
+
+            const fragment = guidedPourRowTemplate.content.cloneNode(true);
+            const row = fragment.querySelector("[data-guided-pour-row]");
+
+            if (!row) {
+                return;
+            }
+
+            const gramsInput = row.querySelector("[data-guided-pour-grams]");
+            const minutesInput = row.querySelector("[data-guided-pour-minutes]");
+            const secondsInput = row.querySelector("[data-guided-pour-seconds]");
+            const methodInput = row.querySelector("[data-guided-pour-method]");
+            const removeButton = row.querySelector("[data-remove-guided-pour-row]");
+
+            if (rowData) {
+                if (gramsInput) {
+                    gramsInput.value = rowData.grams || "";
+                }
+
+                if (minutesInput) {
+                    minutesInput.value = rowData.minutes || "";
+                }
+
+                if (secondsInput) {
+                    secondsInput.value = rowData.seconds || "";
+                }
+
+                if (methodInput && rowData.method) {
+                    methodInput.value = rowData.method;
+                }
+            }
+
+            if (removeButton) {
+                removeButton.addEventListener("click", function () {
+                    row.remove();
+
+                    if (guidedPourRows.children.length === 0) {
+                        addGuidedPourRow();
+                    }
+                });
+            }
+
+            guidedPourRows.appendChild(fragment);
+        }
+
+        function getGuidedPourStructureText() {
+            if (!guidedPourRows) {
+                return "";
+            }
+
+            const lines = [];
+            const rows = guidedPourRows.querySelectorAll("[data-guided-pour-row]");
+
+            rows.forEach(function (row) {
+                const grams = row.querySelector("[data-guided-pour-grams]")?.value.trim() || "";
+                const minutes = row.querySelector("[data-guided-pour-minutes]")?.value.trim() || "";
+                const seconds = row.querySelector("[data-guided-pour-seconds]")?.value.trim() || "";
+                const method = row.querySelector("[data-guided-pour-method]")?.value.trim() || "";
+
+                if (!grams && !minutes && !seconds && !method) {
+                    return;
+                }
+
+                const timeParts = [];
+
+                if (minutes) {
+                    timeParts.push(minutes + " m");
+                }
+
+                if (seconds) {
+                    timeParts.push(seconds + " s");
+                }
+
+                let line = "Pour";
+
+                if (grams) {
+                    line += " " + grams + " g";
+                }
+
+                if (timeParts.length > 0) {
+                    line += " by " + timeParts.join(" ");
+                }
+
+                if (method) {
+                    line += " — " + method;
+                }
+
+                lines.push(line);
+            });
+
+            return lines.join("\n");
+        }
+
+        if (pourStructureModeManual) {
+            pourStructureModeManual.addEventListener("change", function () {
+                if (pourStructureModeManual.checked) {
+                    setPourStructureMode("manual");
+                }
+            });
+        }
+
+        if (pourStructureModeGuided) {
+            pourStructureModeGuided.addEventListener("change", function () {
+                if (pourStructureModeGuided.checked) {
+                    setPourStructureMode("guided");
+                }
+            });
+        }
+
+        if (addGuidedPourRowButton) {
+            addGuidedPourRowButton.addEventListener("click", function () {
+                addGuidedPourRow();
+            });
+        }
+
+        if (brewSessionForm) {
+            brewSessionForm.addEventListener("submit", function () {
+                if (pourStructureModeGuided && pourStructureModeGuided.checked && pourStructureTextarea) {
+                    pourStructureTextarea.value = getGuidedPourStructureText();
+                }
+            });
+        }
+
         const suggestRecipeButton = document.getElementById("suggestRecipeButton");
         const applyRecipeButton = document.getElementById("applyRecipeButton");
         const brewAssistantMessage = document.getElementById("brewAssistantMessage");
@@ -1696,6 +1927,7 @@
 
 
             if (suggestedPourStructure) {
+                setPourStructureMode("manual");
                 setElementValue("pourStructure", suggestedPourStructure);
             }
 
