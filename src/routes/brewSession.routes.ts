@@ -737,6 +737,29 @@ function buildBrewSetupSummary(session: any, temperatureUnit: TemperatureUnit) {
     };
 }
 
+function buildBrewSetupSummaryFromFormValues(formValues: ReturnType<typeof getBrewSessionFormValues>, formOptions: any, temperatureUnit: TemperatureUnit) {
+    const coffeeBean = formOptions.coffeeBeans.find(function (bean: any) {
+        return String(bean.id) === String(formValues.coffeeBeanId);
+    });
+
+    const grinder = formOptions.grinders.find(function (item: any) {
+        return String(item.id) === String(formValues.grinderId);
+    });
+
+    const brewer = formOptions.brewers.find(function (item: any) {
+        return String(item.id) === String(formValues.brewerId);
+    });
+
+    return {
+        coffeeBeanName: coffeeBean ? coffeeBean.label : "",
+        grinderName: grinder ? grinder.label || grinder.name : "",
+        brewerName: brewer ? brewer.label || brewer.name : "",
+        brewDate: formValues.brewDate ? formatDateOnly(parseDateOnlyToUtcDate(formValues.brewDate)) : "",
+        coffeeDoseGrams: formValues.coffeeDoseGrams,
+        temperatureUnit: getTemperatureUnitLabel(temperatureUnit)
+    };
+}
+
 function buildFormDataFromBrewRating(session: any): BrewRatingFormValues {
     const tastingScore = session.tastingScore;
 
@@ -1701,13 +1724,25 @@ router.post("/start", async function (req: Request, res: Response) {
         return;
     }
 
-    const beanInventoryId = await findBestInventoryForBrew(userId, Number(formValues.coffeeBeanId), Number(formValues.coffeeDoseGrams));
+    const selectedCoffeeBeanId = parseRequiredInteger(formValues.coffeeBeanId);
+    const formOptions = await getFormOptions(userId, selectedCoffeeBeanId);
 
-    const createdSession = await prisma.brewSession.create({
-        data: buildBrewSessionCreateData(userId, formValues, temperatureUnit, beanInventoryId)
+    res.render("brew-sessions/form", {
+        title: "Brew Variables",
+        pageHeading: "Brew Variables",
+        formAction: "/brew-sessions",
+        submitButtonText: "Save Brew Entry",
+        errors: [],
+        formMode: "entry",
+        setupSummary: buildBrewSetupSummaryFromFormValues(formValues, formOptions, temperatureUnit),
+        showAiSuggestionButton: true,
+        enableLocationDefaults: false,
+        formData: formValues,
+        temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
+        coffeeBeans: formOptions.coffeeBeans,
+        grinders: formOptions.grinders,
+        brewers: formOptions.brewers
     });
-
-    res.redirect(`/brew-sessions/${createdSession.id}/entry`);
 });
 
 router.post("/", async function (req: Request, res: Response) {
@@ -1723,14 +1758,15 @@ router.post("/", async function (req: Request, res: Response) {
         const formOptions = await getFormOptions(userId, selectedCoffeeBeanId);
 
         res.status(400).render("brew-sessions/form", {
-            title: "Add Brew",
-            pageHeading: "Add Brew",
+            title: "Brew Variables",
+            pageHeading: "Brew Variables",
             formAction: "/brew-sessions",
-            submitButtonText: "Save Brew Session",
+            submitButtonText: "Save Brew Entry",
             errors: allErrors,
-            formMode: "full",
+            formMode: "entry",
+            setupSummary: buildBrewSetupSummaryFromFormValues(formValues, formOptions, temperatureUnit),
             showAiSuggestionButton: true,
-            enableLocationDefaults: true,
+            enableLocationDefaults: false,
             formData: formValues,
             temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
             coffeeBeans: formOptions.coffeeBeans,

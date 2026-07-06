@@ -164,8 +164,8 @@
                                 <% if (isEdit) { %>
                                     <span>Upload</span>
                                 <% } else { %>
-                                    <span class="d-none d-sm-inline">Upload + Read Label + Get Info</span>
-                                    <span class="d-inline d-sm-none">Read Bag + Get Info</span>
+                                    <span class="d-none d-sm-inline">Upload and Get Bean Info</span>
+                                    <span class="d-inline d-sm-none">Upload + Info</span>
                                 <% } %>
                             </button>
                         <% } %>
@@ -251,6 +251,16 @@
                 </div>
 
                 <div class="col-md-6">
+                    <label for="process" class="form-label">Process</label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="process"
+                        name="process"
+                        value="<%= formData.process || "" %>">
+                </div>
+
+                <div class="col-md-6">
                     <label class="form-label d-block" for="isDecaf">Decaf</label>
                     <div class="form-check form-switch pt-2">
                         <input
@@ -263,16 +273,6 @@
                             <%= formData.isDecaf ? "checked" : "" %>>
                         <label class="form-check-label" for="isDecaf">This coffee is decaf</label>
                     </div>
-                </div>
-
-                <div class="col-md-6">
-                    <label for="process" class="form-label">Process</label>
-                    <input
-                        type="text"
-                        class="form-control"
-                        id="process"
-                        name="process"
-                        value="<%= formData.process || "" %>">
                 </div>
 
                 <div class="col-md-6">
@@ -344,8 +344,7 @@
                         class="form-control"
                         id="beanInfo"
                         name="beanInfo"
-                        rows="4"
-                        placeholder="Factual bean information confirmed by the roaster or AI lookup."><%= formData.beanInfo || "" %></textarea>
+                        rows="4"><%= formData.beanInfo || "" %></textarea>
                 </div>
 
                 <div class="col-12">
@@ -614,8 +613,8 @@
                 } else {
                     uploadBagImageButton.innerHTML =
                         '<i class="bi bi-upload me-1"></i>' +
-                        '<span class="d-none d-sm-inline">Upload + Read Label + Get Info</span>' +
-                        '<span class="d-inline d-sm-none">Read Bag + Get Info</span>';
+                        '<span class="d-none d-sm-inline">Upload and Get Bean Info</span>' +
+                        '<span class="d-inline d-sm-none">Upload + Info</span>';
                 }
             }
         }
