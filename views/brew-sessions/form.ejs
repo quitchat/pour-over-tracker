@@ -6,6 +6,7 @@
     const isEntryMode = brewFormMode === "entry";
     const setupSummaryValue = typeof setupSummary !== "undefined" ? setupSummary : null;
     const submitIconClass = isSetupMode ? "bi-arrow-right-circle" : "bi-save";
+    const autoScrollToPourStructureValue = typeof autoScrollToPourStructure !== "undefined" && autoScrollToPourStructure;
 %>
 
 <div class="d-flex justify-content-between align-items-start align-items-md-center mb-3 gap-3 flex-column flex-md-row brew-entry-header">
@@ -175,7 +176,12 @@
 
 
     .pour-structure-mode-toggle .btn {
+        align-items: center;
+        display: inline-flex;
+        justify-content: center;
+        line-height: 1.1;
         min-height: 2.35rem;
+        text-align: center;
     }
 
     .guided-pour-plan-card {
@@ -202,6 +208,25 @@
     }
 
     @media (max-width: 767.98px) {
+        .guided-pour-amount-col {
+            flex: 0 0 38%;
+            max-width: 38%;
+        }
+
+        .guided-pour-time-col {
+            flex: 0 0 62%;
+            max-width: 62%;
+        }
+
+        .guided-pour-row .input-group-text {
+            padding-left: 0.45rem;
+            padding-right: 0.45rem;
+        }
+
+        .guided-pour-action-col .btn {
+            min-height: 2.5rem;
+        }
+
         .pour-structure-mode-toggle {
             width: 100%;
         }
@@ -449,35 +474,7 @@
                         value="<%= formData.waterTemperatureC || "" %>">
                 </div>
 
-                <div class="brew-quick-field col-md-4">
-                    <label class="form-label">Total Brew Time</label>
-                    <div class="input-group">
-                        <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            class="form-control"
-                            id="totalBrewTimeMinutes"
-                            name="totalBrewTimeMinutes"
-                            placeholder="m"
-                            value="<%= formData.totalBrewTimeMinutes || "" %>">
-                        <span class="input-group-text">m</span>
-                        <input
-                            type="number"
-                            min="0"
-                            max="59"
-                            step="1"
-                            class="form-control"
-                            id="totalBrewTimeSeconds"
-                            name="totalBrewTimeSeconds"
-                            placeholder="s"
-                            value="<%= formData.totalBrewTimeSeconds || "" %>">
-                        <span class="input-group-text">s</span>
-                    </div>
-                </div>
-
-
-                <div class="col-12">
+                <div class="col-12" id="pourStructureSection">
                     <div class="d-flex justify-content-between align-items-start align-items-md-center gap-2 flex-column flex-md-row mb-2">
                         <div>
                             <label for="pourStructure" class="form-label mb-1">Pour Structure</label>
@@ -521,7 +518,7 @@
                         <template id="guidedPourRowTemplate">
                             <div class="guided-pour-row" data-guided-pour-row>
                                 <div class="row g-2 align-items-end">
-                                    <div class="col-6 col-md-2">
+                                    <div class="col-5 col-md-2 guided-pour-amount-col">
                                         <label class="form-label guided-pour-row-label">Pour</label>
                                         <div class="input-group input-group-sm">
                                             <input type="number" step="0.1" min="0" class="form-control" data-guided-pour-grams placeholder="0">
@@ -529,7 +526,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-6 col-md-3">
+                                    <div class="col-7 col-md-3 guided-pour-time-col">
                                         <label class="form-label guided-pour-row-label">By</label>
                                         <div class="input-group input-group-sm guided-pour-time-group">
                                             <input type="number" min="0" step="1" class="form-control" data-guided-pour-minutes placeholder="m">
@@ -542,7 +539,7 @@
                                     <div class="col-md-5">
                                         <label class="form-label guided-pour-row-label">Pour Method</label>
                                         <select class="form-select form-select-sm" data-guided-pour-method aria-label="Pour Method">
-                                            <option value="">Method</option>
+                                            <option value="">-- Select Method --</option>
                                             <option value="Bloom">Bloom</option>
                                             <option value="Normal pour">Normal pour</option>
                                             <option value="Gentle pour">Gentle pour</option>
@@ -553,8 +550,11 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-md-2 d-flex justify-content-md-end">
-                                        <button type="button" class="btn btn-outline-danger btn-sm w-100 w-md-auto" data-remove-guided-pour-row aria-label="Remove pour row">
+                                    <div class="col-md-2 guided-pour-action-col d-flex gap-2 justify-content-md-end">
+                                        <button type="button" class="btn btn-outline-primary btn-sm flex-fill flex-md-grow-0" data-add-guided-pour-row-after aria-label="Add pour row after this row">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm flex-fill flex-md-grow-0" data-remove-guided-pour-row aria-label="Remove pour row">
                                             <i class="bi bi-dash-lg"></i>
                                         </button>
                                     </div>
@@ -564,20 +564,50 @@
 
                         <div class="form-text mt-2">Guided rows are saved into the same Pour Structure notes field.</div>
                     </div>
+
+                    <div class="row g-3 mt-1">
+                        <div class="brew-quick-field col-md-4">
+                            <label for="totalYieldGrams" class="form-label">Total Yield</label>
+                            <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                class="form-control"
+                                id="totalYieldGrams"
+                                name="totalYieldGrams"
+                                value="<%= formData.totalYieldGrams || "" %>">
+                            <div class="form-text">Ratio is calculated from dose and yield.</div>
+                        </div>
+
+                        <div class="brew-quick-field col-md-4">
+                            <label class="form-label">Total Brew Time</label>
+                            <div class="input-group">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    class="form-control"
+                                    id="totalBrewTimeMinutes"
+                                    name="totalBrewTimeMinutes"
+                                    placeholder="m"
+                                    value="<%= formData.totalBrewTimeMinutes || "" %>">
+                                <span class="input-group-text">m</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="59"
+                                    step="1"
+                                    class="form-control"
+                                    id="totalBrewTimeSeconds"
+                                    name="totalBrewTimeSeconds"
+                                    placeholder="s"
+                                    value="<%= formData.totalBrewTimeSeconds || "" %>">
+                                <span class="input-group-text">s</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="brew-quick-field col-md-4">
-                    <label for="totalYieldGrams" class="form-label">Total Yield</label>
-                    <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        class="form-control"
-                        id="totalYieldGrams"
-                        name="totalYieldGrams"
-                        value="<%= formData.totalYieldGrams || "" %>">
-                    <div class="form-text">Ratio is calculated from dose and yield.</div>
-                </div>
             </div>
         </div>
     </div>
@@ -609,8 +639,8 @@
                         id="adjustmentNotes"
                         name="adjustmentNotes"
                         rows="3"
-                        placeholder="AI adjustment tips or your next-brew changes."><%= formData.adjustmentNotes || "" %></textarea>
-                    <div class="form-text">Optional AI tips or your own next-brew changes. Tasting feedback is still captured by the pentagon scores.</div>
+                        placeholder="Your next-brew changes or adjustment notes."><%= formData.adjustmentNotes || "" %></textarea>
+                    <div class="form-text">Optional next-brew changes or adjustment notes. Tasting feedback is still captured by the pentagon scores.</div>
                 </div>
             </div>
         </div>
@@ -1466,6 +1496,7 @@
         const guidedPourRows = document.getElementById("guidedPourRows");
         const guidedPourRowTemplate = document.getElementById("guidedPourRowTemplate");
         const addGuidedPourRowButton = document.getElementById("addGuidedPourRowButton");
+        const shouldAutoScrollToPourStructure = <%= autoScrollToPourStructureValue ? "true" : "false" %>;
 
         function setPourStructureMode(mode) {
             const useGuidedMode = mode === "guided";
@@ -1523,7 +1554,9 @@
             const minutesInput = row.querySelector("[data-guided-pour-minutes]");
             const secondsInput = row.querySelector("[data-guided-pour-seconds]");
             const methodInput = row.querySelector("[data-guided-pour-method]");
+            const addAfterButton = row.querySelector("[data-add-guided-pour-row-after]");
             const removeButton = row.querySelector("[data-remove-guided-pour-row]");
+            const isFirstGuidedPourRow = guidedPourRows.children.length === 0;
 
             if (rowData) {
                 if (gramsInput) {
@@ -1541,6 +1574,14 @@
                 if (methodInput) {
                     methodInput.value = rowData.method || "";
                 }
+            } else if (methodInput && isFirstGuidedPourRow) {
+                methodInput.value = "Bloom";
+            }
+
+            if (addAfterButton) {
+                addAfterButton.addEventListener("click", function () {
+                    addGuidedPourRowAfter(row);
+                });
             }
 
             if (removeButton) {
@@ -1556,6 +1597,44 @@
             }
 
             guidedPourRows.appendChild(fragment);
+            updateGuidedPourRowLabels();
+        }
+
+        function addGuidedPourRowAfter(existingRow) {
+            if (!guidedPourRows || !guidedPourRowTemplate || !existingRow) {
+                addGuidedPourRow();
+                return;
+            }
+
+            const fragment = guidedPourRowTemplate.content.cloneNode(true);
+            const row = fragment.querySelector("[data-guided-pour-row]");
+
+            if (!row) {
+                return;
+            }
+
+            const addAfterButton = row.querySelector("[data-add-guided-pour-row-after]");
+            const removeButton = row.querySelector("[data-remove-guided-pour-row]");
+
+            if (addAfterButton) {
+                addAfterButton.addEventListener("click", function () {
+                    addGuidedPourRowAfter(row);
+                });
+            }
+
+            if (removeButton) {
+                removeButton.addEventListener("click", function () {
+                    row.remove();
+
+                    if (guidedPourRows.children.length === 0) {
+                        addGuidedPourRow();
+                    }
+
+                    updateGuidedPourRowLabels();
+                });
+            }
+
+            existingRow.after(fragment);
             updateGuidedPourRowLabels();
         }
 
@@ -1674,6 +1753,16 @@
 
                 setPourStructureMode("guided");
             }
+        }
+
+        if (shouldAutoScrollToPourStructure) {
+            window.setTimeout(function () {
+                const pourStructureSection = document.getElementById("pourStructureSection");
+
+                if (pourStructureSection) {
+                    pourStructureSection.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            }, 150);
         }
 
         if (brewSessionForm) {
