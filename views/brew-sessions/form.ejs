@@ -86,6 +86,16 @@
         font-weight: 600;
     }
 
+    .brew-focused-entry-card {
+        border-color: rgba(var(--bs-primary-rgb), 0.28);
+    }
+
+    .brew-focused-entry-card .card-header {
+        background: rgba(var(--bs-primary-rgb), 0.06);
+        font-weight: 600;
+    }
+
+
     .radar-score-editor {
         max-width: 460px;
         margin: 0 auto;
@@ -291,13 +301,17 @@
         </div>
     </div>
 
-    <div class="card mb-3">
+    <div class="card mb-3 brew-focused-entry-card">
         <div class="card-header">
             <i class="bi bi-cup-hot me-1"></i>
-            Brew Recipe Values
+            Focused Brew Entry
         </div>
 
         <div class="card-body">
+            <p class="text-muted small mb-3">
+                After choosing the bean, equipment, and bean weight, record the core brew variables here.
+            </p>
+
             <div class="row g-3">
                 <div class="brew-quick-field col-md-4">
                     <label for="grindSize" class="form-label">Grind Size</label>
@@ -306,7 +320,8 @@
                         class="form-control"
                         id="grindSize"
                         name="grindSize"
-                        value="<%= formData.grindSize || "" %>">
+                        value="<%= formData.grindSize || "" %>"
+                        placeholder="Example: K6 85 clicks">
                 </div>
 
                 <div class="brew-quick-field col-md-4">
@@ -322,6 +337,55 @@
                 </div>
 
                 <div class="brew-quick-field col-md-4">
+                    <label class="form-label">Total Brew Time</label>
+                    <div class="input-group">
+                        <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            class="form-control"
+                            id="totalBrewTimeMinutes"
+                            name="totalBrewTimeMinutes"
+                            placeholder="m"
+                            value="<%= formData.totalBrewTimeMinutes || "" %>">
+                        <span class="input-group-text">m</span>
+                        <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            step="1"
+                            class="form-control"
+                            id="totalBrewTimeSeconds"
+                            name="totalBrewTimeSeconds"
+                            placeholder="s"
+                            value="<%= formData.totalBrewTimeSeconds || "" %>">
+                        <span class="input-group-text">s</span>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label for="pourStructure" class="form-label">Pour Structure</label>
+                    <textarea
+                        class="form-control"
+                        id="pourStructure"
+                        name="pourStructure"
+                        rows="4"
+                        placeholder="Example: Bloom 50 g, pour to 160 g, pour to 240 g, finish at 320 g."><%= formData.pourStructure || "" %></textarea>
+                    <div class="form-text">Short summary of the pours. AI recipe suggestions will fill this field.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <i class="bi bi-journal-text me-1"></i>
+            Brew Results / AI Notes
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="brew-quick-field col-md-4">
                     <label for="totalYieldGrams" class="form-label">Total Yield</label>
                     <input
                         type="number"
@@ -334,54 +398,15 @@
                     <div class="form-text">Ratio is calculated from dose and yield.</div>
                 </div>
 
-                <div class="col-md-6">
-                    <label class="form-label">Total Brew Time</label>
-                    <div class="input-group">
-                        <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            class="form-control"
-                            id="totalBrewTimeMinutes"
-                            name="totalBrewTimeMinutes"
-                            placeholder="min"
-                            value="<%= formData.totalBrewTimeMinutes || "" %>">
-                        <span class="input-group-text">min</span>
-                        <input
-                            type="number"
-                            min="0"
-                            max="59"
-                            step="1"
-                            class="form-control"
-                            id="totalBrewTimeSeconds"
-                            name="totalBrewTimeSeconds"
-                            placeholder="sec"
-                            value="<%= formData.totalBrewTimeSeconds || "" %>">
-                        <span class="input-group-text">sec</span>
-                    </div>
-                </div>
-
-
-                <div class="col-12">
-                    <label for="pourStructure" class="form-label">Pour Structure</label>
-                    <textarea
-                        class="form-control"
-                        id="pourStructure"
-                        name="pourStructure"
-                        rows="4"
-                        placeholder="Example: Bloom 50 g, pour to 160 g, pour to 240 g, finish at 320 g."><%= formData.pourStructure || "" %></textarea>
-                    <div class="form-text">Short summary of the pours. AI recipe suggestions will fill this field.</div>
-                </div>
-
                 <div class="col-12">
                     <label for="recipeSteps" class="form-label">Recipe Steps</label>
                     <textarea
                         class="form-control"
                         id="recipeSteps"
                         name="recipeSteps"
-                        rows="6"
+                        rows="5"
                         placeholder="Detailed brew instructions and timing."><%= formData.recipeSteps || "" %></textarea>
-                    <div class="form-text">Detailed step-by-step brew plan. AI recipe suggestions will fill this field.</div>
+                    <div class="form-text">Optional detailed brew plan. AI recipe suggestions will fill this field.</div>
                 </div>
 
                 <div class="col-12">
@@ -390,7 +415,7 @@
                         class="form-control"
                         id="adjustmentNotes"
                         name="adjustmentNotes"
-                        rows="4"
+                        rows="3"
                         placeholder="AI adjustment tips or your next-brew changes."><%= formData.adjustmentNotes || "" %></textarea>
                     <div class="form-text">Optional AI tips or your own next-brew changes. Tasting feedback is still captured by the pentagon scores.</div>
                 </div>

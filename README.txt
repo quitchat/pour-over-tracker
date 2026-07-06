@@ -91,6 +91,7 @@
 - Water temperature tracking with Celsius/Fahrenheit user preference
 - Output/yield tracking
 - Brew timing and recipe-related fields
+- Focused brew-entry section for grind size, water temperature, total brew time, and pour structure
 - Brew pour step tracking
 - Tasting note tracking
 - Free-form brew comments saved with each brew session
@@ -99,7 +100,7 @@
 - Optional Acidity Level tracking for perceived acidity intensity separate from acidity quality
 - Rating-only workflow for saved unrated brews
 - Radar-chart tasting visualization
-- Brew session duplication workflow
+- Brew session duplication workflow that carries forward core brew variables while keeping recipe steps and adjustment notes fresh
 - Brew detail previous/next navigation with mobile swipe support
 - Brew comparison workflow
 - AI suggestion support through adjustment notes
