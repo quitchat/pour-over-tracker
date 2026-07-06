@@ -6,7 +6,7 @@
     const isEntryMode = brewFormMode === "entry";
     const setupSummaryValue = typeof setupSummary !== "undefined" ? setupSummary : null;
     const submitIconClass = isSetupMode ? "bi-arrow-right-circle" : "bi-save";
-    const autoScrollToPourStructureValue = typeof autoScrollToPourStructure !== "undefined" && autoScrollToPourStructure;
+    const autoScrollToBrewVariablesValue = typeof autoScrollToBrewVariables !== "undefined" && autoScrollToBrewVariables;
 %>
 
 <div class="d-flex justify-content-between align-items-start align-items-md-center mb-3 gap-3 flex-column flex-md-row brew-entry-header">
@@ -207,24 +207,42 @@
         min-width: 0;
     }
 
+    .guided-pour-action-col .btn {
+        align-items: center;
+        display: inline-flex;
+        justify-content: center;
+    }
+
     @media (max-width: 767.98px) {
         .guided-pour-amount-col {
-            flex: 0 0 38%;
-            max-width: 38%;
+            flex: 0 0 36%;
+            max-width: 36%;
         }
 
         .guided-pour-time-col {
-            flex: 0 0 62%;
-            max-width: 62%;
+            flex: 0 0 64%;
+            max-width: 64%;
+        }
+
+        .guided-pour-method-col {
+            flex: 0 0 68%;
+            max-width: 68%;
+        }
+
+        .guided-pour-action-col {
+            flex: 0 0 32%;
+            max-width: 32%;
         }
 
         .guided-pour-row .input-group-text {
-            padding-left: 0.45rem;
-            padding-right: 0.45rem;
+            padding-left: 0.35rem;
+            padding-right: 0.35rem;
         }
 
         .guided-pour-action-col .btn {
-            min-height: 2.5rem;
+            min-height: 2rem;
+            padding-left: 0.45rem;
+            padding-right: 0.45rem;
         }
 
         .pour-structure-mode-toggle {
@@ -232,7 +250,14 @@
         }
 
         .pour-structure-mode-toggle .btn {
+            align-items: center;
+            display: inline-flex;
             flex: 1 1 0;
+            justify-content: center;
+            line-height: 1.1;
+            min-height: 2.35rem;
+            padding-bottom: 0.45rem;
+            padding-top: 0.45rem;
         }
     }
 
@@ -357,15 +382,6 @@
                         value="<%= formData.coffeeDoseGrams || "" %>">
                 </div>
 
-
-                <% if (!isSetupMode && (typeof showAiSuggestionButton === "undefined" || showAiSuggestionButton) && userCanUseAi) { %>
-                    <div class="col-md-4 d-flex align-items-end">
-                        <button type="button" class="btn btn-success w-100" id="suggestRecipeButton">
-                            <i class="bi bi-magic me-1"></i>
-                            Suggest Brewing Recipe
-                        </button>
-                    </div>
-                <% } %>
             </div>
 
             <% if (isSetupMode) { %>
@@ -429,25 +445,25 @@
     <% } %>
 
     <% if (!isSetupMode) { %>
-    <div class="card mb-3 brew-focused-entry-card">
-        <div class="card-header">
-            <i class="bi bi-cup-hot me-1"></i>
-            Brew Variables
+    <div class="card mb-3 brew-focused-entry-card" id="brewVariablesSection">
+        <div class="card-header d-flex justify-content-between align-items-center gap-2">
+            <span>
+                <i class="bi bi-cup-hot me-1"></i>
+                Brew Variables
+            </span>
+
+            <% if (isEntryMode && (typeof showAiSuggestionButton === "undefined" || showAiSuggestionButton) && userCanUseAi) { %>
+                <button type="button" class="btn btn-success btn-sm ms-auto" id="suggestRecipeButton">
+                    <i class="bi bi-magic me-1"></i>
+                    AI Suggestion
+                </button>
+            <% } %>
         </div>
 
         <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start gap-2 flex-column flex-md-row mb-3">
-                <p class="text-muted small mb-0">
-                    After choosing the bean, equipment, and bean weight, record the core brew variables here.
-                </p>
-
-                <% if (isEntryMode && (typeof showAiSuggestionButton === "undefined" || showAiSuggestionButton) && userCanUseAi) { %>
-                    <button type="button" class="btn btn-success btn-sm" id="suggestRecipeButton">
-                        <i class="bi bi-magic me-1"></i>
-                        Suggest Brewing Recipe
-                    </button>
-                <% } %>
-            </div>
+            <p class="text-muted small mb-3">
+                After choosing the bean, equipment, and bean weight, record the core brew variables here.
+            </p>
 
             <div class="row g-3">
                 <div class="brew-quick-field col-md-4">
@@ -536,7 +552,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-md-5">
+                                    <div class="col-8 col-md-5 guided-pour-method-col">
                                         <label class="form-label guided-pour-row-label">Pour Method</label>
                                         <select class="form-select form-select-sm" data-guided-pour-method aria-label="Pour Method">
                                             <option value="">-- Select Method --</option>
@@ -550,7 +566,7 @@
                                         </select>
                                     </div>
 
-                                    <div class="col-md-2 guided-pour-action-col d-flex gap-2 justify-content-md-end">
+                                    <div class="col-4 col-md-2 guided-pour-action-col d-flex gap-2 justify-content-end">
                                         <button type="button" class="btn btn-outline-primary btn-sm flex-fill flex-md-grow-0" data-add-guided-pour-row-after aria-label="Add pour row after this row">
                                             <i class="bi bi-plus-lg"></i>
                                         </button>
@@ -1496,7 +1512,7 @@
         const guidedPourRows = document.getElementById("guidedPourRows");
         const guidedPourRowTemplate = document.getElementById("guidedPourRowTemplate");
         const addGuidedPourRowButton = document.getElementById("addGuidedPourRowButton");
-        const shouldAutoScrollToPourStructure = <%= autoScrollToPourStructureValue ? "true" : "false" %>;
+        const shouldAutoScrollToBrewVariables = <%= autoScrollToBrewVariablesValue ? "true" : "false" %>;
 
         function setPourStructureMode(mode) {
             const useGuidedMode = mode === "guided";
@@ -1538,7 +1554,7 @@
             });
         }
 
-        function addGuidedPourRow(rowData) {
+        function addGuidedPourRow(rowData, focusGrams) {
             if (!guidedPourRows || !guidedPourRowTemplate) {
                 return;
             }
@@ -1598,6 +1614,10 @@
 
             guidedPourRows.appendChild(fragment);
             updateGuidedPourRowLabels();
+
+            if (focusGrams && gramsInput) {
+                gramsInput.focus();
+            }
         }
 
         function addGuidedPourRowAfter(existingRow) {
@@ -1615,6 +1635,7 @@
 
             const addAfterButton = row.querySelector("[data-add-guided-pour-row-after]");
             const removeButton = row.querySelector("[data-remove-guided-pour-row]");
+            const gramsInput = row.querySelector("[data-guided-pour-grams]");
 
             if (addAfterButton) {
                 addAfterButton.addEventListener("click", function () {
@@ -1636,6 +1657,10 @@
 
             existingRow.after(fragment);
             updateGuidedPourRowLabels();
+
+            if (gramsInput) {
+                gramsInput.focus();
+            }
         }
 
         function parseGuidedPourStructureText(value) {
@@ -1739,7 +1764,7 @@
 
         if (addGuidedPourRowButton) {
             addGuidedPourRowButton.addEventListener("click", function () {
-                addGuidedPourRow();
+                addGuidedPourRow(null, true);
             });
         }
 
@@ -1755,12 +1780,12 @@
             }
         }
 
-        if (shouldAutoScrollToPourStructure) {
+        if (shouldAutoScrollToBrewVariables) {
             window.setTimeout(function () {
-                const pourStructureSection = document.getElementById("pourStructureSection");
+                const brewVariablesSection = document.getElementById("brewVariablesSection");
 
-                if (pourStructureSection) {
-                    pourStructureSection.scrollIntoView({ behavior: "smooth", block: "start" });
+                if (brewVariablesSection) {
+                    brewVariablesSection.scrollIntoView({ behavior: "smooth", block: "start" });
                 }
             }, 150);
         }
@@ -1851,7 +1876,7 @@
                 suggestRecipeButton.disabled = false;
                 suggestRecipeButton.innerHTML =
                     '<i class="bi bi-magic me-1"></i>' +
-                    'Suggest Brewing Recipe';
+                    'AI Suggestion';
             }
         }
 

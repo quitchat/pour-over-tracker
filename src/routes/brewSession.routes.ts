@@ -1735,7 +1735,7 @@ router.post("/start", async function (req: Request, res: Response) {
         errors: [],
         formMode: "entry",
         setupSummary: buildBrewSetupSummaryFromFormValues(formValues, formOptions, temperatureUnit),
-        autoScrollToPourStructure: true,
+        autoScrollToBrewVariables: true,
         showAiSuggestionButton: true,
         enableLocationDefaults: false,
         formData: formValues,
