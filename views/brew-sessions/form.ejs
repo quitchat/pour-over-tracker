@@ -192,6 +192,7 @@
     }
 
     .guided-pour-row {
+        --guided-pour-control-size: 2.5rem;
         border: 1px solid var(--bs-border-color);
         border-radius: 0.75rem;
         padding: 0.75rem;
@@ -215,7 +216,14 @@
         flex: 1 1 0;
         max-width: none;
         min-width: 0;
+        min-height: var(--guided-pour-control-size);
         text-align: left;
+    }
+
+    .guided-pour-method-col .form-select,
+    .guided-pour-amount-col .form-control,
+    .guided-pour-time-group .form-control {
+        min-height: var(--guided-pour-control-size);
     }
 
     .guided-pour-row .input-group-text,
@@ -223,6 +231,7 @@
         align-items: center;
         display: inline-flex;
         justify-content: center;
+        min-height: var(--guided-pour-control-size, 2.5rem);
         min-width: 2.5rem;
         text-align: center;
     }
@@ -240,17 +249,17 @@
         aspect-ratio: 1 / 1;
         box-sizing: border-box;
         display: inline-flex;
-        flex: 0 0 2.25rem !important;
-        height: 2.25rem !important;
+        flex: 0 0 var(--guided-pour-control-size) !important;
+        height: var(--guided-pour-control-size) !important;
         justify-content: center;
         line-height: 1 !important;
-        max-height: 2.25rem !important;
-        max-width: 2.25rem !important;
-        min-height: 2.25rem !important;
-        min-width: 2.25rem !important;
+        max-height: var(--guided-pour-control-size) !important;
+        max-width: var(--guided-pour-control-size) !important;
+        min-height: var(--guided-pour-control-size) !important;
+        min-width: var(--guided-pour-control-size) !important;
         overflow: hidden;
         padding: 0 !important;
-        width: 2.25rem !important;
+        width: var(--guided-pour-control-size) !important;
     }
 
     .guided-pour-action-col .guided-pour-square-btn i {
@@ -320,14 +329,8 @@
             text-align: left;
         }
 
-        .guided-pour-action-col .guided-pour-square-btn {
-            flex: 0 0 2.15rem !important;
-            height: 2.15rem !important;
-            max-height: 2.15rem !important;
-            max-width: 2.15rem !important;
-            min-height: 2.15rem !important;
-            min-width: 2.15rem !important;
-            width: 2.15rem !important;
+        .guided-pour-row {
+            --guided-pour-control-size: 2.5rem;
         }
 
         .pour-structure-mode-toggle {
