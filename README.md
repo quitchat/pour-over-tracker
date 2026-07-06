@@ -91,7 +91,7 @@
 - Water temperature tracking with Celsius/Fahrenheit user preference
 - Output/yield tracking
 - Brew timing and recipe-related fields
-- Focused brew-entry section for grind size, water temperature, total brew time, and pour structure
+- Two-step new-brew workflow: Brew Setup first, then a dedicated Focused Brew Entry screen for grind size, water temperature, total brew time, and pour structure
 - Brew pour step tracking
 - Tasting note tracking
 - Free-form brew comments saved with each brew session

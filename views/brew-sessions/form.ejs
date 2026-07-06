@@ -1,12 +1,17 @@
 <%
     const errorsValue = typeof errors !== "undefined" ? errors : [];
     const userCanUseAi = !!(currentUser && currentUser.allowAi);
+    const brewFormMode = typeof formMode !== "undefined" ? formMode : "full";
+    const isSetupMode = brewFormMode === "setup";
+    const isEntryMode = brewFormMode === "entry";
+    const setupSummaryValue = typeof setupSummary !== "undefined" ? setupSummary : null;
+    const submitIconClass = isSetupMode ? "bi-arrow-right-circle" : "bi-save";
 %>
 
 <div class="d-flex justify-content-between align-items-start align-items-md-center mb-3 gap-3 flex-column flex-md-row brew-entry-header">
     <div>
         <h1 class="h3 mb-1"><%= pageHeading %></h1>
-        <p class="text-muted mb-0">Track brew variables and bean characteristics.</p>
+        <p class="text-muted mb-0"><%= isSetupMode ? "Choose the bean, equipment, brew date, and bean weight first." : isEntryMode ? "Enter the core brew variables on a focused screen." : "Track brew variables and bean characteristics." %></p>
     </div>
 
     <a href="/brew-sessions" class="btn btn-outline-secondary">
@@ -221,10 +226,11 @@
 </style>
 
 <form method="post" action="<%= formAction %>" id="brewSessionForm" class="brew-session-mobile-form">
+    <% if (!isEntryMode) { %>
     <div class="card mb-3">
         <div class="card-header">
             <i class="bi bi-stars me-1"></i>
-            Brew Setup / AI Recipe
+            Brew Setup
         </div>
 
         <div class="card-body">
@@ -289,7 +295,7 @@
                 </div>
 
 
-                <% if ((typeof showAiSuggestionButton === "undefined" || showAiSuggestionButton) && userCanUseAi) { %>
+                <% if (!isSetupMode && (typeof showAiSuggestionButton === "undefined" || showAiSuggestionButton) && userCanUseAi) { %>
                     <div class="col-md-4 d-flex align-items-end">
                         <button type="button" class="btn btn-success w-100" id="suggestRecipeButton">
                             <i class="bi bi-magic me-1"></i>
@@ -298,9 +304,68 @@
                     </div>
                 <% } %>
             </div>
+
+            <% if (isSetupMode) { %>
+                <input type="hidden" name="grindSize" value="<%= formData.grindSize || "" %>">
+                <input type="hidden" name="totalYieldGrams" value="<%= formData.totalYieldGrams || "" %>">
+                <input type="hidden" name="waterTemperatureC" value="<%= formData.waterTemperatureC || "" %>">
+                <input type="hidden" name="totalBrewTimeMinutes" value="<%= formData.totalBrewTimeMinutes || "" %>">
+                <input type="hidden" name="totalBrewTimeSeconds" value="<%= formData.totalBrewTimeSeconds || "" %>">
+                <input type="hidden" name="overallRating" value="<%= formData.overallRating || "" %>">
+                <input type="hidden" name="pourStructure" value="<%= formData.pourStructure || "" %>">
+                <input type="hidden" name="recipeSteps" value="">
+                <input type="hidden" name="adjustmentNotes" value="">
+                <input type="hidden" name="brewComments" value="<%= formData.brewComments || "" %>">
+                <input type="hidden" name="richness" value="<%= formData.richness || "3" %>">
+                <input type="hidden" name="sweetness" value="<%= formData.sweetness || "3" %>">
+                <input type="hidden" name="aftertaste" value="<%= formData.aftertaste || "3" %>">
+                <input type="hidden" name="aroma" value="<%= formData.aroma || "3" %>">
+                <input type="hidden" name="acidity" value="<%= formData.acidity || "3" %>">
+                <input type="hidden" name="acidityLevel" value="<%= formData.acidityLevel || "" %>">
+            <% } %>
         </div>
     </div>
+    <% } %>
 
+    <% if (isEntryMode && setupSummaryValue) { %>
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-check2-circle me-1"></i>
+                Brew Setup
+            </div>
+            <div class="card-body">
+                <div class="row g-3 small">
+                    <div class="col-md-4">
+                        <div class="text-muted">Coffee Bean</div>
+                        <div class="fw-semibold"><%= setupSummaryValue.coffeeBeanName || "—" %></div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-muted">Bean Weight</div>
+                        <div class="fw-semibold"><%= setupSummaryValue.coffeeDoseGrams || "—" %> g</div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-muted">Brew Date</div>
+                        <div class="fw-semibold"><%= setupSummaryValue.brewDate || "—" %></div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-muted">Grinder</div>
+                        <div class="fw-semibold"><%= setupSummaryValue.grinderName || "—" %></div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="text-muted">Brewer</div>
+                        <div class="fw-semibold"><%= setupSummaryValue.brewerName || "—" %></div>
+                    </div>
+                </div>
+                <input type="hidden" id="coffeeBeanId" name="coffeeBeanId" value="<%= formData.coffeeBeanId || "" %>">
+                <input type="hidden" id="brewDate" name="brewDate" value="<%= formData.brewDate || "" %>">
+                <input type="hidden" id="grinderId" name="grinderId" value="<%= formData.grinderId || "" %>">
+                <input type="hidden" id="brewerId" name="brewerId" value="<%= formData.brewerId || "" %>">
+                <input type="hidden" id="coffeeDoseGrams" name="coffeeDoseGrams" value="<%= formData.coffeeDoseGrams || "" %>">
+            </div>
+        </div>
+    <% } %>
+
+    <% if (!isSetupMode) { %>
     <div class="card mb-3 brew-focused-entry-card">
         <div class="card-header">
             <i class="bi bi-cup-hot me-1"></i>
@@ -308,9 +373,18 @@
         </div>
 
         <div class="card-body">
-            <p class="text-muted small mb-3">
-                After choosing the bean, equipment, and bean weight, record the core brew variables here.
-            </p>
+            <div class="d-flex justify-content-between align-items-start gap-2 flex-column flex-md-row mb-3">
+                <p class="text-muted small mb-0">
+                    After choosing the bean, equipment, and bean weight, record the core brew variables here.
+                </p>
+
+                <% if (isEntryMode && (typeof showAiSuggestionButton === "undefined" || showAiSuggestionButton) && userCanUseAi) { %>
+                    <button type="button" class="btn btn-success btn-sm" id="suggestRecipeButton">
+                        <i class="bi bi-magic me-1"></i>
+                        Suggest Brewing Recipe
+                    </button>
+                <% } %>
+            </div>
 
             <div class="row g-3">
                 <div class="brew-quick-field col-md-4">
@@ -578,9 +652,11 @@
 
     </div>
 
+    <% } %>
+
     <div class="d-flex gap-2 brew-form-actions">
         <button type="submit" class="btn btn-primary">
-            <i class="bi bi-save me-1"></i>
+            <i class="bi <%= submitIconClass %> me-1"></i>
             <%= submitButtonText %>
         </button>
 

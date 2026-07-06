@@ -440,8 +440,8 @@ function validateBrewSessionForm(formValues: ReturnType<typeof getBrewSessionFor
         errors.push("Coffee dose must be greater than 0.");
     }
 
-    if (totalYieldGrams === null || totalYieldGrams <= 0) {
-        errors.push("Total yield must be greater than 0.");
+    if (totalYieldGrams !== null && totalYieldGrams <= 0) {
+        errors.push("Total yield must be greater than 0 when entered.");
     }
 
     if (waterTemperatureInput !== null && waterTemperatureInput < 0) {
@@ -472,6 +472,61 @@ function validateBrewSessionForm(formValues: ReturnType<typeof getBrewSessionFor
             errors.push("Bean characteristic scores must be between 1 and 5.");
         }
     });
+
+    if (isInvalidAcidityLevel(formValues.acidityLevel)) {
+        errors.push("Acidity Level must be Low, Medium, High, or blank.");
+    }
+
+    return errors;
+}
+
+function validateBrewSetupForm(formValues: ReturnType<typeof getBrewSessionFormValues>, temperatureUnit: TemperatureUnit): string[] {
+    const errors: string[] = [];
+
+    const coffeeBeanId = parseRequiredInteger(formValues.coffeeBeanId);
+    const grinderId = parseOptionalInteger(formValues.grinderId);
+    const brewerId = parseOptionalInteger(formValues.brewerId);
+    const coffeeDoseGrams = parseRequiredNumber(formValues.coffeeDoseGrams);
+    const waterTemperatureInput = parseOptionalNumber(formValues.waterTemperatureC);
+    const totalYieldGrams = parseOptionalNumber(formValues.totalYieldGrams);
+    const totalBrewTimeMinutes = parseOptionalInteger(formValues.totalBrewTimeMinutes);
+    const totalBrewTimeSeconds = parseOptionalInteger(formValues.totalBrewTimeSeconds);
+
+    if (coffeeBeanId === null) {
+        errors.push("Coffee bean is required.");
+    }
+
+    if (grinderId === null && formValues.grinderId) {
+        errors.push("Invalid grinder.");
+    }
+
+    if (brewerId === null && formValues.brewerId) {
+        errors.push("Invalid brewer.");
+    }
+
+    if (!formValues.brewDate) {
+        errors.push("Brew date is required.");
+    }
+
+    if (coffeeDoseGrams === null || coffeeDoseGrams <= 0) {
+        errors.push("Bean weight / coffee dose must be greater than 0.");
+    }
+
+    if (totalYieldGrams !== null && totalYieldGrams <= 0) {
+        errors.push("Total yield must be greater than 0 when entered.");
+    }
+
+    if (waterTemperatureInput !== null && waterTemperatureInput < 0) {
+        errors.push(`Water temperature must be 0 ${getTemperatureUnitLabel(temperatureUnit)} or greater.`);
+    }
+
+    if (totalBrewTimeMinutes !== null && totalBrewTimeMinutes < 0) {
+        errors.push("Brew time minutes must be 0 or greater.");
+    }
+
+    if (totalBrewTimeSeconds !== null && (totalBrewTimeSeconds < 0 || totalBrewTimeSeconds > 59)) {
+        errors.push("Brew time seconds must be between 0 and 59.");
+    }
 
     if (isInvalidAcidityLevel(formValues.acidityLevel)) {
         errors.push("Acidity Level must be Low, Medium, High, or blank.");
@@ -664,6 +719,21 @@ function buildFormDataFromBrewSession(session: any, temperatureUnit: Temperature
         aroma: tastingScore ? String(tastingScore.aroma) : "3",
         acidity: tastingScore ? String(tastingScore.acidity) : "3",
         acidityLevel: session.acidityLevel || ""
+    };
+}
+
+function buildBrewSetupSummary(session: any, temperatureUnit: TemperatureUnit) {
+    return {
+        coffeeBeanName: session.coffeeBean && session.coffeeBean.roasterName
+            ? `${session.coffeeBean.roasterName} - ${session.coffeeBean.beanName}`
+            : session.coffeeBean
+                ? session.coffeeBean.beanName
+                : "",
+        grinderName: session.grinder ? session.grinder.name : "",
+        brewerName: session.brewer ? session.brewer.name : "",
+        brewDate: formatDateOnly(session.brewDate),
+        coffeeDoseGrams: getDecimalText(session.coffeeDoseGrams),
+        temperatureUnit: getTemperatureUnitLabel(temperatureUnit)
     };
 }
 
@@ -1258,10 +1328,11 @@ router.get("/new", async function (req: Request, res: Response) {
     res.render("brew-sessions/form", {
         title: "Add Brew",
         pageHeading: "Add Brew",
-        formAction: "/brew-sessions",
-        submitButtonText: "Save Brew Session",
+        formAction: "/brew-sessions/start",
+        submitButtonText: "Continue",
         errors: [],
-        showAiSuggestionButton: true,
+        formMode: "setup",
+        showAiSuggestionButton: false,
         enableLocationDefaults: true,
         formData: getDefaultFormData(preselectedCoffeeBeanId, preselectedGrinderId, preselectedBrewerId, defaultCoffeeDoseGrams, defaultWaterTemperatureC, timeZone),
         temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
@@ -1599,6 +1670,46 @@ router.post("/suggest-recipe", requireAiAccess, async function (req: Request, re
     }
 });
 
+router.post("/start", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
+    const formValues = getBrewSessionFormValues(req);
+    const errors = validateBrewSetupForm(formValues, temperatureUnit);
+    const ownershipErrors = await validateSelectedRecordsBelongToUser(userId, formValues, false);
+    const allErrors = errors.concat(ownershipErrors);
+
+    if (allErrors.length > 0) {
+        const selectedCoffeeBeanId = parseRequiredInteger(formValues.coffeeBeanId);
+        const formOptions = await getFormOptions(userId, selectedCoffeeBeanId);
+
+        res.status(400).render("brew-sessions/form", {
+            title: "Add Brew",
+            pageHeading: "Add Brew",
+            formAction: "/brew-sessions/start",
+            submitButtonText: "Continue",
+            errors: allErrors,
+            formMode: "setup",
+            showAiSuggestionButton: false,
+            enableLocationDefaults: true,
+            formData: formValues,
+            temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
+            coffeeBeans: formOptions.coffeeBeans,
+            grinders: formOptions.grinders,
+            brewers: formOptions.brewers
+        });
+
+        return;
+    }
+
+    const beanInventoryId = await findBestInventoryForBrew(userId, Number(formValues.coffeeBeanId), Number(formValues.coffeeDoseGrams));
+
+    const createdSession = await prisma.brewSession.create({
+        data: buildBrewSessionCreateData(userId, formValues, temperatureUnit, beanInventoryId)
+    });
+
+    res.redirect(`/brew-sessions/${createdSession.id}/entry`);
+});
+
 router.post("/", async function (req: Request, res: Response) {
     const userId = getRequiredUserId(req);
     const temperatureUnit = getCurrentTemperatureUnit(res);
@@ -1617,6 +1728,7 @@ router.post("/", async function (req: Request, res: Response) {
             formAction: "/brew-sessions",
             submitButtonText: "Save Brew Session",
             errors: allErrors,
+            formMode: "full",
             showAiSuggestionButton: true,
             enableLocationDefaults: true,
             formData: formValues,
@@ -1636,6 +1748,109 @@ router.post("/", async function (req: Request, res: Response) {
     });
 
     res.redirect(`/brew-sessions/${createdSession.id}`);
+});
+
+router.get("/:id/entry", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid brew session ID.");
+        return;
+    }
+
+    const brewSession = await getBrewSessionForUser(userId, id);
+
+    if (!brewSession) {
+        res.status(404).send("Brew session not found.");
+        return;
+    }
+
+    const formOptions = await getFormOptions(userId, brewSession.coffeeBeanId);
+
+    res.render("brew-sessions/form", {
+        title: "Focused Brew Entry",
+        pageHeading: "Focused Brew Entry",
+        formAction: `/brew-sessions/${id}/entry`,
+        submitButtonText: "Save Brew Entry",
+        errors: [],
+        formMode: "entry",
+        setupSummary: buildBrewSetupSummary(brewSession, temperatureUnit),
+        showAiSuggestionButton: true,
+        enableLocationDefaults: false,
+        formData: buildFormDataFromBrewSession(brewSession, temperatureUnit),
+        temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
+        coffeeBeans: formOptions.coffeeBeans,
+        grinders: formOptions.grinders,
+        brewers: formOptions.brewers
+    });
+});
+
+router.post("/:id/entry", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+        res.status(400).send("Invalid brew session ID.");
+        return;
+    }
+
+    const existingSession = await getBrewSessionForUser(userId, id);
+
+    if (!existingSession) {
+        res.status(404).send("Brew session not found.");
+        return;
+    }
+
+    const formValues = getBrewSessionFormValues(req);
+    const errors = validateBrewSessionForm(formValues, temperatureUnit);
+    const ownershipErrors = await validateSelectedRecordsBelongToUser(userId, formValues, true);
+    const allErrors = errors.concat(ownershipErrors);
+
+    if (allErrors.length > 0) {
+        const formOptions = await getFormOptions(userId, existingSession.coffeeBeanId);
+
+        res.status(400).render("brew-sessions/form", {
+            title: "Focused Brew Entry",
+            pageHeading: "Focused Brew Entry",
+            formAction: `/brew-sessions/${id}/entry`,
+            submitButtonText: "Save Brew Entry",
+            errors: allErrors,
+            formMode: "entry",
+            setupSummary: buildBrewSetupSummary(existingSession, temperatureUnit),
+            showAiSuggestionButton: true,
+            enableLocationDefaults: false,
+            formData: formValues,
+            temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
+            coffeeBeans: formOptions.coffeeBeans,
+            grinders: formOptions.grinders,
+            brewers: formOptions.brewers
+        });
+
+        return;
+    }
+
+    await prisma.brewSession.update({
+        where: {
+            id: id
+        },
+        data: buildBrewSessionUpdateData(formValues, temperatureUnit)
+    });
+
+    await prisma.tastingScore.upsert({
+        where: {
+            brewSessionId: id
+        },
+        update: buildTastingScoreUpdateData(formValues),
+        create: {
+            brewSessionId: id,
+            ...buildTastingScoreCreateData(formValues)
+        }
+    });
+
+    res.redirect(`/brew-sessions/${id}`);
 });
 
 router.get("/:id/edit", async function (req: Request, res: Response) {
@@ -1663,6 +1878,7 @@ router.get("/:id/edit", async function (req: Request, res: Response) {
         formAction: `/brew-sessions/${id}/edit`,
         submitButtonText: "Update Brew Session",
         errors: [],
+        formMode: "full",
         showAiSuggestionButton: false,
         enableLocationDefaults: false,
         formData: buildFormDataFromBrewSession(brewSession, temperatureUnit),
@@ -1705,6 +1921,7 @@ router.post("/:id/edit", async function (req: Request, res: Response) {
             formAction: `/brew-sessions/${id}/edit`,
             submitButtonText: "Update Brew Session",
             errors: allErrors,
+            formMode: "full",
             showAiSuggestionButton: false,
             enableLocationDefaults: false,
             formData: formValues,
@@ -1852,10 +2069,11 @@ router.get("/:id/duplicate", async function (req: Request, res: Response) {
     res.render("brew-sessions/form", {
         title: "Duplicate Brew Session",
         pageHeading: "Duplicate Brew Session",
-        formAction: "/brew-sessions",
-        submitButtonText: "Save Duplicated Brew",
+        formAction: "/brew-sessions/start",
+        submitButtonText: "Continue",
         errors: [],
-        showAiSuggestionButton: true,
+        formMode: "setup",
+        showAiSuggestionButton: false,
         enableLocationDefaults: false,
         formData: buildDuplicateFormDataFromBrewSession(existingSession, temperatureUnit, timeZone),
         temperatureUnit: getTemperatureUnitLabel(temperatureUnit),
