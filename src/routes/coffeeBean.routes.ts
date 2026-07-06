@@ -741,7 +741,13 @@ function normalizeRoasterNameForGrouping(roasterName: string): string {
 }
 
 function normalizeRoasterAliasKey(roasterName: string): string {
-    return normalizeRoasterNameForGrouping(roasterName);
+    return roasterName
+        .trim()
+        .toLowerCase()
+        .replace(/&/g, "and")
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
 }
 
 async function getPreferredRoasterName(userId: number, roasterName: string | null | undefined): Promise<string> {
@@ -766,7 +772,31 @@ async function getPreferredRoasterName(userId: number, roasterName: string | nul
         }
     });
 
-    return roasterAlias ? roasterAlias.preferredName : trimmedRoasterName;
+    if (roasterAlias) {
+        return roasterAlias.preferredName;
+    }
+
+    const groupedAliasKey = normalizeRoasterNameForGrouping(trimmedRoasterName);
+
+    if (!groupedAliasKey || groupedAliasKey === normalizedAlias) {
+        return trimmedRoasterName;
+    }
+
+    const aliases = await (prisma as any).roasterAlias.findMany({
+        where: {
+            userId: userId
+        },
+        select: {
+            aliasName: true,
+            preferredName: true
+        }
+    });
+
+    const fuzzyAlias = aliases.find(function (alias: { aliasName: string; preferredName: string }) {
+        return normalizeRoasterNameForGrouping(alias.aliasName) === groupedAliasKey;
+    });
+
+    return fuzzyAlias ? fuzzyAlias.preferredName : trimmedRoasterName;
 }
 
 async function upsertRoasterAlias(tx: Prisma.TransactionClient, userId: number, aliasName: string, preferredName: string): Promise<void> {
@@ -1063,10 +1093,10 @@ router.post("/roasters/consolidate", async function (req: Request, res: Response
 
     const updateResult = await prisma.$transaction(async function (tx) {
         for (const sourceRoasterName of sourceRoasterNames) {
-            await upsertRoasterAlias(tx, userId, sourceRoasterName, canonicalRoasterName);
+            if (sourceRoasterName.trim().toLowerCase() !== canonicalRoasterName.trim().toLowerCase()) {
+                await upsertRoasterAlias(tx, userId, sourceRoasterName, canonicalRoasterName);
+            }
         }
-
-        await upsertRoasterAlias(tx, userId, canonicalRoasterName, canonicalRoasterName);
 
         return await tx.coffeeBean.updateMany({
             where: {

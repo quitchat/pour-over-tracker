@@ -203,7 +203,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
                     <span>
                         <i class="bi bi-link-45deg me-1"></i>
-                        Roaster Alias Crosswalk
+                        Roaster Alias Links
                     </span>
                     <span class="text-muted small"><%= aliases.length %> alias(es)</span>
                 </div>
@@ -212,7 +212,7 @@
                         <thead>
                             <tr>
                                 <th>Old / Alternate Name</th>
-                                <th>Preferred Name</th>
+                                <th>Preferred Roaster Name</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -226,7 +226,7 @@
                     </table>
                 </div>
                 <div class="card-footer text-muted small">
-                    When bean info lookup or bag label reading sees an alternate roaster name, it uses the preferred name from this list.
+                    When bean info lookup or bag label reading returns an alternate roaster name, the app uses the preferred roaster name from this list.
                 </div>
             </div>
         <% } %>
