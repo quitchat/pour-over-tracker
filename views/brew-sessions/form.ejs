@@ -215,7 +215,7 @@
         flex: 1 1 0;
         max-width: none;
         min-width: 0;
-        text-align: center;
+        text-align: left;
     }
 
     .guided-pour-row .input-group-text,
@@ -235,11 +235,26 @@
         justify-content: center;
     }
 
-    .guided-pour-action-col .btn {
+    .guided-pour-action-col .guided-pour-square-btn {
+        align-items: center;
+        aspect-ratio: 1 / 1;
+        box-sizing: border-box;
+        display: inline-flex;
         flex: 0 0 2.25rem !important;
-        height: 2.25rem;
-        padding: 0;
-        width: 2.25rem;
+        height: 2.25rem !important;
+        justify-content: center;
+        line-height: 1 !important;
+        max-height: 2.25rem !important;
+        max-width: 2.25rem !important;
+        min-height: 2.25rem !important;
+        min-width: 2.25rem !important;
+        overflow: hidden;
+        padding: 0 !important;
+        width: 2.25rem !important;
+    }
+
+    .guided-pour-action-col .guided-pour-square-btn i {
+        line-height: 1;
     }
 
     .brew-form-actions .btn {
@@ -300,17 +315,19 @@
             flex: 1 1 0;
             max-width: none;
             min-width: 0;
-            padding-left: 0.25rem;
+            padding-left: 0.35rem;
             padding-right: 0.25rem;
-            text-align: center;
+            text-align: left;
         }
 
-        .guided-pour-action-col .btn {
+        .guided-pour-action-col .guided-pour-square-btn {
             flex: 0 0 2.15rem !important;
-            height: 2.15rem;
-            min-height: 2.15rem;
-            padding: 0;
-            width: 2.15rem;
+            height: 2.15rem !important;
+            max-height: 2.15rem !important;
+            max-width: 2.15rem !important;
+            min-height: 2.15rem !important;
+            min-width: 2.15rem !important;
+            width: 2.15rem !important;
         }
 
         .pour-structure-mode-toggle {
@@ -638,10 +655,10 @@
                                     </div>
 
                                     <div class="col-4 col-md-2 guided-pour-action-col d-flex gap-2 justify-content-end">
-                                        <button type="button" class="btn btn-outline-primary btn-sm flex-fill flex-md-grow-0" data-add-guided-pour-row-after aria-label="Add pour row after this row">
+                                        <button type="button" class="btn btn-outline-primary btn-sm guided-pour-square-btn" data-add-guided-pour-row-after aria-label="Add pour row after this row">
                                             <i class="bi bi-plus-lg"></i>
                                         </button>
-                                        <button type="button" class="btn btn-outline-danger btn-sm flex-fill flex-md-grow-0" data-remove-guided-pour-row aria-label="Remove pour row">
+                                        <button type="button" class="btn btn-outline-danger btn-sm guided-pour-square-btn" data-remove-guided-pour-row aria-label="Remove pour row">
                                             <i class="bi bi-dash-lg"></i>
                                         </button>
                                     </div>
