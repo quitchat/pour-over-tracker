@@ -91,7 +91,7 @@
 - Water temperature tracking with Celsius/Fahrenheit user preference
 - Output/yield tracking
 - Brew timing and recipe-related fields
-- Two-step new-brew workflow: Brew Setup first, then Continue opens Brew Variables for grind size, water temperature, pour structure, total yield, and total brew time before the brew record is saved; the entry page auto-scrolls to the Brew Variables section
+- Two-step new-brew workflow: Brew Setup first, then Continue opens Brew Variables for grind size, water temperature, pour structure, total yield, and total brew time before the brew record is saved; the entry page auto-scrolls to the Brew Variables section and can load variables from the best prior brew with the same bean, grinder, and brewer
 - Guided Pour Plan entry for pour structure with editable pour rows, per-row add/remove controls, optional method selection after the first Bloom row, and automatic parsing back into rows when editing saved guided notes
 - Brew pour step tracking
 - Tasting note tracking

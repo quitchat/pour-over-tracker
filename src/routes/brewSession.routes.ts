@@ -968,6 +968,133 @@ async function getUserBrewDefaults(userId: number) {
 }
 
 
+function getTastingAverage(tastingScore: any): number {
+    if (!tastingScore) {
+        return 0;
+    }
+
+    const values = [
+        tastingScore.richness,
+        tastingScore.sweetness,
+        tastingScore.aftertaste,
+        tastingScore.aroma,
+        tastingScore.acidity
+    ].map(function (value) {
+        return Number(value || 0);
+    }).filter(function (value) {
+        return !Number.isNaN(value) && value > 0;
+    });
+
+    if (values.length === 0) {
+        return 0;
+    }
+
+    return values.reduce(function (sum, value) {
+        return sum + value;
+    }, 0) / values.length;
+}
+
+function compareBestBrewCandidates(a: any, b: any): number {
+    const aOverall = a.overallRating === null || typeof a.overallRating === "undefined" ? 0 : Number(a.overallRating);
+    const bOverall = b.overallRating === null || typeof b.overallRating === "undefined" ? 0 : Number(b.overallRating);
+
+    if (aOverall !== bOverall) {
+        return bOverall - aOverall;
+    }
+
+    const aTastingAverage = getTastingAverage(a.tastingScore);
+    const bTastingAverage = getTastingAverage(b.tastingScore);
+
+    if (aTastingAverage !== bTastingAverage) {
+        return bTastingAverage - aTastingAverage;
+    }
+
+    const aBrewDateTime = a.brewDate ? a.brewDate.getTime() : 0;
+    const bBrewDateTime = b.brewDate ? b.brewDate.getTime() : 0;
+
+    if (aBrewDateTime !== bBrewDateTime) {
+        return bBrewDateTime - aBrewDateTime;
+    }
+
+    const aCreatedAtTime = a.createdAt ? a.createdAt.getTime() : 0;
+    const bCreatedAtTime = b.createdAt ? b.createdAt.getTime() : 0;
+
+    if (aCreatedAtTime !== bCreatedAtTime) {
+        return bCreatedAtTime - aCreatedAtTime;
+    }
+
+    return b.id - a.id;
+}
+
+function mapBestBrewForJson(brew: any, temperatureUnit: TemperatureUnit) {
+    const totalSeconds = brew.totalBrewTimeSeconds;
+    const minutes = totalSeconds === null || typeof totalSeconds === "undefined" ? "" : String(Math.floor(totalSeconds / 60));
+    const seconds = totalSeconds === null || typeof totalSeconds === "undefined" ? "" : String(totalSeconds % 60);
+    const overallRating = getDecimalText(brew.overallRating);
+    const tastingAverage = getTastingAverage(brew.tastingScore);
+    const summaryParts = [formatDateOnly(brew.brewDate)];
+
+    if (overallRating) {
+        summaryParts.push(`${overallRating}/5 overall`);
+    }
+
+    if (tastingAverage > 0) {
+        summaryParts.push(`${tastingAverage.toFixed(1)}/5 taste quality`);
+    }
+
+    return {
+        id: brew.id,
+        summary: summaryParts.join(" · "),
+        brewDate: formatDateOnly(brew.brewDate),
+        grindSize: brew.grindSize || "",
+        totalYieldGrams: getDecimalText(brew.totalYieldGrams),
+        waterTemperatureC: formatTemperatureDecimalForInput(brew.waterTemperatureC, temperatureUnit),
+        totalBrewTimeMinutes: minutes,
+        totalBrewTimeSeconds: seconds,
+        pourStructure: brew.pourStructure || ""
+    };
+}
+
+async function findBestMatchingBrew(userId: number, coffeeBeanId: number, grinderId: number, brewerId: number, temperatureUnit: TemperatureUnit) {
+    const matchingBrews = await prisma.brewSession.findMany({
+        where: {
+            userId: userId,
+            coffeeBeanId: coffeeBeanId,
+            grinderId: grinderId,
+            brewerId: brewerId,
+            overallRating: {
+                not: null
+            }
+        },
+        include: {
+            tastingScore: true
+        },
+        orderBy: [
+            {
+                overallRating: "desc"
+            },
+            {
+                brewDate: "desc"
+            },
+            {
+                createdAt: "desc"
+            },
+            {
+                id: "desc"
+            }
+        ],
+        take: 50
+    });
+
+    if (matchingBrews.length === 0) {
+        return null;
+    }
+
+    matchingBrews.sort(compareBestBrewCandidates);
+
+    return mapBestBrewForJson(matchingBrews[0], temperatureUnit);
+}
+
 async function getRecentMatchingBrewsForSuggestion(userId: number, coffeeBeanId: number, grinderId: number, brewerId: number, coffeeDoseGrams: string, temperatureUnit: TemperatureUnit) {
     const recentBrews = await prisma.brewSession.findMany({
         where: {
@@ -1691,6 +1818,82 @@ router.post("/suggest-recipe", requireAiAccess, async function (req: Request, re
             errorMessage: errorMessage
         });
     }
+});
+
+router.post("/best-matching-brew", async function (req: Request, res: Response) {
+    const userId = getRequiredUserId(req);
+    const temperatureUnit = getCurrentTemperatureUnit(res);
+
+    const coffeeBeanId = parseRequiredInteger(String(req.body.coffeeBeanId || "").trim());
+    const grinderId = parseRequiredInteger(String(req.body.grinderId || "").trim());
+    const brewerId = parseRequiredInteger(String(req.body.brewerId || "").trim());
+
+    if (coffeeBeanId === null) {
+        res.status(400).json({
+            ok: false,
+            errorMessage: "Please select a coffee bean."
+        });
+
+        return;
+    }
+
+    if (grinderId === null) {
+        res.status(400).json({
+            ok: false,
+            errorMessage: "Please select a grinder."
+        });
+
+        return;
+    }
+
+    if (brewerId === null) {
+        res.status(400).json({
+            ok: false,
+            errorMessage: "Please select a brewer."
+        });
+
+        return;
+    }
+
+    const ownershipErrors = await validateSelectedRecordsBelongToUser(userId, {
+        coffeeBeanId: String(coffeeBeanId),
+        grinderId: String(grinderId),
+        brewerId: String(brewerId),
+        brewDate: "2000-01-01",
+        grindSize: "",
+        coffeeDoseGrams: "1",
+        totalYieldGrams: "",
+        waterTemperatureC: "",
+        totalBrewTimeMinutes: "",
+        totalBrewTimeSeconds: "",
+        overallRating: "",
+        pourStructure: "",
+        recipeSteps: "",
+        adjustmentNotes: "",
+        brewComments: "",
+        richness: "3",
+        sweetness: "3",
+        aftertaste: "3",
+        aroma: "3",
+        acidity: "3",
+        acidityLevel: ""
+    }, true);
+
+    if (ownershipErrors.length > 0) {
+        res.status(400).json({
+            ok: false,
+            errorMessage: ownershipErrors[0]
+        });
+
+        return;
+    }
+
+    const bestBrew = await findBestMatchingBrew(userId, coffeeBeanId, grinderId, brewerId, temperatureUnit);
+
+    res.json({
+        ok: true,
+        bestBrew: bestBrew
+    });
 });
 
 router.post("/start", async function (req: Request, res: Response) {

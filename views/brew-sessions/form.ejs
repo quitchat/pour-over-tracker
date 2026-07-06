@@ -446,17 +446,26 @@
 
     <% if (!isSetupMode) { %>
     <div class="card mb-3 brew-focused-entry-card" id="brewVariablesSection">
-        <div class="card-header d-flex justify-content-between align-items-center gap-2">
+        <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <span>
                 <i class="bi bi-cup-hot me-1"></i>
                 Brew Variables
             </span>
 
-            <% if (isEntryMode && (typeof showAiSuggestionButton === "undefined" || showAiSuggestionButton) && userCanUseAi) { %>
-                <button type="button" class="btn btn-success btn-sm ms-auto" id="suggestRecipeButton">
-                    <i class="bi bi-magic me-1"></i>
-                    AI Suggestion
-                </button>
+            <% if (isEntryMode) { %>
+                <div class="d-flex gap-2 ms-md-auto flex-wrap justify-content-end">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="loadBestBrewButton">
+                        <i class="bi bi-trophy me-1"></i>
+                        Load Best Brew
+                    </button>
+
+                    <% if ((typeof showAiSuggestionButton === "undefined" || showAiSuggestionButton) && userCanUseAi) { %>
+                        <button type="button" class="btn btn-success btn-sm" id="suggestRecipeButton">
+                            <i class="bi bi-magic me-1"></i>
+                            AI Suggestion
+                        </button>
+                    <% } %>
+                </div>
             <% } %>
         </div>
 
@@ -1769,15 +1778,7 @@
         }
 
         if (pourStructureTextarea && guidedPourRows) {
-            const parsedGuidedRows = parseGuidedPourStructureText(pourStructureTextarea.value);
-
-            if (parsedGuidedRows.length > 0) {
-                parsedGuidedRows.forEach(function (rowData) {
-                    addGuidedPourRow(rowData);
-                });
-
-                setPourStructureMode("guided");
-            }
+            populateGuidedPourRowsFromText(pourStructureTextarea.value);
         }
 
         if (shouldAutoScrollToBrewVariables) {
@@ -1799,6 +1800,7 @@
         }
 
         const suggestRecipeButton = document.getElementById("suggestRecipeButton");
+        const loadBestBrewButton = document.getElementById("loadBestBrewButton");
         const applyRecipeButton = document.getElementById("applyRecipeButton");
         const brewAssistantMessage = document.getElementById("brewAssistantMessage");
         const recipeResultMessage = document.getElementById("recipeResultMessage");
@@ -1859,6 +1861,127 @@
         function clearMessage(container) {
             if (container) {
                 container.innerHTML = "";
+            }
+        }
+
+        function setLoadBestBrewButtonLoading(isLoading) {
+            if (!loadBestBrewButton) {
+                return;
+            }
+
+            loadBestBrewButton.disabled = isLoading;
+
+            if (isLoading) {
+                loadBestBrewButton.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' +
+                    'Loading';
+            } else {
+                loadBestBrewButton.innerHTML =
+                    '<i class="bi bi-trophy me-1"></i>' +
+                    'Load Best Brew';
+            }
+        }
+
+        function populateGuidedPourRowsFromText(value) {
+            if (!pourStructureTextarea || !guidedPourRows) {
+                return false;
+            }
+
+            const parsedGuidedRows = parseGuidedPourStructureText(value);
+
+            if (parsedGuidedRows.length === 0) {
+                return false;
+            }
+
+            guidedPourRows.innerHTML = "";
+
+            parsedGuidedRows.forEach(function (rowData) {
+                addGuidedPourRow(rowData);
+            });
+
+            setPourStructureMode("guided");
+            pourStructureTextarea.value = value || "";
+            return true;
+        }
+
+        function applyBestBrewToForm(bestBrew) {
+            if (!bestBrew) {
+                return;
+            }
+
+            setElementValue("grindSize", bestBrew.grindSize || "");
+            setElementValue("waterTemperatureC", bestBrew.waterTemperatureC || "");
+            setElementValue("totalYieldGrams", bestBrew.totalYieldGrams || "");
+            setElementValue("totalBrewTimeMinutes", bestBrew.totalBrewTimeMinutes || "");
+            setElementValue("totalBrewTimeSeconds", bestBrew.totalBrewTimeSeconds || "");
+
+            const pourStructure = bestBrew.pourStructure || "";
+
+            if (pourStructure) {
+                if (!populateGuidedPourRowsFromText(pourStructure)) {
+                    setPourStructureMode("manual");
+                    setElementValue("pourStructure", pourStructure);
+                }
+            }
+        }
+
+        async function loadBestBrew() {
+            clearMessage(brewAssistantMessage);
+
+            const validationMessage = validateAssistantInputs();
+
+            if (validationMessage) {
+                showMessage(brewAssistantMessage, "warning", validationMessage);
+                return;
+            }
+
+            setLoadBestBrewButtonLoading(true);
+
+            const body = new URLSearchParams();
+            body.set("coffeeBeanId", getElementValue("coffeeBeanId"));
+            body.set("grinderId", getElementValue("grinderId"));
+            body.set("brewerId", getElementValue("brewerId"));
+
+            try {
+                const response = await fetch("/brew-sessions/best-matching-brew", {
+                    method: "POST",
+                    headers: {
+                        "Accept": "application/json",
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-Requested-With": "fetch"
+                    },
+                    body: body.toString(),
+                    credentials: "same-origin"
+                });
+
+                let data = null;
+
+                try {
+                    data = await response.json();
+                } catch {
+                    data = null;
+                }
+
+                if (!response.ok || !data || !data.ok) {
+                    const errorMessage = data && data.errorMessage
+                        ? data.errorMessage
+                        : "Could not load the best matching brew.";
+
+                    showMessage(brewAssistantMessage, "danger", errorMessage);
+                    return;
+                }
+
+                if (!data.bestBrew) {
+                    showMessage(brewAssistantMessage, "secondary", "No rated brew found for this same bean, grinder, and brewer yet.");
+                    return;
+                }
+
+                applyBestBrewToForm(data.bestBrew);
+                showMessage(brewAssistantMessage, "success", "Loaded variables from your best matching brew: " + data.bestBrew.summary + ".");
+            } catch (error) {
+                showMessage(brewAssistantMessage, "danger", "Could not load the best matching brew.");
+            } finally {
+                setLoadBestBrewButtonLoading(false);
             }
         }
 
@@ -2126,6 +2249,10 @@
             if (recipeResultModal) {
                 recipeResultModal.hide();
             }
+        }
+
+        if (loadBestBrewButton) {
+            loadBestBrewButton.addEventListener("click", loadBestBrew);
         }
 
         if (suggestRecipeButton) {
