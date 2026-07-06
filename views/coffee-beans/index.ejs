@@ -271,6 +271,10 @@
                                             <%= bean.beanName %>
                                         </a>
 
+                                        <% if (bean.isDecaf) { %>
+                                            <span class="badge text-bg-info bean-status-badge">Decaf</span>
+                                        <% } %>
+
                                         <% if (bean.isActive) { %>
                                             <span class="badge text-bg-success bean-status-badge">
                                                 Active

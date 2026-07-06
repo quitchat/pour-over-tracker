@@ -58,6 +58,21 @@
                         </div>
 
                         <div class="col-md-6">
+                            <label class="form-label d-block" for="isDecaf">Decaf</label>
+                            <div class="form-check form-switch pt-2">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    role="switch"
+                                    id="isDecaf"
+                                    name="isDecaf"
+                                    value="1"
+                                    <%= formData.isDecaf ? "checked" : "" %>>
+                                <label class="form-check-label" for="isDecaf">This coffee is decaf</label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
                             <label for="process" class="form-label">Process</label>
                             <input
                                 type="text"
@@ -145,6 +160,9 @@
 
                     <dt class="col-sm-5">Current Origin</dt>
                     <dd class="col-sm-7"><%= coffeeBean.origin || "-" %></dd>
+
+                    <dt class="col-sm-5">Current Decaf</dt>
+                    <dd class="col-sm-7"><%= coffeeBean.isDecaf ? "Yes" : "No" %></dd>
 
                     <dt class="col-sm-5">Current Process</dt>
                     <dd class="col-sm-7"><%= coffeeBean.process || "-" %></dd>

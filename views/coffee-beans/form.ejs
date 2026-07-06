@@ -251,6 +251,21 @@
                 </div>
 
                 <div class="col-md-6">
+                    <label class="form-label d-block" for="isDecaf">Decaf</label>
+                    <div class="form-check form-switch pt-2">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            role="switch"
+                            id="isDecaf"
+                            name="isDecaf"
+                            value="1"
+                            <%= formData.isDecaf ? "checked" : "" %>>
+                        <label class="form-check-label" for="isDecaf">This coffee is decaf</label>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
                     <label for="process" class="form-label">Process</label>
                     <input
                         type="text"
@@ -652,6 +667,10 @@
 
             setElementValue("country", formData.country);
             setElementValue("origin", formData.origin);
+            const isDecafInput = document.getElementById("isDecaf");
+            if (isDecafInput) {
+                isDecafInput.checked = Boolean(formData.isDecaf);
+            }
             setElementValue("process", formData.process);
             setElementValue("roastLevel", formData.roastLevel);
             setElementValue("flavorNotes", formData.flavorNotes);
@@ -818,6 +837,8 @@
             body.set("beanName", beanName);
             body.set("country", getElementValue("country"));
             body.set("origin", getElementValue("origin"));
+            const isDecafInput = document.getElementById("isDecaf");
+            body.set("isDecaf", isDecafInput && isDecafInput.checked ? "1" : "");
             body.set("process", getElementValue("process"));
             body.set("roastLevel", getElementValue("roastLevel"));
             body.set("flavorNotes", getElementValue("flavorNotes"));

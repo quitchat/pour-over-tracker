@@ -40,6 +40,7 @@
 - Separate bean country and origin/region fields
 - Mini country flag image display next to bean country when available
 - Bean-level 0–5 star rating
+- Bean-level Decaf flag shown on bean detail and beside the bean name in the bean list
 - Bean Info field for factual/structured bean information
 - Bean Notes field for user-entered personal notes
 - Bean usage statistics derived from brew sessions:
@@ -133,6 +134,7 @@
   - Origin / region
   - Process
   - Roast level
+  - Decaf status
   - Flavor notes
   - Source URL
   - Confirmed factual bean notes

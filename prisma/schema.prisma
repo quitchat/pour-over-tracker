@@ -167,6 +167,7 @@ model CoffeeBean {
   sourceUrl     String?
   beanInfo      String?
   beanNotes     String?
+  isDecaf       Boolean       @default(false)
   rating        Decimal?      @db.Decimal(4, 2)
   beanAcidity   Int           @default(3)
   beanAftertaste Int          @default(3)

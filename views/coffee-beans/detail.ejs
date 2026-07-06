@@ -279,7 +279,12 @@
 
                     <% if (coffeeBean.beanName) { %>
                         <dt class="col-sm-4">Coffee Name</dt>
-                        <dd class="col-sm-8"><%= coffeeBean.beanName %></dd>
+                        <dd class="col-sm-8">
+                            <%= coffeeBean.beanName %>
+                            <% if (coffeeBean.isDecaf) { %>
+                                <span class="badge text-bg-info ms-2 align-middle">Decaf</span>
+                            <% } %>
+                        </dd>
                     <% } %>
 
                     <% if (coffeeBean.country) { %>

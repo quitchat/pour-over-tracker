@@ -17,6 +17,7 @@ export type CoffeeInformationResult = {
     origin: string | null;
     process: string | null;
     roastLevel: "Light" | "Medium" | "Dark" | null;
+    isDecaf: boolean | null;
     flavorNotes: string[];
     sourceUrl: string | null;
     confirmedNotes: string[];
@@ -71,6 +72,8 @@ export const DEFAULT_BEAN_DETAIL_AI_PROMPT = [
     "",
     "For roastLevel, only return Light, Medium, Dark, or null.",
     "",
+    "For isDecaf, return true only when the source clearly says the coffee is decaf, decaffeinated, or uses a decaffeination process such as Swiss Water, EA/sugarcane, ethyl acetate, mountain water, or CO2. Return false only when the source clearly indicates it is not decaf or it is a regular caffeinated coffee. Return null when decaf status is not clearly supported.",
+    "",
     "Do not look for coffee bag images. Do not return image URLs.",
     "",
     "Do not return price information. Price is manually entered by the user only.",
@@ -101,7 +104,7 @@ export const DEFAULT_BEAN_DETAIL_AI_PROMPT = [
     "",
     "If there are no extra confirmed facts, return an empty confirmedNotes array.",
     "",
-    "Return text facts only: country, origin/region, process, roast level, flavor notes, source URL, and confirmed notes."
+    "Return text facts only: country, origin/region, process, roast level, decaf status, flavor notes, source URL, and confirmed notes."
 ].join("\n");
 
 function getOpenAIClient() {
@@ -166,6 +169,7 @@ function parseCoffeeInformationJson(outputText: string): CoffeeInformationResult
         origin: parsed.origin || null,
         process: parsed.process || null,
         roastLevel: parsed.roastLevel || null,
+        isDecaf: typeof parsed.isDecaf === "boolean" ? parsed.isDecaf : null,
         flavorNotes: Array.isArray(parsed.flavorNotes) ? parsed.flavorNotes : [],
         sourceUrl: parsed.sourceUrl || null,
         confirmedNotes: Array.isArray(parsed.confirmedNotes) ? parsed.confirmedNotes : []
@@ -246,6 +250,9 @@ export async function getCoffeeInformationFromOpenAI(roasterName: string, beanNa
                             type: ["string", "null"],
                             enum: ["Light", "Medium", "Dark", null]
                         },
+                        isDecaf: {
+                            type: ["boolean", "null"]
+                        },
                         flavorNotes: {
                             type: "array",
                             items: {
@@ -269,6 +276,7 @@ export async function getCoffeeInformationFromOpenAI(roasterName: string, beanNa
                         "origin",
                         "process",
                         "roastLevel",
+                        "isDecaf",
                         "flavorNotes",
                         "sourceUrl",
                         "confirmedNotes"
