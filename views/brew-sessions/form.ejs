@@ -476,18 +476,6 @@
                     </div>
                 </div>
 
-                <div class="brew-quick-field col-md-4">
-                    <label for="totalYieldGrams" class="form-label">Total Yield</label>
-                    <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        class="form-control"
-                        id="totalYieldGrams"
-                        name="totalYieldGrams"
-                        value="<%= formData.totalYieldGrams || "" %>">
-                    <div class="form-text">Ratio is calculated from dose and yield.</div>
-                </div>
 
                 <div class="col-12">
                     <div class="d-flex justify-content-between align-items-start align-items-md-center gap-2 flex-column flex-md-row mb-2">
@@ -534,7 +522,7 @@
                             <div class="guided-pour-row" data-guided-pour-row>
                                 <div class="row g-2 align-items-end">
                                     <div class="col-6 col-md-2">
-                                        <label class="form-label">Pour</label>
+                                        <label class="form-label guided-pour-row-label">Pour</label>
                                         <div class="input-group input-group-sm">
                                             <input type="number" step="0.1" min="0" class="form-control" data-guided-pour-grams placeholder="0">
                                             <span class="input-group-text">g</span>
@@ -542,7 +530,7 @@
                                     </div>
 
                                     <div class="col-6 col-md-3">
-                                        <label class="form-label">By</label>
+                                        <label class="form-label guided-pour-row-label">By</label>
                                         <div class="input-group input-group-sm guided-pour-time-group">
                                             <input type="number" min="0" step="1" class="form-control" data-guided-pour-minutes placeholder="m">
                                             <span class="input-group-text">m</span>
@@ -552,8 +540,9 @@
                                     </div>
 
                                     <div class="col-md-5">
-                                        <label class="form-label">Pour Method</label>
-                                        <select class="form-select form-select-sm" data-guided-pour-method>
+                                        <label class="form-label guided-pour-row-label">Pour Method</label>
+                                        <select class="form-select form-select-sm" data-guided-pour-method aria-label="Pour Method">
+                                            <option value="">Method</option>
                                             <option value="Bloom">Bloom</option>
                                             <option value="Normal pour">Normal pour</option>
                                             <option value="Gentle pour">Gentle pour</option>
@@ -575,6 +564,19 @@
 
                         <div class="form-text mt-2">Guided rows are saved into the same Pour Structure notes field.</div>
                     </div>
+                </div>
+
+                <div class="brew-quick-field col-md-4">
+                    <label for="totalYieldGrams" class="form-label">Total Yield</label>
+                    <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        class="form-control"
+                        id="totalYieldGrams"
+                        name="totalYieldGrams"
+                        value="<%= formData.totalYieldGrams || "" %>">
+                    <div class="form-text">Ratio is calculated from dose and yield.</div>
                 </div>
             </div>
         </div>
@@ -824,10 +826,6 @@
                                     <div class="fw-semibold" id="recipeDose">-</div>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <div class="text-muted small">Total Yield</div>
-                                    <div class="fw-semibold" id="recipeYield">-</div>
-                                </div>
 
                                 <div class="col-md-4">
                                     <div class="text-muted small">Ratio</div>
@@ -844,10 +842,6 @@
                                     <div class="fw-semibold" id="recipeBloomWater">-</div>
                                 </div>
 
-                                <div class="col-md-4">
-                                    <div class="text-muted small">Bloom Time</div>
-                                    <div class="fw-semibold" id="recipeBloomTime">-</div>
-                                </div>
 
                             </div>
                         </div>
@@ -858,7 +852,17 @@
                             <div class="card h-100">
                                 <div class="card-header">Pour Structure</div>
                                 <div class="card-body">
-                                    <ol class="mb-0" id="recipePourStructure"></ol>
+                                    <ol class="mb-3" id="recipePourStructure"></ol>
+                                    <div class="row g-2 small border-top pt-2">
+                                        <div class="col-sm-6">
+                                            <div class="text-muted">Bloom Time</div>
+                                            <div class="fw-semibold" id="recipeBloomTime">-</div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="text-muted">Total Yield</div>
+                                            <div class="fw-semibold" id="recipeYield">-</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1487,6 +1491,22 @@
             }
         }
 
+        function updateGuidedPourRowLabels() {
+            if (!guidedPourRows) {
+                return;
+            }
+
+            const rows = guidedPourRows.querySelectorAll("[data-guided-pour-row]");
+
+            rows.forEach(function (row, index) {
+                const labels = row.querySelectorAll(".guided-pour-row-label");
+
+                labels.forEach(function (label) {
+                    label.classList.toggle("d-none", index > 0);
+                });
+            });
+        }
+
         function addGuidedPourRow(rowData) {
             if (!guidedPourRows || !guidedPourRowTemplate) {
                 return;
@@ -1518,8 +1538,8 @@
                     secondsInput.value = rowData.seconds || "";
                 }
 
-                if (methodInput && rowData.method) {
-                    methodInput.value = rowData.method;
+                if (methodInput) {
+                    methodInput.value = rowData.method || "";
                 }
             }
 
@@ -1530,10 +1550,48 @@
                     if (guidedPourRows.children.length === 0) {
                         addGuidedPourRow();
                     }
+
+                    updateGuidedPourRowLabels();
                 });
             }
 
             guidedPourRows.appendChild(fragment);
+            updateGuidedPourRowLabels();
+        }
+
+        function parseGuidedPourStructureText(value) {
+            const text = (value || "").trim();
+
+            if (!text) {
+                return [];
+            }
+
+            const lines = text.split(/\r?\n/).map(function (line) {
+                return line.trim();
+            }).filter(Boolean);
+
+            if (lines.length === 0) {
+                return [];
+            }
+
+            const rows = [];
+
+            for (const line of lines) {
+                const match = line.match(/^Pour(?:\s+([0-9]+(?:\.[0-9]+)?)\s*g)?(?:\s+by\s+(?:(\d+)\s*m)?\s*(?:(\d+)\s*s)?)?(?:\s+[—-]\s+(.+))?$/i);
+
+                if (!match) {
+                    return [];
+                }
+
+                rows.push({
+                    grams: match[1] || "",
+                    minutes: match[2] || "",
+                    seconds: match[3] || "",
+                    method: match[4] || ""
+                });
+            }
+
+            return rows;
         }
 
         function getGuidedPourStructureText() {
@@ -1604,6 +1662,18 @@
             addGuidedPourRowButton.addEventListener("click", function () {
                 addGuidedPourRow();
             });
+        }
+
+        if (pourStructureTextarea && guidedPourRows) {
+            const parsedGuidedRows = parseGuidedPourStructureText(pourStructureTextarea.value);
+
+            if (parsedGuidedRows.length > 0) {
+                parsedGuidedRows.forEach(function (rowData) {
+                    addGuidedPourRow(rowData);
+                });
+
+                setPourStructureMode("guided");
+            }
         }
 
         if (brewSessionForm) {
