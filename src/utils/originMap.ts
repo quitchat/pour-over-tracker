@@ -107,7 +107,7 @@ function toGeocodeResult(result: NominatimSearchResult, matchLevel: GeocodeMatch
     }
 
     const address = result.address || {};
-    const country = address.country || fallbackCountry;
+    const country = fallbackCountry;
     const countryCode = (address.country_code || "").toLowerCase();
 
     return {
@@ -138,7 +138,8 @@ async function callNominatim(query: string, countryCode: string | null): Promise
         format: "jsonv2",
         limit: "1",
         addressdetails: "1",
-        q: query
+        q: query,
+        "accept-language": "en"
     });
 
     if (countryCode) {
@@ -149,7 +150,8 @@ async function callNominatim(query: string, countryCode: string | null): Promise
 
     const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
         headers: {
-            "User-Agent": "CoffeeBrewTracker/1.0 origin-map geocoding"
+            "User-Agent": "CoffeeBrewTracker/1.0 origin-map geocoding",
+            "Accept-Language": "en"
         }
     });
 

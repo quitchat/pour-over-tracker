@@ -369,11 +369,38 @@
         const mapElement = document.getElementById("originMap");
         const groups = window.originMapGroups || [];
         const modalElement = document.getElementById("refineMapPinModal");
-        const modal = modalElement && window.bootstrap ? new bootstrap.Modal(modalElement) : null;
+        const modal = modalElement && window.bootstrap ? bootstrap.Modal.getOrCreateInstance(modalElement) : null;
         const previewButton = document.getElementById("refineMapPreviewButton");
         const applyButton = document.getElementById("refineMapApplyButton");
         const resetButton = document.getElementById("refineMapResetButton");
         const searchInput = document.getElementById("refineMapSearchText");
+
+        function cleanupDuplicateModalBackdrops() {
+            const backdrops = document.querySelectorAll(".modal-backdrop");
+
+            if (backdrops.length <= 1) {
+                return;
+            }
+
+            backdrops.forEach(function (backdrop, index) {
+                if (index > 0) {
+                    backdrop.remove();
+                }
+            });
+        }
+
+        if (modalElement) {
+            modalElement.addEventListener("shown.bs.modal", cleanupDuplicateModalBackdrops);
+            modalElement.addEventListener("hidden.bs.modal", function () {
+                cleanupDuplicateModalBackdrops();
+
+                if (!document.querySelector(".modal.show")) {
+                    document.body.classList.remove("modal-open");
+                    document.body.style.removeProperty("overflow");
+                    document.body.style.removeProperty("padding-right");
+                }
+            });
+        }
 
         function openEditMapLocationModal(button) {
             const beanIdInput = document.getElementById("refineMapBeanId");
@@ -415,6 +442,12 @@
             setRefineMessage("", false);
 
             if (modal) {
+                if (modalElement && modalElement.classList.contains("show")) {
+                    cleanupDuplicateModalBackdrops();
+                    return;
+                }
+
+                cleanupDuplicateModalBackdrops();
                 modal.show();
                 setTimeout(function () {
                     if (searchInput) {
@@ -433,6 +466,7 @@
             }
 
             event.preventDefault();
+            event.stopPropagation();
             openEditMapLocationModal(button);
         });
 

@@ -1511,7 +1511,7 @@ function buildOverridePoint(override: {
     searchText: string;
 }): OriginMapPoint {
     return {
-        country: override.country || override.countryInput,
+        country: override.countryInput || override.country || "",
         countryCode: override.countryCode || "",
         region: override.region || null,
         lat: override.lat,
@@ -1561,7 +1561,7 @@ router.post("/origin-map/refine/preview", async function (req: Request, res: Res
         });
 
         if (!validCountry) {
-            res.status(400).json({ ok: false, message: "Selected country does not belong to this bean." });
+            res.status(400).json({ ok: false, message: "This map location does not match the bean's saved country. Please refresh the page and try again." });
             return;
         }
 
@@ -1614,7 +1614,7 @@ router.post("/origin-map/refine/apply", async function (req: Request, res: Respo
         });
 
         if (!validCountry) {
-            res.status(400).json({ ok: false, message: "Selected country does not belong to this bean." });
+            res.status(400).json({ ok: false, message: "This map location does not match the bean's saved country. Please refresh the page and try again." });
             return;
         }
 
@@ -1691,7 +1691,7 @@ router.post("/origin-map/refine/reset", async function (req: Request, res: Respo
         });
 
         if (!validCountry) {
-            res.status(400).json({ ok: false, message: "Selected country does not belong to this bean." });
+            res.status(400).json({ ok: false, message: "This map location does not match the bean's saved country. Please refresh the page and try again." });
             return;
         }
 
