@@ -40,7 +40,7 @@ const cacheVersion = 1;
 const geocodeThrottleMs = 1100;
 let lastGeocodeAt = 0;
 
-function normalizeText(value: string): string {
+export function normalizeOriginMapText(value: string): string {
     return value
         .toLowerCase()
         .normalize("NFD")
@@ -51,7 +51,7 @@ function normalizeText(value: string): string {
         .trim();
 }
 
-function splitCountryValues(country: string | null | undefined): string[] {
+export function splitOriginCountryValues(country: string | null | undefined): string[] {
     if (!country) {
         return [];
     }
@@ -67,8 +67,8 @@ function splitCountryValues(country: string | null | undefined): string[] {
 }
 
 function buildCacheKey(matchLevel: GeocodeMatchLevel, country: string, region: string | null): string {
-    const normalizedCountry = normalizeText(country);
-    const normalizedRegion = normalizeText(region || "");
+    const normalizedCountry = normalizeOriginMapText(country);
+    const normalizedRegion = normalizeOriginMapText(region || "");
 
     return `${cacheVersion}|${matchLevel}|${normalizedCountry}|${normalizedRegion}`;
 }
@@ -214,6 +214,43 @@ async function saveGeocodeCache(prisma: PrismaClient, cacheKey: string, query: s
     });
 }
 
+export type OriginMapPinPreview = OriginMapPoint & {
+    query: string;
+    searchText: string;
+    displayName: string;
+};
+
+export async function previewOriginMapPin(country: string, searchText: string): Promise<OriginMapPinPreview | null> {
+    const cleanCountry = country.trim();
+    const cleanSearchText = searchText.trim();
+
+    if (!cleanCountry || !cleanSearchText) {
+        return null;
+    }
+
+    const countryMatchRaw = await callNominatim(cleanCountry, null);
+    const countryMatch = countryMatchRaw ? toGeocodeResult(countryMatchRaw, "COUNTRY", cleanCountry, null) : null;
+    const query = `${cleanSearchText}, ${cleanCountry}`;
+    const regionMatchRaw = await callNominatim(query, countryMatch && countryMatch.countryCode ? countryMatch.countryCode : null);
+    const regionMatch = regionMatchRaw ? toGeocodeResult(regionMatchRaw, "REGION", cleanCountry, cleanSearchText) : null;
+
+    if (!regionMatch) {
+        return null;
+    }
+
+    return {
+        country: regionMatch.country,
+        countryCode: regionMatch.countryCode,
+        region: regionMatch.region || cleanSearchText,
+        lat: regionMatch.lat,
+        lng: regionMatch.lng,
+        matchLevel: "REGION",
+        query: query,
+        searchText: cleanSearchText,
+        displayName: regionMatchRaw && regionMatchRaw.display_name ? regionMatchRaw.display_name : query
+    };
+}
+
 async function geocodeWithCache(prisma: PrismaClient, query: string, cacheCountry: string, cacheRegion: string | null, matchLevel: GeocodeMatchLevel, countryCodeRestriction: string | null): Promise<GeocodeResult | null> {
     const cacheKey = buildCacheKey(matchLevel, cacheCountry, cacheRegion);
     const cachedResult = await getCachedGeocode(prisma, cacheKey);
@@ -231,7 +268,7 @@ async function geocodeWithCache(prisma: PrismaClient, query: string, cacheCountr
 }
 
 export async function resolveOriginMapPoints(prisma: PrismaClient, country: string | null | undefined, region: string | null | undefined): Promise<OriginMapPoint[]> {
-    const countryParts = splitCountryValues(country);
+    const countryParts = splitOriginCountryValues(country);
     const points: OriginMapPoint[] = [];
     const seenKeys = new Set<string>();
     const preferredRegion = getPreferredRegionLabel(region);
@@ -254,7 +291,7 @@ export async function resolveOriginMapPoints(prisma: PrismaClient, country: stri
             }
         }
 
-        const key = `${point.countryCode || normalizeText(point.country)}|${point.region ? normalizeText(point.region) : "country"}`;
+        const key = `${point.countryCode || normalizeOriginMapText(point.country)}|${point.region ? normalizeOriginMapText(point.region) : "country"}`;
 
         if (!seenKeys.has(key)) {
             points.push(point);

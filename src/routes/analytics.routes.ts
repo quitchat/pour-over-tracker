@@ -4,7 +4,7 @@ import { getRequiredUserId, requireAuth } from "../middleware/auth";
 import { buildLastMonthKeys, formatDateOnlyUs, formatMonthKeyFromDateOnly, getTodayDateForInput, parseDateOnlyToUtcDate, parseDateOnlyToUtcEndOfDay } from "../utils/dateFormat";
 import { normalizeTimeZone } from "../utils/timeZone";
 import { getEffectiveTotalCost, getInventoryUsage } from "../services/beanInventory.service";
-import { resolveOriginMapPoints, OriginMapPoint } from "../utils/originMap";
+import { normalizeOriginMapText, previewOriginMapPin, resolveOriginMapPoints, splitOriginCountryValues, OriginMapPoint } from "../utils/originMap";
 
 const router = Router();
 
@@ -1497,6 +1497,170 @@ function buildOriginMapGroupKey(point: OriginMapPoint): string {
     return `${point.countryCode}|${point.region || "country"}|${point.matchLevel}`;
 }
 
+function buildOverridePoint(override: {
+    country: string | null;
+    countryCode: string | null;
+    region: string | null;
+    lat: number;
+    lng: number;
+    countryInput: string;
+}): OriginMapPoint {
+    return {
+        country: override.country || override.countryInput,
+        countryCode: override.countryCode || "",
+        region: override.region || null,
+        lat: override.lat,
+        lng: override.lng,
+        matchLevel: "REGION"
+    };
+}
+
+async function getBeanForOriginMapRefine(userId: number, beanId: number) {
+    return prisma.coffeeBean.findFirst({
+        where: {
+            id: beanId,
+            userId: userId
+        },
+        select: {
+            id: true,
+            beanName: true,
+            country: true,
+            origin: true
+        }
+    });
+}
+
+router.post("/origin-map/refine/preview", async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        const userId = getRequiredUserId(req);
+        const beanId = toOptionalPositiveInt(req.body.beanId);
+        const country = String(req.body.country || "").trim();
+        const searchText = String(req.body.searchText || "").trim();
+
+        if (!beanId || !country || !searchText) {
+            res.status(400).json({ ok: false, message: "Bean, country, and map search text are required." });
+            return;
+        }
+
+        const bean = await getBeanForOriginMapRefine(userId, beanId);
+
+        if (!bean) {
+            res.status(404).json({ ok: false, message: "Bean was not found." });
+            return;
+        }
+
+        const validCountry = splitOriginCountryValues(bean.country).some(function (countryPart) {
+            return normalizeOriginMapText(countryPart) === normalizeOriginMapText(country);
+        });
+
+        if (!validCountry) {
+            res.status(400).json({ ok: false, message: "Selected country does not belong to this bean." });
+            return;
+        }
+
+        const preview = await previewOriginMapPin(country, searchText);
+
+        if (!preview) {
+            res.json({ ok: false, message: "No region-level map match was found. Try adding a city, growing region, state, or province." });
+            return;
+        }
+
+        res.json({
+            ok: true,
+            preview: {
+                country: preview.country,
+                countryCode: preview.countryCode,
+                region: preview.region,
+                lat: preview.lat,
+                lng: preview.lng,
+                query: preview.query,
+                searchText: preview.searchText,
+                displayName: preview.displayName
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.post("/origin-map/refine/apply", async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        const userId = getRequiredUserId(req);
+        const beanId = toOptionalPositiveInt(req.body.beanId);
+        const country = String(req.body.country || "").trim();
+        const searchText = String(req.body.searchText || "").trim();
+
+        if (!beanId || !country || !searchText) {
+            res.status(400).json({ ok: false, message: "Bean, country, and map search text are required." });
+            return;
+        }
+
+        const bean = await getBeanForOriginMapRefine(userId, beanId);
+
+        if (!bean) {
+            res.status(404).json({ ok: false, message: "Bean was not found." });
+            return;
+        }
+
+        const validCountry = splitOriginCountryValues(bean.country).some(function (countryPart) {
+            return normalizeOriginMapText(countryPart) === normalizeOriginMapText(country);
+        });
+
+        if (!validCountry) {
+            res.status(400).json({ ok: false, message: "Selected country does not belong to this bean." });
+            return;
+        }
+
+        const preview = await previewOriginMapPin(country, searchText);
+
+        if (!preview) {
+            res.json({ ok: false, message: "No region-level map match was found. Nothing was saved." });
+            return;
+        }
+
+        const countryKey = normalizeOriginMapText(country);
+
+        await prisma.originMapPinOverride.upsert({
+            where: {
+                userId_coffeeBeanId_countryKey: {
+                    userId: userId,
+                    coffeeBeanId: beanId,
+                    countryKey: countryKey
+                }
+            },
+            create: {
+                userId: userId,
+                coffeeBeanId: beanId,
+                countryKey: countryKey,
+                countryInput: country,
+                searchText: preview.searchText,
+                query: preview.query,
+                displayName: preview.displayName,
+                country: preview.country,
+                countryCode: preview.countryCode,
+                region: preview.region,
+                lat: preview.lat,
+                lng: preview.lng
+            },
+            update: {
+                countryInput: country,
+                searchText: preview.searchText,
+                query: preview.query,
+                displayName: preview.displayName,
+                country: preview.country,
+                countryCode: preview.countryCode,
+                region: preview.region,
+                lat: preview.lat,
+                lng: preview.lng
+            }
+        });
+
+        res.json({ ok: true, message: "Map pin was refined.", preview: preview });
+    } catch (error) {
+        next(error);
+    }
+});
+
 router.get("/origin-map", async function (req: Request, res: Response, next: NextFunction) {
     try {
         const userId = getRequiredUserId(req);
@@ -1524,6 +1688,20 @@ router.get("/origin-map", async function (req: Request, res: Response, next: Nex
                         purchaseDate: true,
                         createdAt: true
                     }
+                },
+                originMapPinOverrides: {
+                    where: {
+                        userId: userId
+                    },
+                    select: {
+                        countryKey: true,
+                        countryInput: true,
+                        country: true,
+                        countryCode: true,
+                        region: true,
+                        lat: true,
+                        lng: true
+                    }
                 }
             },
             orderBy: [
@@ -1536,7 +1714,6 @@ router.get("/origin-map", async function (req: Request, res: Response, next: Nex
         const unmatchedBeans: OriginMapBeanItem[] = [];
 
         for (const bean of coffeeBeans) {
-            const points = await resolveOriginMapPoints(prisma, bean.country, bean.origin);
             const beanItem: OriginMapBeanItem = {
                 id: bean.id,
                 beanName: bean.beanName,
@@ -1546,6 +1723,23 @@ router.get("/origin-map", async function (req: Request, res: Response, next: Nex
                 isActive: bean.isActive,
                 latestPurchaseDate: getLatestBeanPurchaseDateText(bean)
             };
+            const points: OriginMapPoint[] = [];
+            const countryParts = splitOriginCountryValues(bean.country);
+
+            for (const countryPart of countryParts) {
+                const countryKey = normalizeOriginMapText(countryPart);
+                const override = bean.originMapPinOverrides.find(function (item) {
+                    return item.countryKey === countryKey;
+                });
+
+                if (override) {
+                    points.push(buildOverridePoint(override));
+                    continue;
+                }
+
+                const resolvedPoints = await resolveOriginMapPoints(prisma, countryPart, bean.origin);
+                points.push.apply(points, resolvedPoints);
+            }
 
             if (points.length === 0) {
                 if (bean.country || bean.origin) {

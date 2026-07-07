@@ -39,6 +39,7 @@ model User {
   aiMonthlyCallCapSettings AiMonthlyCallCapSetting[] @relation("AiMonthlyCallCapSettingUpdatedBy")
   passwordResetTokens PasswordResetToken[]
   roasterAliases RoasterAlias[]
+  originMapPinOverrides OriginMapPinOverride[]
 
   @@index([role])
   @@index([isActive])
@@ -219,6 +220,7 @@ model CoffeeBean {
   brewSessions  BrewSession[]
   beanPurchases BeanPurchase[]
   beanInventories BeanInventory[]
+  originMapPinOverrides OriginMapPinOverride[]
 
   @@index([userId])
   @@index([isActive])
@@ -419,6 +421,32 @@ model TastingScore {
   updatedAt     DateTime    @updatedAt
 
   brewSession   BrewSession @relation(fields: [brewSessionId], references: [id], onDelete: Cascade)
+}
+
+model OriginMapPinOverride {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  coffeeBeanId  Int
+  countryKey    String
+  countryInput  String
+  searchText    String
+  query         String
+  displayName   String?
+  country       String?
+  countryCode   String?
+  region        String?
+  lat           Float
+  lng           Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coffeeBean    CoffeeBean @relation(fields: [coffeeBeanId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, coffeeBeanId, countryKey])
+  @@index([userId])
+  @@index([coffeeBeanId])
+  @@index([countryKey])
 }
 
 model OriginMapGeocodeCache {
