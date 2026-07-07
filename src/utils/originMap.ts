@@ -7,6 +7,8 @@ export type OriginMapPoint = {
     lat: number;
     lng: number;
     matchLevel: "REGION" | "COUNTRY";
+    isOverride?: boolean;
+    searchText?: string;
 };
 
 type GeocodeMatchLevel = "REGION" | "COUNTRY";

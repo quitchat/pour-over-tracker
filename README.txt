@@ -125,7 +125,7 @@
 - Origin map geocoding that tries country plus region first, then falls back to country-level pins and caches resolved coordinates
 - Multi-country origin map support for countries separated by comma or semicolon
 - Bean detail origin map link for opening the map focused on that bean's country/region location
-- Per-user Refine Map Pin workflow for country-level origin map matches, with editable region search, geocode preview, and saved map pin overrides without changing bean records
+- Per-user Origin Map location editing for country-level or manually adjusted pins, with popup edit icons, editable region search, geocode preview, saved map-location overrides, and reset-to-automatic support without changing bean records
 - Radar diagram for tasting/scoring characteristics with quality/balance scoring guidance
 - Derived usage statistics for beans and grinders
 - Date formatting and display normalization

@@ -129,15 +129,18 @@
                                 <% if (index > 0) { %><span class="text-muted"> · </span><% } %>
                                 <span class="origin-map-bean-link-item">
                                     <a href="/coffee-beans/<%= bean.id %>" class="text-decoration-none"><%= bean.beanName %></a>
-                                    <% if (group.matchLevel === "COUNTRY" && bean.origin) { %>
+                                    <% if (bean.canEditMapLocation) { %>
                                         <button
                                             type="button"
-                                            class="btn btn-link btn-sm p-0 ms-1 align-baseline origin-map-refine-button"
+                                            class="btn btn-link btn-sm p-0 ms-1 align-baseline origin-map-edit-location-button"
                                             data-bean-id="<%= bean.id %>"
                                             data-bean-name="<%= bean.beanName %>"
-                                            data-country="<%= group.country %>"
-                                            data-origin="<%= bean.origin %>">
-                                            Refine Map Pin
+                                            data-country="<%= bean.mapCountry || group.country %>"
+                                            data-origin="<%= bean.mapSearchText || bean.origin %>"
+                                            data-has-override="<%= bean.mapLocationOverridden ? "true" : "false" %>"
+                                            title="Edit map location"
+                                            aria-label="Edit map location for <%= bean.beanName %>">
+                                            <i class="bi bi-pencil-square"></i>
                                         </button>
                                     <% } %>
                                 </span>
@@ -190,12 +193,13 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title h5" id="refineMapPinModalLabel">Refine Map Pin</h2>
+                <h2 class="modal-title h5" id="refineMapPinModalLabel">Edit Map Location</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="refineMapBeanId">
                 <input type="hidden" id="refineMapCountry">
+                <input type="hidden" id="refineMapHasOverride">
 
                 <div class="mb-3">
                     <div class="small text-muted">Bean</div>
@@ -222,6 +226,7 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto d-none" id="refineMapResetButton">Reset to Automatic</button>
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-outline-primary" id="refineMapPreviewButton">Preview Map Match</button>
                 <button type="button" class="btn btn-primary" id="refineMapApplyButton" disabled>Apply</button>
@@ -262,12 +267,12 @@
         overflow-y: auto;
     }
 
-    .origin-map-refine-button {
+    .origin-map-edit-location-button {
         font-size: inherit;
         text-decoration: none;
     }
 
-    .origin-map-refine-button:hover {
+    .origin-map-edit-location-button:hover {
         text-decoration: underline;
     }
 
@@ -337,7 +342,18 @@
         const matchText = group.matchLevel === "REGION" ? "Region-level match" : "Country-level fallback";
         const beanItems = group.beans.slice(0, 8).map(function (bean) {
             const roaster = bean.roasterName ? ' <span class="text-muted">(' + escapeHtml(bean.roasterName) + ')</span>' : '';
-            return '<li><a href="/coffee-beans/' + bean.id + '">' + escapeHtml(bean.beanName) + '</a>' + roaster + '</li>';
+            const canEditMapLocation = bean.canEditMapLocation === true;
+            const editButton = canEditMapLocation
+                ? ' <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline origin-map-edit-location-button"' +
+                    ' data-bean-id="' + escapeHtml(bean.id) + '"' +
+                    ' data-bean-name="' + escapeHtml(bean.beanName) + '"' +
+                    ' data-country="' + escapeHtml(bean.mapCountry || group.country) + '"' +
+                    ' data-origin="' + escapeHtml(bean.mapSearchText || bean.origin || '') + '"' +
+                    ' data-has-override="' + (bean.mapLocationOverridden === true ? 'true' : 'false') + '"' +
+                    ' title="Edit map location" aria-label="Edit map location for ' + escapeHtml(bean.beanName) + '">' +
+                    '<i class="bi bi-pencil-square"></i></button>'
+                : '';
+            return '<li><a href="/coffee-beans/' + bean.id + '">' + escapeHtml(bean.beanName) + '</a>' + roaster + editButton + '</li>';
         }).join("");
         const extraCount = group.beans.length > 8 ? '<div class="small text-muted mt-1">+' + (group.beans.length - 8) + ' more</div>' : '';
 
@@ -356,48 +372,68 @@
         const modal = modalElement && window.bootstrap ? new bootstrap.Modal(modalElement) : null;
         const previewButton = document.getElementById("refineMapPreviewButton");
         const applyButton = document.getElementById("refineMapApplyButton");
+        const resetButton = document.getElementById("refineMapResetButton");
         const searchInput = document.getElementById("refineMapSearchText");
 
-        document.querySelectorAll(".origin-map-refine-button").forEach(function (button) {
-            button.addEventListener("click", function () {
-                const beanIdInput = document.getElementById("refineMapBeanId");
-                const countryInput = document.getElementById("refineMapCountry");
-                const beanNameElement = document.getElementById("refineMapBeanName");
-                const countryLabel = document.getElementById("refineMapCountryLabel");
+        function openEditMapLocationModal(button) {
+            const beanIdInput = document.getElementById("refineMapBeanId");
+            const countryInput = document.getElementById("refineMapCountry");
+            const hasOverrideInput = document.getElementById("refineMapHasOverride");
+            const beanNameElement = document.getElementById("refineMapBeanName");
+            const countryLabel = document.getElementById("refineMapCountryLabel");
+            const hasOverride = button.getAttribute("data-has-override") === "true";
 
-                if (beanIdInput) {
-                    beanIdInput.value = button.getAttribute("data-bean-id") || "";
-                }
+            if (beanIdInput) {
+                beanIdInput.value = button.getAttribute("data-bean-id") || "";
+            }
 
-                if (countryInput) {
-                    countryInput.value = button.getAttribute("data-country") || "";
-                }
+            if (countryInput) {
+                countryInput.value = button.getAttribute("data-country") || "";
+            }
 
-                if (beanNameElement) {
-                    beanNameElement.textContent = button.getAttribute("data-bean-name") || "";
-                }
+            if (hasOverrideInput) {
+                hasOverrideInput.value = hasOverride ? "true" : "false";
+            }
 
-                if (countryLabel) {
-                    countryLabel.textContent = button.getAttribute("data-country") || "";
-                }
+            if (beanNameElement) {
+                beanNameElement.textContent = button.getAttribute("data-bean-name") || "";
+            }
 
-                if (searchInput) {
-                    searchInput.value = button.getAttribute("data-origin") || "";
-                }
+            if (countryLabel) {
+                countryLabel.textContent = button.getAttribute("data-country") || "";
+            }
 
-                resetRefinePreview();
-                setRefineMessage("", false);
+            if (searchInput) {
+                searchInput.value = button.getAttribute("data-origin") || "";
+            }
 
-                if (modal) {
-                    modal.show();
-                    setTimeout(function () {
-                        if (searchInput) {
-                            searchInput.focus();
-                            searchInput.select();
-                        }
-                    }, 150);
-                }
-            });
+            if (resetButton) {
+                resetButton.classList.toggle("d-none", !hasOverride);
+            }
+
+            resetRefinePreview();
+            setRefineMessage("", false);
+
+            if (modal) {
+                modal.show();
+                setTimeout(function () {
+                    if (searchInput) {
+                        searchInput.focus();
+                        searchInput.select();
+                    }
+                }, 150);
+            }
+        }
+
+        document.addEventListener("click", function (event) {
+            const button = event.target.closest ? event.target.closest(".origin-map-edit-location-button") : null;
+
+            if (!button) {
+                return;
+            }
+
+            event.preventDefault();
+            openEditMapLocationModal(button);
         });
 
         if (searchInput) {
@@ -450,7 +486,7 @@
                         applyButton.disabled = false;
                     }
 
-                    setRefineMessage("Preview found. Apply it to update your map pin cache.", false);
+                    setRefineMessage("Preview found. Apply it to save this map location.", false);
                 } catch (error) {
                     setRefineMessage("Unable to preview the map match right now.", true);
                 } finally {
@@ -468,7 +504,7 @@
 
                 applyButton.disabled = true;
                 applyButton.textContent = "Applying...";
-                setRefineMessage("Saving refined map pin...", false);
+                setRefineMessage("Saving map location...", false);
 
                 try {
                     const result = await postJson("/analytics/origin-map/refine/apply", {
@@ -478,14 +514,14 @@
                     });
 
                     if (!result.ok) {
-                        setRefineMessage(result.message || "Could not save the refined map pin.", true);
+                        setRefineMessage(result.message || "Could not save the map location.", true);
                         applyButton.disabled = false;
                         return;
                     }
 
                     window.location.href = "/analytics/origin-map?beanId=" + encodeURIComponent(beanId);
                 } catch (error) {
-                    setRefineMessage("Unable to save the refined map pin right now.", true);
+                    setRefineMessage("Unable to save the map location right now.", true);
                     applyButton.disabled = false;
                 } finally {
                     applyButton.textContent = "Apply";
@@ -493,7 +529,40 @@
             });
         }
 
-        if (!mapElement || !window.L || groups.length === 0) {
+
+
+        if (resetButton) {
+            resetButton.addEventListener("click", async function () {
+                const beanId = document.getElementById("refineMapBeanId") ? document.getElementById("refineMapBeanId").value : "";
+                const country = document.getElementById("refineMapCountry") ? document.getElementById("refineMapCountry").value : "";
+
+                resetButton.disabled = true;
+                resetButton.textContent = "Resetting...";
+                setRefineMessage("Resetting to automatic map location...", false);
+
+                try {
+                    const result = await postJson("/analytics/origin-map/refine/reset", {
+                        beanId: beanId,
+                        country: country
+                    });
+
+                    if (!result.ok) {
+                        setRefineMessage(result.message || "Could not reset the map location.", true);
+                        resetButton.disabled = false;
+                        return;
+                    }
+
+                    window.location.href = "/analytics/origin-map?beanId=" + encodeURIComponent(beanId);
+                } catch (error) {
+                    setRefineMessage("Unable to reset the map location right now.", true);
+                    resetButton.disabled = false;
+                } finally {
+                    resetButton.textContent = "Reset to Automatic";
+                }
+            });
+        }
+
+                if (!mapElement || !window.L || groups.length === 0) {
             return;
         }
 

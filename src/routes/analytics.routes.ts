@@ -1444,6 +1444,10 @@ type OriginMapBeanItem = {
     origin: string;
     isActive: boolean;
     latestPurchaseDate: string;
+    canEditMapLocation?: boolean;
+    mapCountry?: string;
+    mapSearchText?: string;
+    mapLocationOverridden?: boolean;
 };
 
 type OriginMapGroup = OriginMapPoint & {
@@ -1504,6 +1508,7 @@ function buildOverridePoint(override: {
     lat: number;
     lng: number;
     countryInput: string;
+    searchText: string;
 }): OriginMapPoint {
     return {
         country: override.country || override.countryInput,
@@ -1511,7 +1516,9 @@ function buildOverridePoint(override: {
         region: override.region || null,
         lat: override.lat,
         lng: override.lng,
-        matchLevel: "REGION"
+        matchLevel: "REGION",
+        isOverride: true,
+        searchText: override.searchText
     };
 }
 
@@ -1655,7 +1662,48 @@ router.post("/origin-map/refine/apply", async function (req: Request, res: Respo
             }
         });
 
-        res.json({ ok: true, message: "Map pin was refined.", preview: preview });
+        res.json({ ok: true, message: "Map location was saved.", preview: preview });
+    } catch (error) {
+        next(error);
+    }
+});
+
+router.post("/origin-map/refine/reset", async function (req: Request, res: Response, next: NextFunction) {
+    try {
+        const userId = getRequiredUserId(req);
+        const beanId = toOptionalPositiveInt(req.body.beanId);
+        const country = String(req.body.country || "").trim();
+
+        if (!beanId || !country) {
+            res.status(400).json({ ok: false, message: "Bean and country are required." });
+            return;
+        }
+
+        const bean = await getBeanForOriginMapRefine(userId, beanId);
+
+        if (!bean) {
+            res.status(404).json({ ok: false, message: "Bean was not found." });
+            return;
+        }
+
+        const validCountry = splitOriginCountryValues(bean.country).some(function (countryPart) {
+            return normalizeOriginMapText(countryPart) === normalizeOriginMapText(country);
+        });
+
+        if (!validCountry) {
+            res.status(400).json({ ok: false, message: "Selected country does not belong to this bean." });
+            return;
+        }
+
+        await prisma.originMapPinOverride.deleteMany({
+            where: {
+                userId: userId,
+                coffeeBeanId: beanId,
+                countryKey: normalizeOriginMapText(country)
+            }
+        });
+
+        res.json({ ok: true, message: "Manual map location was reset." });
     } catch (error) {
         next(error);
     }
@@ -1696,6 +1744,7 @@ router.get("/origin-map", async function (req: Request, res: Response, next: Nex
                     select: {
                         countryKey: true,
                         countryInput: true,
+                        searchText: true,
                         country: true,
                         countryCode: true,
                         region: true,
@@ -1769,7 +1818,13 @@ router.get("/origin-map", async function (req: Request, res: Response, next: Nex
                     groupMap.set(key, group);
                 }
 
-                group.beans.push(beanItem);
+                group.beans.push({
+                    ...beanItem,
+                    canEditMapLocation: point.matchLevel === "COUNTRY" || point.isOverride === true,
+                    mapCountry: point.country,
+                    mapSearchText: point.searchText || bean.origin || "",
+                    mapLocationOverridden: point.isOverride === true
+                });
             }
         }
 
