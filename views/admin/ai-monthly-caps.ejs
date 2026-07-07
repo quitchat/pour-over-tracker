@@ -31,18 +31,16 @@
         Default Monthly AI Call Cap
     </div>
     <div class="card-body">
-        <form method="post" action="/admin/ai-monthly-caps/default" class="row g-3 align-items-end">
-            <div class="col-sm-6 col-md-4 col-lg-3">
-                <label for="defaultMonthlyCallCap" class="form-label">Default monthly call cap</label>
-                <input type="number" class="form-control" id="defaultMonthlyCallCap" name="defaultMonthlyCallCap" min="0" step="1" value="<%= defaultMonthlyCallCap %>" required>
-                <div class="form-text">Users set to Use Default Cap fall back to this value.</div>
-            </div>
-            <div class="col-sm-auto">
-                <button type="submit" class="btn btn-primary">
+        <form method="post" action="/admin/ai-monthly-caps/default" class="ai-default-cap-form">
+            <label for="defaultMonthlyCallCap" class="form-label">Default monthly call cap</label>
+            <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center">
+                <input type="number" class="form-control ai-default-cap-input" id="defaultMonthlyCallCap" name="defaultMonthlyCallCap" min="0" step="1" value="<%= defaultMonthlyCallCap %>" required>
+                <button type="submit" class="btn btn-primary flex-shrink-0">
                     <i class="bi bi-save me-1"></i>
                     Save Default Cap
                 </button>
             </div>
+            <div class="form-text">Users set to Use Default Cap fall back to this value.</div>
         </form>
     </div>
 </div>
@@ -61,7 +59,6 @@
             <thead>
                 <tr>
                     <th>User</th>
-                    <th>Status</th>
                     <th>AI</th>
                     <th>Usage This Month</th>
                     <th style="min-width: 360px;">Monthly Cap</th>
@@ -70,22 +67,20 @@
             <tbody>
                 <% if (users.length === 0) { %>
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">No users found.</td>
+                        <td colspan="4" class="text-center text-muted py-4">No users found.</td>
                     </tr>
                 <% } %>
 
                 <% users.forEach(function (user) { %>
                     <tr>
                         <td data-label="User">
-                            <div class="fw-semibold"><%= user.displayName || "(No display name)" %></div>
+                            <div class="fw-semibold d-flex align-items-center gap-2 flex-wrap">
+                                <span><%= user.displayName || "(No display name)" %></span>
+                                <% if (!user.isActive) { %>
+                                    <span class="badge text-bg-danger">Inactive</span>
+                                <% } %>
+                            </div>
                             <div class="text-muted small"><%= user.email %></div>
-                        </td>
-                        <td data-label="Status">
-                            <% if (user.isActive) { %>
-                                <span class="badge text-bg-success">Active</span>
-                            <% } else { %>
-                                <span class="badge text-bg-danger">Inactive</span>
-                            <% } %>
                         </td>
                         <td data-label="AI">
                             <div class="d-flex flex-column gap-2 align-items-start">
@@ -106,9 +101,6 @@
                         </td>
                         <td data-label="Usage This Month">
                             <div class="fw-semibold <%= user.isAtOrOverCap ? 'text-danger' : '' %>"><%= user.usageLabel %></div>
-                            <div class="text-muted small">
-                                <%= user.displayName || user.email %> · <%= user.allowAi ? 'AI enabled' : 'AI off' %> · <%= user.usageLabel %>
-                            </div>
                         </td>
                         <td data-label="Monthly Cap">
                             <form method="post" action="/admin/ai-monthly-caps/users/<%= user.id %>" class="ai-cap-form">
@@ -146,6 +138,26 @@
     .admin-ai-cap-table .form-select,
     .admin-ai-cap-table .form-control {
         vertical-align: middle;
+    }
+
+    .ai-default-cap-input {
+        max-width: 14rem;
+    }
+
+    @media (max-width: 575.98px) {
+        .ai-default-cap-input {
+            max-width: none;
+        }
+    }
+
+    .ai-default-cap-input {
+        max-width: 14rem;
+    }
+
+    @media (max-width: 575.98px) {
+        .ai-default-cap-input {
+            max-width: none;
+        }
     }
 
     @media (max-width: 767.98px) {

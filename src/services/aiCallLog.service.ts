@@ -585,7 +585,7 @@ export async function getAiMonthlyCapStatusForUser(userId: number, now: Date = n
             ? `Default ${finalEffectiveCap}`
             : String(finalEffectiveCap);
     const usageLabel = isUnlimited
-        ? `${usedThisMonth} / No Cap`
+        ? `${usedThisMonth} / +∞`
         : `${usedThisMonth} / ${capLabel}`;
 
     return {
