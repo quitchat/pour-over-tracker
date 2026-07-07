@@ -836,6 +836,78 @@ async function upsertRoasterAlias(tx: Prisma.TransactionClient, userId: number, 
 }
 
 
+
+async function normalizeRoasterAliasesForConsolidation(
+    tx: Prisma.TransactionClient,
+    userId: number,
+    sourceRoasterNames: string[],
+    preferredRoasterName: string
+): Promise<number> {
+    const normalizedPreferredName = normalizeRoasterAliasKey(preferredRoasterName);
+    const normalizedSourceNames = sourceRoasterNames
+        .map(function (sourceRoasterName) {
+            return normalizeRoasterAliasKey(sourceRoasterName);
+        })
+        .filter(function (sourceRoasterName) {
+            return sourceRoasterName.length > 0;
+        });
+    const normalizedSourceNameSet = new Set(normalizedSourceNames);
+
+    if (!normalizedPreferredName || normalizedSourceNames.length === 0) {
+        return 0;
+    }
+
+    const aliases = await (tx as any).roasterAlias.findMany({
+        where: {
+            userId: userId
+        },
+        select: {
+            id: true,
+            aliasName: true,
+            preferredName: true,
+            normalizedAlias: true
+        }
+    });
+
+    let deletedAliasCount = 0;
+
+    for (const alias of aliases as Array<{ id: number; aliasName: string; preferredName: string; normalizedAlias: string }>) {
+        const normalizedAliasName = alias.normalizedAlias || normalizeRoasterAliasKey(alias.aliasName);
+        const normalizedAliasPreferredName = normalizeRoasterAliasKey(alias.preferredName);
+
+        if (!normalizedAliasName || !normalizedAliasPreferredName) {
+            continue;
+        }
+
+        const isSelfAlias = normalizedAliasName === normalizedAliasPreferredName;
+        const isAliasOfNewPreferredName = normalizedAliasName === normalizedPreferredName;
+        const pointsToSelectedSource = normalizedSourceNameSet.has(normalizedAliasPreferredName);
+
+        if (isSelfAlias || isAliasOfNewPreferredName) {
+            await (tx as any).roasterAlias.delete({
+                where: {
+                    id: alias.id
+                }
+            });
+            deletedAliasCount += 1;
+            continue;
+        }
+
+        if (pointsToSelectedSource) {
+            await (tx as any).roasterAlias.update({
+                where: {
+                    id: alias.id
+                },
+                data: {
+                    preferredName: preferredRoasterName
+                }
+            });
+        }
+    }
+
+    return deletedAliasCount;
+}
+
 async function getRoasterConsolidationOptions(userId: number): Promise<RoasterConsolidationOption[]> {
     const beans = await prisma.coffeeBean.findMany({
         where: {
@@ -1138,6 +1210,7 @@ router.post("/roasters/consolidate", async function (req: Request, res: Response
 
     const consolidationResult = await prisma.$transaction(async function (tx: Prisma.TransactionClient) {
         let aliasCount = 0;
+        const cleanedAliasCount = await normalizeRoasterAliasesForConsolidation(tx, userId, sourceRoasterNames, canonicalRoasterName);
 
         for (const sourceRoasterName of sourceRoasterNames) {
             const aliasWasSaved = await upsertRoasterAlias(tx, userId, sourceRoasterName, canonicalRoasterName);
@@ -1161,7 +1234,8 @@ router.post("/roasters/consolidate", async function (req: Request, res: Response
 
         return {
             beanCount: updateResult.count,
-            aliasCount: aliasCount
+            aliasCount: aliasCount,
+            cleanedAliasCount: cleanedAliasCount
         };
     });
 

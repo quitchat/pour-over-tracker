@@ -211,14 +211,14 @@
                     <table class="table table-sm align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Old / Alternate Name</th>
+                                <th class="ps-3">Old / Alternate Name</th>
                                 <th>Preferred Roaster Name</th>
                             </tr>
                         </thead>
                         <tbody>
                             <% aliases.forEach(function (alias) { %>
                                 <tr>
-                                    <td><%= alias.aliasName %></td>
+                                    <td class="ps-3"><%= alias.aliasName %></td>
                                     <td class="fw-semibold"><%= alias.preferredName %></td>
                                 </tr>
                             <% }); %>

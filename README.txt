@@ -222,4 +222,4 @@ Optional filters are available through the underlying script, such as `--user-id
 
 - Guided Pour Plan action buttons now use the same fixed square size as the neighboring method control height on mobile and desktop.
 
-- User-level roaster consolidation now captures selected old names before updating beans, skips old=preferred self-aliases, and cleans invalid self-alias rows.
+- User-level roaster consolidation captures selected old names before updating beans, prevents reverse alias cycles such as A → B and B → A, updates existing alias links when a preferred roaster is moved, and includes a cleanup migration that clears prior alias links so they can be rebuilt correctly.
