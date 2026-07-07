@@ -19,7 +19,12 @@ import {
     formatEstimatedCost,
     getInputCostPer1MTokens,
     getOutputCostPer1MTokens,
-    getWebSearchCostPer1KCalls
+    getWebSearchCostPer1KCalls,
+    AI_MONTHLY_CAP_MODES,
+    AI_MONTHLY_CAP_SETTING_KEY,
+    ensureAiMonthlyCallCapSetting,
+    getAiMonthlyCapStatusForUser,
+    getCurrentAiMonthlyUsageStart
 } from "../services/aiCallLog.service";
 
 const router = Router();
@@ -72,6 +77,37 @@ function parseNonNegativeDecimal(value: string): number | null {
     }
 
     return parsed;
+}
+
+
+function parseMonthlyCallCap(value: string): number | null {
+    const parsed = Number(value);
+
+    if (!Number.isInteger(parsed) || parsed < 0) {
+        return null;
+    }
+
+    return parsed;
+}
+
+function normalizeAiMonthlyCapMode(value: string): string {
+    if (value === AI_MONTHLY_CAP_MODES.custom || value === AI_MONTHLY_CAP_MODES.noCap || value === AI_MONTHLY_CAP_MODES.useDefault) {
+        return value;
+    }
+
+    return AI_MONTHLY_CAP_MODES.useDefault;
+}
+
+function formatAiMonthlyCapModeLabel(value: string): string {
+    if (value === AI_MONTHLY_CAP_MODES.noCap) {
+        return "No Cap";
+    }
+
+    if (value === AI_MONTHLY_CAP_MODES.custom) {
+        return "Custom Cap";
+    }
+
+    return "Use Default Cap";
 }
 
 function getPromptStatusMessage(req: Request): string {
@@ -144,6 +180,131 @@ router.get("/ai", async function (req: Request, res: Response) {
         outputCostPer1MTokens: formatCostNumber(outputCostPer1MTokens),
         webSearchCostPer1KCalls: formatCostNumber(webSearchCostPer1KCalls)
     });
+});
+
+router.get("/ai-monthly-caps", async function (req: Request, res: Response) {
+    await ensureAiMonthlyCallCapSetting();
+
+    const currentMonthStart = getCurrentAiMonthlyUsageStart();
+    const [setting, usersFromDatabase] = await Promise.all([
+        prisma.aiMonthlyCallCapSetting.findUnique({
+            where: {
+                key: AI_MONTHLY_CAP_SETTING_KEY
+            }
+        }),
+        prisma.user.findMany({
+            orderBy: [
+                {
+                    isActive: "desc"
+                },
+                {
+                    displayName: "asc"
+                },
+                {
+                    email: "asc"
+                }
+            ],
+            select: {
+                id: true,
+                email: true,
+                displayName: true,
+                role: true,
+                isActive: true,
+                allowAi: true,
+                aiMonthlyCapMode: true,
+                aiMonthlyCallCap: true
+            }
+        })
+    ]);
+
+    const users = await Promise.all(usersFromDatabase.map(async function (user: any) {
+        const capStatus = await getAiMonthlyCapStatusForUser(user.id);
+
+        return {
+            id: user.id,
+            email: user.email,
+            displayName: user.displayName || "",
+            role: user.role,
+            isActive: user.isActive,
+            allowAi: user.allowAi,
+            capMode: capStatus.capMode,
+            capModeLabel: formatAiMonthlyCapModeLabel(capStatus.capMode),
+            customMonthlyCallCap: capStatus.customMonthlyCallCap === null ? "" : String(capStatus.customMonthlyCallCap),
+            usedThisMonth: capStatus.usedThisMonth,
+            capLabel: capStatus.capLabel,
+            usageLabel: capStatus.usageLabel,
+            isUnlimited: capStatus.isUnlimited,
+            isAtOrOverCap: capStatus.isAtOrOverCap
+        };
+    }));
+
+    res.render("admin/ai-monthly-caps", {
+        title: "Admin - AI Monthly Caps",
+        users: users,
+        defaultMonthlyCallCap: setting ? setting.defaultMonthlyCallCap : 25,
+        currentMonthStart: formatDateTime(currentMonthStart),
+        message: String(req.query.message || ""),
+        error: String(req.query.error || "")
+    });
+});
+
+router.post("/ai-monthly-caps/default", async function (req: Request, res: Response) {
+    const currentAdmin = getCurrentAdminFromLocals(res);
+    const defaultCap = parseMonthlyCallCap(String(req.body.defaultMonthlyCallCap || "").trim());
+
+    if (defaultCap === null) {
+        res.redirect("/admin/ai-monthly-caps?error=Default%20monthly%20AI%20call%20cap%20must%20be%200%20or%20a%20positive%20whole%20number.");
+        return;
+    }
+
+    await prisma.aiMonthlyCallCapSetting.upsert({
+        where: {
+            key: AI_MONTHLY_CAP_SETTING_KEY
+        },
+        create: {
+            key: AI_MONTHLY_CAP_SETTING_KEY,
+            defaultMonthlyCallCap: defaultCap,
+            updatedByUserId: currentAdmin ? currentAdmin.id : null,
+            updatedByEmail: currentAdmin ? currentAdmin.email : null
+        },
+        update: {
+            defaultMonthlyCallCap: defaultCap,
+            updatedByUserId: currentAdmin ? currentAdmin.id : null,
+            updatedByEmail: currentAdmin ? currentAdmin.email : null
+        }
+    });
+
+    res.redirect("/admin/ai-monthly-caps?message=Default%20monthly%20AI%20call%20cap%20saved.");
+});
+
+router.post("/ai-monthly-caps/users/:id", async function (req: Request, res: Response) {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+        res.redirect("/admin/ai-monthly-caps?error=Invalid%20user.");
+        return;
+    }
+
+    const capMode = normalizeAiMonthlyCapMode(String(req.body.capMode || ""));
+    const customCapRaw = String(req.body.customMonthlyCallCap || "").trim();
+    const customCap = customCapRaw ? parseMonthlyCallCap(customCapRaw) : null;
+
+    if (capMode === AI_MONTHLY_CAP_MODES.custom && customCap === null) {
+        res.redirect("/admin/ai-monthly-caps?error=Custom%20monthly%20AI%20call%20cap%20must%20be%200%20or%20a%20positive%20whole%20number.");
+        return;
+    }
+
+    await prisma.user.update({
+        where: {
+            id: id
+        },
+        data: {
+            aiMonthlyCapMode: capMode,
+            aiMonthlyCallCap: capMode === AI_MONTHLY_CAP_MODES.custom ? customCap : null
+        }
+    });
+
+    res.redirect("/admin/ai-monthly-caps?message=User%20AI%20monthly%20cap%20saved.");
 });
 
 router.get("/ai-cost-settings", async function (req: Request, res: Response) {

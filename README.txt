@@ -20,6 +20,7 @@
 - User activation/deactivation controls
 - Deactivated-user access restriction
 - Per-user AI access permission
+- Per-user AI monthly call cap controls with Use Default Cap and No Cap options
 - Admin-only AI access enablement
 - Per-user temperature unit preference during signup and profile editing
 - Per-user timezone preference during signup and profile editing, with popular worldwide timezone options for new-brew date defaults
@@ -147,6 +148,7 @@
 - Null/empty-value handling for unsupported fields
 - Admin-managed Bean Detail AI prompt
 - Per-user AI feature availability controls
+- Admin-managed default monthly AI call cap
 
 ## Admin Database Backup
 
@@ -168,6 +170,8 @@
 - Estimated AI cost tracking
 - Input token, output token, and total token tracking
 - Token label format: `Tokens (input/output/total)`
+- Admin-configurable AI monthly call caps, including default cap, custom per-user caps, Use Default Cap, and No Cap
+- Monthly AI usage enforcement based on AI call logs
 - Admin-configurable AI cost settings:
   - Web/tool call base cost
   - Input token cost per 1M tokens

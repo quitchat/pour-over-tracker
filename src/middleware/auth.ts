@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
+import { getAiMonthlyCapStatusForUser } from "../services/aiCallLog.service";
 
 type CurrentUser = {
     id: number;
@@ -8,6 +9,8 @@ type CurrentUser = {
     role: string;
     isActive: boolean;
     allowAi: boolean;
+    aiMonthlyCapMode?: string;
+    aiMonthlyCallCap?: number | null;
     temperatureUnit: string;
     timeZone: string;
     preferredCurrencyCode: string;
@@ -54,6 +57,8 @@ export async function loadCurrentUser(req: Request, res: Response, next: NextFun
                 role: true,
                 isActive: true,
                 allowAi: true,
+                aiMonthlyCapMode: true,
+                aiMonthlyCallCap: true,
                 temperatureUnit: true,
                 timeZone: true,
                 preferredCurrencyCode: true,
@@ -136,28 +141,58 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
     next();
 }
 
-export function requireAiAccess(req: Request, res: Response, next: NextFunction): void {
+export async function requireAiAccess(req: Request, res: Response, next: NextFunction): Promise<void> {
     const currentUser = res.locals.currentUser as CurrentUser | null | undefined;
 
-    if (currentUser && currentUser.isActive && currentUser.allowAi) {
-        next();
-        return;
-    }
+    if (!currentUser || !currentUser.isActive || !currentUser.allowAi) {
+        if (isApiRequest(req)) {
+            res.status(403).json({
+                ok: false,
+                message: "AI access is not enabled for your account.",
+                errorMessage: "AI access is not enabled for your account."
+            });
 
-    if (isApiRequest(req)) {
-        res.status(403).json({
-            ok: false,
-            message: "AI access is not enabled for your account.",
-            errorMessage: "AI access is not enabled for your account."
+            return;
+        }
+
+        res.status(403).render("error", {
+            title: "AI Access Disabled",
+            message: "AI access is not enabled for your account."
         });
 
         return;
     }
 
-    res.status(403).render("error", {
-        title: "AI Access Disabled",
-        message: "AI access is not enabled for your account."
-    });
+    try {
+        const capStatus = await getAiMonthlyCapStatusForUser(currentUser.id);
+
+        if (capStatus.isAtOrOverCap) {
+            const message = `Your monthly AI call cap has been reached (${capStatus.usageLabel}).`;
+
+            if (isApiRequest(req)) {
+                res.status(429).json({
+                    ok: false,
+                    message: message,
+                    errorMessage: message,
+                    usedThisMonth: capStatus.usedThisMonth,
+                    monthlyCallCap: capStatus.effectiveMonthlyCallCap
+                });
+
+                return;
+            }
+
+            res.status(429).render("error", {
+                title: "AI Monthly Cap Reached",
+                message: message
+            });
+
+            return;
+        }
+
+        next();
+    } catch (error) {
+        next(error);
+    }
 }
 
 export function getRequiredUserId(req: Request): number {

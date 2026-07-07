@@ -15,6 +15,8 @@ model User {
   role          String        @default("User")
   isActive      Boolean       @default(true)
   allowAi       Boolean       @default(false)
+  aiMonthlyCapMode String     @default("USE_DEFAULT")
+  aiMonthlyCallCap Int?
   temperatureUnit String       @default("C")
   timeZone      String        @default("America/Los_Angeles")
   preferredCurrencyCode String @default("USD")
@@ -34,12 +36,14 @@ model User {
   brewers       Brewer[]
   brewSessions  BrewSession[]
   aiCallLogs   AiCallLog[]
+  aiMonthlyCallCapSettings AiMonthlyCallCapSetting[] @relation("AiMonthlyCallCapSettingUpdatedBy")
   passwordResetTokens PasswordResetToken[]
   roasterAliases RoasterAlias[]
 
   @@index([role])
   @@index([isActive])
   @@index([allowAi])
+  @@index([aiMonthlyCapMode])
   @@index([temperatureUnit])
   @@index([timeZone])
 }
@@ -117,6 +121,22 @@ model BrewSuggestionAiPrompt {
 }
 
 
+
+
+model AiMonthlyCallCapSetting {
+  id                Int      @id @default(autoincrement())
+  key               String   @unique
+  defaultMonthlyCallCap Int  @default(25)
+  updatedByUserId   Int?
+  updatedByEmail    String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  updatedByUser     User?    @relation("AiMonthlyCallCapSettingUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([key])
+  @@index([updatedByUserId])
+}
 
 model AiCostSetting {
   id              Int      @id @default(autoincrement())

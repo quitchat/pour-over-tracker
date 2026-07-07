@@ -466,3 +466,138 @@ export async function finishAiCallLog(args: {
         // AI call logging should never block the actual AI feature.
     }
 }
+
+export const AI_MONTHLY_CAP_SETTING_KEY = "default";
+export const DEFAULT_AI_MONTHLY_CALL_CAP = 25;
+export const AI_MONTHLY_CAP_MODES = {
+    useDefault: "USE_DEFAULT",
+    custom: "CUSTOM",
+    noCap: "NO_CAP"
+} as const;
+
+export type AiMonthlyCapMode = "USE_DEFAULT" | "CUSTOM" | "NO_CAP";
+
+export type AiMonthlyCapStatus = {
+    userId: number;
+    usedThisMonth: number;
+    defaultMonthlyCallCap: number;
+    capMode: AiMonthlyCapMode;
+    customMonthlyCallCap: number | null;
+    effectiveMonthlyCallCap: number | null;
+    capLabel: string;
+    usageLabel: string;
+    isUnlimited: boolean;
+    isAtOrOverCap: boolean;
+};
+
+function normalizeMonthlyCap(value: unknown): number | null {
+    const parsed = Number(value);
+
+    if (!Number.isInteger(parsed) || parsed < 0) {
+        return null;
+    }
+
+    return parsed;
+}
+
+function normalizeMonthlyCapMode(value: string | null | undefined): AiMonthlyCapMode {
+    if (value === AI_MONTHLY_CAP_MODES.custom || value === AI_MONTHLY_CAP_MODES.noCap || value === AI_MONTHLY_CAP_MODES.useDefault) {
+        return value;
+    }
+
+    return AI_MONTHLY_CAP_MODES.useDefault;
+}
+
+export function getCurrentAiMonthlyUsageStart(now: Date = new Date()): Date {
+    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+}
+
+export async function ensureAiMonthlyCallCapSetting(): Promise<void> {
+    await prisma.aiMonthlyCallCapSetting.upsert({
+        where: {
+            key: AI_MONTHLY_CAP_SETTING_KEY
+        },
+        create: {
+            key: AI_MONTHLY_CAP_SETTING_KEY,
+            defaultMonthlyCallCap: DEFAULT_AI_MONTHLY_CALL_CAP
+        },
+        update: {}
+    });
+}
+
+export async function getDefaultAiMonthlyCallCap(): Promise<number> {
+    await ensureAiMonthlyCallCapSetting();
+
+    const setting = await prisma.aiMonthlyCallCapSetting.findUnique({
+        where: {
+            key: AI_MONTHLY_CAP_SETTING_KEY
+        },
+        select: {
+            defaultMonthlyCallCap: true
+        }
+    });
+
+    const cap = normalizeMonthlyCap(setting ? setting.defaultMonthlyCallCap : null);
+
+    return cap === null ? DEFAULT_AI_MONTHLY_CALL_CAP : cap;
+}
+
+export async function getAiMonthlyCallCountForUser(userId: number, now: Date = new Date()): Promise<number> {
+    return prisma.aiCallLog.count({
+        where: {
+            userId: userId,
+            startedAt: {
+                gte: getCurrentAiMonthlyUsageStart(now)
+            }
+        }
+    });
+}
+
+export async function getAiMonthlyCapStatusForUser(userId: number, now: Date = new Date()): Promise<AiMonthlyCapStatus> {
+    const [defaultMonthlyCallCap, usedThisMonth, user] = await Promise.all([
+        getDefaultAiMonthlyCallCap(),
+        getAiMonthlyCallCountForUser(userId, now),
+        prisma.user.findUnique({
+            where: {
+                id: userId
+            },
+            select: {
+                aiMonthlyCapMode: true,
+                aiMonthlyCallCap: true
+            }
+        })
+    ]);
+
+    const capMode = normalizeMonthlyCapMode(user ? user.aiMonthlyCapMode : null);
+    const customMonthlyCallCap = normalizeMonthlyCap(user ? user.aiMonthlyCallCap : null);
+    const effectiveMonthlyCallCap = capMode === AI_MONTHLY_CAP_MODES.noCap
+        ? null
+        : capMode === AI_MONTHLY_CAP_MODES.custom
+            ? customMonthlyCallCap
+            : defaultMonthlyCallCap;
+    const finalEffectiveCap = capMode === AI_MONTHLY_CAP_MODES.custom && effectiveMonthlyCallCap === null
+        ? defaultMonthlyCallCap
+        : effectiveMonthlyCallCap;
+    const isUnlimited = finalEffectiveCap === null;
+    const capLabel = isUnlimited
+        ? "No Cap"
+        : capMode === AI_MONTHLY_CAP_MODES.useDefault
+            ? `Default ${finalEffectiveCap}`
+            : String(finalEffectiveCap);
+    const usageLabel = isUnlimited
+        ? `${usedThisMonth} / No Cap`
+        : `${usedThisMonth} / ${capLabel}`;
+
+    return {
+        userId: userId,
+        usedThisMonth: usedThisMonth,
+        defaultMonthlyCallCap: defaultMonthlyCallCap,
+        capMode: capMode,
+        customMonthlyCallCap: customMonthlyCallCap,
+        effectiveMonthlyCallCap: finalEffectiveCap,
+        capLabel: capLabel,
+        usageLabel: usageLabel,
+        isUnlimited: isUnlimited,
+        isAtOrOverCap: !isUnlimited && usedThisMonth >= (finalEffectiveCap || 0)
+    };
+}
