@@ -705,11 +705,22 @@ router.get("/users", async function (req: Request, res: Response) {
     });
 });
 
+function getAiAccessReturnUrl(req: Request): string {
+    const returnTo = String(req.body.returnTo || "");
+
+    if (returnTo === "/admin/ai-monthly-caps") {
+        return "/admin/ai-monthly-caps";
+    }
+
+    return "/admin/users";
+}
+
 router.post("/users/:id/enable-ai", async function (req: Request, res: Response) {
     const id = Number(req.params.id);
+    const returnUrl = getAiAccessReturnUrl(req);
 
     if (!Number.isInteger(id) || id <= 0) {
-        res.redirect("/admin/users?error=Invalid%20user.");
+        res.redirect(returnUrl + "?error=Invalid%20user.");
         return;
     }
 
@@ -722,14 +733,15 @@ router.post("/users/:id/enable-ai", async function (req: Request, res: Response)
         }
     });
 
-    res.redirect("/admin/users?message=AI%20access%20enabled.");
+    res.redirect(returnUrl + "?message=AI%20access%20enabled.");
 });
 
 router.post("/users/:id/disable-ai", async function (req: Request, res: Response) {
     const id = Number(req.params.id);
+    const returnUrl = getAiAccessReturnUrl(req);
 
     if (!Number.isInteger(id) || id <= 0) {
-        res.redirect("/admin/users?error=Invalid%20user.");
+        res.redirect(returnUrl + "?error=Invalid%20user.");
         return;
     }
 
@@ -742,7 +754,7 @@ router.post("/users/:id/disable-ai", async function (req: Request, res: Response
         }
     });
 
-    res.redirect("/admin/users?message=AI%20access%20disabled.");
+    res.redirect(returnUrl + "?message=AI%20access%20disabled.");
 });
 
 router.post("/users/:id/deactivate", async function (req: Request, res: Response) {

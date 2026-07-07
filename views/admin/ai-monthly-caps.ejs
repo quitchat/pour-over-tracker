@@ -92,11 +92,13 @@
                                 <% if (user.allowAi) { %>
                                     <span class="badge text-bg-success">AI enabled</span>
                                     <form method="post" action="/admin/users/<%= user.id %>/disable-ai">
+                                        <input type="hidden" name="returnTo" value="/admin/ai-monthly-caps">
                                         <button type="submit" class="btn btn-sm btn-outline-warning">Disable AI</button>
                                     </form>
                                 <% } else { %>
                                     <span class="badge text-bg-secondary">AI off</span>
                                     <form method="post" action="/admin/users/<%= user.id %>/enable-ai">
+                                        <input type="hidden" name="returnTo" value="/admin/ai-monthly-caps">
                                         <button type="submit" class="btn btn-sm btn-outline-success">Enable AI</button>
                                     </form>
                                 <% } %>
@@ -119,9 +121,9 @@
                                             <option value="NO_CAP" <%= user.capMode === 'NO_CAP' ? 'selected' : '' %>>No Cap</option>
                                         </select>
                                     </div>
-                                    <div class="col-7 col-md-4">
+                                    <div class="col-7 col-md-4 ai-custom-cap-wrap <%= user.capMode === 'CUSTOM' ? '' : 'd-none' %>">
                                         <label class="form-label small mb-1" for="customMonthlyCallCap-<%= user.id %>">AI Call Cap / Month</label>
-                                        <input type="number" class="form-control form-control-sm" id="customMonthlyCallCap-<%= user.id %>" name="customMonthlyCallCap" min="0" step="1" value="<%= user.customMonthlyCallCap %>" placeholder="Default <%= defaultMonthlyCallCap %>">
+                                        <input type="number" class="form-control form-control-sm ai-custom-cap-input" id="customMonthlyCallCap-<%= user.id %>" name="customMonthlyCallCap" min="0" step="1" value="<%= user.customMonthlyCallCap %>" placeholder="Default <%= defaultMonthlyCallCap %>" <%= user.capMode === 'CUSTOM' ? '' : 'disabled' %>>
                                     </div>
                                     <div class="col-5 col-md-3">
                                         <button type="submit" class="btn btn-sm btn-primary w-100">Save</button>
@@ -152,3 +154,37 @@
         }
     }
 </style>
+
+<script>
+    (function () {
+        function updateCustomCapField(form) {
+            const modeSelect = form.querySelector('select[name="capMode"]');
+            const customCapWrap = form.querySelector('.ai-custom-cap-wrap');
+            const customCapInput = form.querySelector('.ai-custom-cap-input');
+
+            if (!modeSelect || !customCapWrap || !customCapInput) {
+                return;
+            }
+
+            const isCustom = modeSelect.value === 'CUSTOM';
+            customCapWrap.classList.toggle('d-none', !isCustom);
+            customCapInput.disabled = !isCustom;
+
+            if (!isCustom) {
+                customCapInput.value = '';
+            }
+        }
+
+        document.querySelectorAll('.ai-cap-form').forEach(function (form) {
+            updateCustomCapField(form);
+
+            const modeSelect = form.querySelector('select[name="capMode"]');
+            if (modeSelect) {
+                modeSelect.addEventListener('change', function () {
+                    updateCustomCapField(form);
+                });
+            }
+        });
+    })();
+</script>
+
