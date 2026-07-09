@@ -110,7 +110,7 @@
                                     <% if (group.countryCode) { %>
                                         <img class="origin-country-flag" src="<%= flagUrl(group.countryCode) %>" width="24" height="18" alt="<%= group.country %> flag" loading="lazy">
                                     <% } %>
-                                    <%= group.country %><% if (group.region) { %> · <%= group.region %><% } %>
+                                    <%= group.country %><% if (group.matchLevel === "COUNTRY") { %><i class="bi bi-question-diamond-fill text-warning ms-1 origin-map-fuzzy-icon" title="Country-level fallback. Exact region was not matched." aria-label="Country-level fallback"></i><% } %><% if (group.region) { %> · <%= group.region %><% } %>
                                 </div>
                                 <div class="small text-muted">
                                     <%= group.matchLevel === "REGION" ? "Region-level match" : "Country-level fallback" %>
@@ -276,6 +276,11 @@
         text-decoration: underline;
     }
 
+    .origin-map-fuzzy-icon {
+        font-size: 0.9em;
+        vertical-align: 0.02em;
+    }
+
     @media (max-width: 767.98px) {
         .origin-map {
             min-height: 26rem;
@@ -338,7 +343,11 @@
     }
 
     function buildPopupHtml(group) {
-        const title = group.region ? group.country + " · " + group.region : group.country;
+        const isCountryFallback = group.matchLevel === "COUNTRY";
+        const fuzzyIcon = isCountryFallback
+            ? ' <i class="bi bi-question-diamond-fill text-warning origin-map-fuzzy-icon" title="Country-level fallback. Exact region was not matched." aria-label="Country-level fallback"></i>'
+            : '';
+        const titleHtml = escapeHtml(group.country) + fuzzyIcon + (group.region ? " · " + escapeHtml(group.region) : "");
         const matchText = group.matchLevel === "REGION" ? "Region-level match" : "Country-level fallback";
         const beanItems = group.beans.slice(0, 8).map(function (bean) {
             const roaster = bean.roasterName ? ' <span class="text-muted">(' + escapeHtml(bean.roasterName) + ')</span>' : '';
@@ -358,7 +367,7 @@
         const extraCount = group.beans.length > 8 ? '<div class="small text-muted mt-1">+' + (group.beans.length - 8) + ' more</div>' : '';
 
         return '<div class="origin-map-popup">' +
-            '<div class="origin-map-popup-title">' + escapeHtml(title) + '</div>' +
+            '<div class="origin-map-popup-title">' + titleHtml + '</div>' +
             '<div class="origin-map-popup-meta">' + matchText + ' · ' + group.beanCount + ' bean' + (group.beanCount === 1 ? '' : 's') + '</div>' +
             '<ul class="origin-map-popup-list">' + beanItems + '</ul>' +
             extraCount +
