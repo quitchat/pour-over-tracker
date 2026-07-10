@@ -562,6 +562,11 @@
                 After choosing the bean, equipment, and bean weight, record the core brew variables here.
             </p>
 
+            <div class="alert alert-info small d-none" id="bestBrewCommentsReference" role="status">
+                <div class="fw-semibold mb-1">Best Brew Comments</div>
+                <div id="bestBrewCommentsReferenceText"></div>
+            </div>
+
             <div class="row g-3">
                 <div class="brew-quick-field col-md-4">
                     <label for="grindSize" class="form-label">Grind Size</label>
@@ -1980,6 +1985,26 @@
             return true;
         }
 
+        function showBestBrewCommentsReference(comments) {
+            const container = document.getElementById("bestBrewCommentsReference");
+            const textElement = document.getElementById("bestBrewCommentsReferenceText");
+
+            if (!container || !textElement) {
+                return;
+            }
+
+            const commentText = String(comments || "").trim();
+
+            if (!commentText) {
+                container.classList.add("d-none");
+                textElement.textContent = "";
+                return;
+            }
+
+            textElement.textContent = commentText;
+            container.classList.remove("d-none");
+        }
+
         function applyBestBrewToForm(bestBrew) {
             if (!bestBrew) {
                 return;
@@ -1999,6 +2024,8 @@
                     setElementValue("pourStructure", pourStructure);
                 }
             }
+
+            showBestBrewCommentsReference(bestBrew.brewComments || "");
         }
 
         async function loadBestBrew() {

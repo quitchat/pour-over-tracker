@@ -1051,7 +1051,8 @@ function mapBestBrewForJson(brew: any, temperatureUnit: TemperatureUnit) {
         waterTemperatureC: formatTemperatureDecimalForInput(brew.waterTemperatureC, temperatureUnit),
         totalBrewTimeMinutes: minutes,
         totalBrewTimeSeconds: seconds,
-        pourStructure: brew.pourStructure || ""
+        pourStructure: brew.pourStructure || "",
+        brewComments: brew.notes || ""
     };
 }
 
