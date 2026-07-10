@@ -130,9 +130,17 @@ app.get("/", async function (req: Request, res: Response, next: NextFunction) {
                 where: {
                     userId: userId
                 },
-                orderBy: {
-                    brewDate: "desc"
-                },
+                orderBy: [
+                    {
+                        brewDate: "desc"
+                    },
+                    {
+                        createdAt: "desc"
+                    },
+                    {
+                        id: "desc"
+                    }
+                ],
                 take: 5,
                 include: {
                     coffeeBean: true,
