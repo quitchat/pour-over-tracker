@@ -297,11 +297,7 @@
                                             <span class="badge text-bg-info bean-status-badge">Decaf</span>
                                         <% } %>
 
-                                        <% if (bean.isActive) { %>
-                                            <span class="badge text-bg-success bean-status-badge">
-                                                Active
-                                            </span>
-                                        <% } else { %>
+                                        <% if (!bean.isActive) { %>
                                             <span class="badge text-bg-secondary bean-status-badge">
                                                 Inactive
                                             </span>
